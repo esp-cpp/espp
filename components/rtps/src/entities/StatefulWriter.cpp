@@ -312,6 +312,20 @@ void StatefulWriter::setAllChangesToUnsent() {
   }
 }
 
+bool StatefulWriter::addNewMatchedReader(const ReaderProxy &newProxy) {
+  std::lock_guard<std::recursive_mutex> lock(m_mutex);
+  if (!Writer::addNewMatchedReader(newProxy)) {
+    return false;
+  }
+  // The heartbeat (an empty one, first 1 / last 0, when nothing was written
+  // yet) is what the reader answers with the ACKNACK that acknowledges us.
+  m_nextHeartbeat = std::chrono::steady_clock::now();
+  if (m_protocolNudge) {
+    m_protocolNudge();
+  }
+  return true;
+}
+
 void StatefulWriter::onNewAckNack(const SubmessageAckNack &msg,
                                   const GuidPrefix_t &sourceGuidPrefix) {
   INIT_GUARD()
@@ -336,14 +350,35 @@ void StatefulWriter::onNewAckNack(const SubmessageAckNack &msg,
   }
 
   reader->ackNackCount = msg.count;
-  reader->acknowledged = true;
   reader->finalFlag = msg.header.finalFlag();
   reader->lastAckNackSequenceNumber = msg.readerSNState.base;
 
   rtps::SequenceNumber_t nextSN = msg.readerSNState.base;
 
-  // Preemptive ack nack
-  if (nextSN.low == 0 && nextSN.high == 0) {
+  // Cyclone DDS numbers the pre-emptive ACKNACK it sends on matching us 0 and
+  // every later one from 1: a count of 0 is a reader that has not processed a
+  // HEARTBEAT of ours yet. Such a reader has discovered us, but a change
+  // written for it now is announced by the FIRST heartbeat it processes, and
+  // a VOLATILE Cyclone reader takes everything that heartbeat announces for
+  // pre-match history and skips it. So it does not acknowledge us (see
+  // ReaderProxy::acknowledged): what waits for the acknowledgement - a
+  // service reply held for the requester's reply reader, a client's
+  // wait_for_server - waits for the ACKNACK the reader sends once it has a
+  // heartbeat, which the match itself (addNewMatchedReader) and this
+  // pre-emptive ACKNACK both trigger below. Fast DDS and this engine start
+  // their counts at 1; their pre-emptive ACKNACK acknowledges at once, and
+  // neither skips what its first heartbeat announces.
+  const bool preemptive = (nextSN.low == 0 && nextSN.high == 0) || msg.count.value == 0;
+  if (msg.count.value != 0) {
+    reader->acknowledged = true;
+  }
+
+  // Preemptive ack nack: answer with a HEARTBEAT now, even with an empty
+  // history (first 1, last 0: "nothing yet"). Cyclone repeats its pre-emptive
+  // ACKNACK every second until a heartbeat arrives, and a reader waiting for
+  // one cannot send the ACKNACK that acknowledges us. No ping-pong: the
+  // reader's answer to the heartbeat is numbered 1 or more.
+  if (preemptive) {
     SFW_LOG("Received preemptive acknack, sending heartbeat.");
     sendHeartBeat();
     return;

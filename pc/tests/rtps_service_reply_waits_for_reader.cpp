@@ -12,6 +12,15 @@
 // wait for that match before writing a response; so does this facade now,
 // up to Config::service_reply_match_timeout.
 //
+// The match alone is not enough against Cyclone DDS: a VOLATILE Cyclone
+// reader skips everything the first HEARTBEAT it PROCESSES announces, and
+// under loss (the same QEMU case, one call in 25) the reply was written
+// between the match and that heartbeat. Cyclone numbers the pre-emptive
+// ACKNACK it sends on matching 0 and the ones answering heartbeats from 1, so
+// the reply also waits for an ACKNACK numbered 1 or more (the reader's
+// acknowledgement, ReaderProxy::acknowledged), and the writer heartbeats a
+// new reader at once so there is one to answer.
+//
 // The server is a facade participant hosting a service; the "client" is a
 // peer built from hand-crafted datagrams sent from a UDP socket that is also
 // the peer's only locator, so it receives everything the server sends to it.
@@ -19,12 +28,19 @@
 //  1. control: the request (whose related sample identity names a reply
 //     reader not yet announced) is served within 1 s;
 //  2. no reply DATA leaves the writer while the reader is unknown (300 ms);
-//  3. once the reply reader is announced over SEDP, the reply DATA arrives
-//     within 1 s. Fails without the fix: the writer had no reader when the
-//     reply was written, so only its heartbeats ever reach the socket;
-//  4. with the reader matched, a second request's reply is written at once;
-//  5. a request naming a reader that is never announced is still answered:
-//     nothing for 300 ms, then (timeout 600 ms) the reply goes to the readers
+//  3. once the reply reader is announced over SEDP, the reply writer
+//     heartbeats it within 500 ms (an empty history: first 1, last 0) and
+//     still sends no reply DATA;
+//  4. a pre-emptive ACKNACK numbered 0 (Cyclone's) does not release the
+//     reply: nothing for 250 ms. Fails with the match alone;
+//  5. an ACKNACK numbered 1 (the answer to the heartbeat) does: the reply
+//     DATA arrives within 1 s. Fails without the hold: the writer had no
+//     reader when the reply was written, so only its heartbeats ever reach
+//     the socket;
+//  6. with the reader acknowledged, a second request's reply is written at
+//     once;
+//  7. a request naming a reader that is never announced is still answered:
+//     nothing for 300 ms, then (timeout 2 s) the reply goes to the readers
 //     the writer has, as before the hold existed.
 //
 // Exits 0 on success, 1 on the first failed check.
@@ -239,6 +255,34 @@ std::vector<uint8_t> data_message(const rtps::GuidPrefix_t &prefix, const rtps::
   return m;
 }
 
+// An RTPS message from `prefix` with one ACKNACK submessage: an empty set at
+// `base` (nothing missing, nothing requested), numbered `count`. Cyclone's
+// pre-emptive ACKNACK is base 1 / count 0; its answer to a heartbeat
+// announcing an empty history is base 1 / count 1.
+std::vector<uint8_t> acknack_message(const rtps::GuidPrefix_t &prefix,
+                                     const rtps::EntityId_t &reader, const rtps::EntityId_t &writer,
+                                     uint32_t base, uint32_t count) {
+  std::vector<uint8_t> m{'R',
+                         'T',
+                         'P',
+                         'S',
+                         rtps::PROTOCOLVERSION.major,
+                         rtps::PROTOCOLVERSION.minor,
+                         kFastDdsVendor[0],
+                         kFastDdsVendor[1]};
+  m.insert(m.end(), prefix.id.begin(), prefix.id.end());
+  m.push_back(static_cast<uint8_t>(rtps::SubmessageKind::ACKNACK));
+  m.push_back(rtps::FLAG_LITTLE_ENDIAN); // not final: keep the heartbeats coming
+  push_u16(m, 4 + 4 + 8 + 4 + 4);
+  push_entity_id(m, reader);
+  push_entity_id(m, writer);
+  push_u32(m, 0);    // SequenceNumberSet.base.high
+  push_u32(m, base); // SequenceNumberSet.base.low
+  push_u32(m, 0);    // numBits
+  push_u32(m, count);
+  return m;
+}
+
 // --- the peer's socket ------------------------------------------------------
 
 // The facade's participant id is whichever was free when it started; its
@@ -258,17 +302,30 @@ void send_to_ports(int sock, const rtps::Ip4AddressBytes &ip, bool metatraffic,
   }
 }
 
-// A reply the socket received: the DATA of a user writer, with the related
-// sample identity's sequence number from its inline QoS.
-struct ReplySeen {
-  uint32_t related_seq{0};
+// What the socket received from a user-defined writer: a reply DATA (with the
+// related sample identity's sequence number from its inline QoS) or a
+// HEARTBEAT (with its range and the writer it came from).
+enum class Kind { None, Data, Heartbeat };
+struct Seen {
+  Kind kind{Kind::None};
+  rtps::GuidPrefix_t prefix{}; ///< the server's
+  rtps::EntityId_t writer{};
+  uint32_t first{0}; ///< HEARTBEAT
+  uint32_t last{0};
+  uint32_t related_seq{0}; ///< DATA
   std::vector<uint8_t> payload;
 };
 
-// Scan one datagram for a DATA submessage from a user-defined writer.
-bool parse_reply(const uint8_t *buf, std::size_t n, ReplySeen &seen) {
+bool user_writer(uint8_t kind) {
+  return kind == static_cast<uint8_t>(rtps::EntityKind_t::USER_DEFINED_WRITER_WITHOUT_KEY) ||
+         kind == static_cast<uint8_t>(rtps::EntityKind_t::USER_DEFINED_WRITER_WITH_KEY);
+}
+
+// Scan one datagram for the first DATA or HEARTBEAT submessage of a
+// user-defined writer.
+Kind parse(const uint8_t *buf, std::size_t n, Seen &seen) {
   if (n < 20 || std::memcmp(buf, "RTPS", 4) != 0) {
-    return false;
+    return Kind::None;
   }
   std::size_t pos = 20;
   while (pos + 4 <= n) {
@@ -278,48 +335,61 @@ bool parse_reply(const uint8_t *buf, std::size_t n, ReplySeen &seen) {
     std::memcpy(&o2n, buf + pos + 2, sizeof(o2n));
     const std::size_t body = pos + 4;
     const std::size_t end = o2n == 0 ? n : std::min(n, body + o2n);
-    if (id == static_cast<uint8_t>(rtps::SubmessageKind::DATA) && body + 20 <= end) {
-      const uint8_t writer_kind = buf[body + 11];
-      if (writer_kind ==
-              static_cast<uint8_t>(rtps::EntityKind_t::USER_DEFINED_WRITER_WITHOUT_KEY) ||
-          writer_kind == static_cast<uint8_t>(rtps::EntityKind_t::USER_DEFINED_WRITER_WITH_KEY)) {
-        uint16_t o2iq = 0;
-        std::memcpy(&o2iq, buf + body + 2, sizeof(o2iq));
-        std::size_t cursor = body + 4 + o2iq;
-        seen = ReplySeen{};
-        if ((flags & rtps::FLAG_INLINE_QOS) != 0) {
-          while (cursor + 4 <= end) {
-            uint16_t pid = 0, len = 0;
-            std::memcpy(&pid, buf + cursor, 2);
-            std::memcpy(&len, buf + cursor + 2, 2);
-            cursor += 4;
-            if (pid == static_cast<uint16_t>(rtps::SMElement::ParameterId::PID_SENTINEL)) {
-              break;
-            }
-            if ((pid == rtps::rpc::PID_RELATED_SAMPLE_IDENTITY ||
-                 pid == rtps::rpc::PID_CUSTOM_RELATED_SAMPLE_IDENTITY) &&
-                len >= rtps::rpc::SAMPLE_IDENTITY_CDR_SIZE && cursor + 24 <= end) {
-              std::memcpy(&seen.related_seq, buf + cursor + 20, 4);
-            }
-            cursor += len;
+    if (id == static_cast<uint8_t>(rtps::SubmessageKind::HEARTBEAT) && body + 28 <= end &&
+        user_writer(buf[body + 7])) {
+      seen = Seen{};
+      seen.kind = Kind::Heartbeat;
+      std::memcpy(seen.prefix.id.data(), buf + 8, seen.prefix.id.size());
+      std::memcpy(seen.writer.entityKey.data(), buf + body + 4, 3);
+      seen.writer.entityKind = static_cast<rtps::EntityKind_t>(buf[body + 7]);
+      std::memcpy(&seen.first, buf + body + 12, 4);
+      std::memcpy(&seen.last, buf + body + 20, 4);
+      return seen.kind;
+    }
+    if (id == static_cast<uint8_t>(rtps::SubmessageKind::DATA) && body + 20 <= end &&
+        user_writer(buf[body + 11])) {
+      uint16_t o2iq = 0;
+      std::memcpy(&o2iq, buf + body + 2, sizeof(o2iq));
+      std::size_t cursor = body + 4 + o2iq;
+      seen = Seen{};
+      seen.kind = Kind::Data;
+      std::memcpy(seen.prefix.id.data(), buf + 8, seen.prefix.id.size());
+      std::memcpy(seen.writer.entityKey.data(), buf + body + 8, 3);
+      seen.writer.entityKind = static_cast<rtps::EntityKind_t>(buf[body + 11]);
+      if ((flags & rtps::FLAG_INLINE_QOS) != 0) {
+        while (cursor + 4 <= end) {
+          uint16_t pid = 0, len = 0;
+          std::memcpy(&pid, buf + cursor, 2);
+          std::memcpy(&len, buf + cursor + 2, 2);
+          cursor += 4;
+          if (pid == static_cast<uint16_t>(rtps::SMElement::ParameterId::PID_SENTINEL)) {
+            break;
           }
+          if ((pid == rtps::rpc::PID_RELATED_SAMPLE_IDENTITY ||
+               pid == rtps::rpc::PID_CUSTOM_RELATED_SAMPLE_IDENTITY) &&
+              len >= rtps::rpc::SAMPLE_IDENTITY_CDR_SIZE && cursor + 24 <= end) {
+            std::memcpy(&seen.related_seq, buf + cursor + 20, 4);
+          }
+          cursor += len;
         }
-        if ((flags & rtps::FLAG_DATA_PAYLOAD) != 0 && cursor <= end) {
-          seen.payload.assign(buf + cursor, buf + end);
-        }
-        return true;
       }
+      if ((flags & rtps::FLAG_DATA_PAYLOAD) != 0 && cursor <= end) {
+        seen.payload.assign(buf + cursor, buf + end);
+      }
+      return seen.kind;
     }
     if (o2n == 0) {
       break;
     }
     pos = body + o2n;
   }
-  return false;
+  return Kind::None;
 }
 
-// Drain the socket for up to `wait_ms`: true when a reply DATA arrived.
-bool reply_arrived(int sock, int wait_ms, ReplySeen &seen) {
+// Drain the socket for up to `wait_ms`: true when a submessage of kind `want`
+// arrived (in `seen`). Submessages of the other kind are counted in `others`
+// and skipped.
+bool arrived(int sock, int wait_ms, Kind want, Seen &seen, int *others = nullptr) {
   const auto deadline = std::chrono::steady_clock::now() + std::chrono::milliseconds(wait_ms);
   uint8_t buf[2048];
   while (std::chrono::steady_clock::now() < deadline) {
@@ -327,11 +397,19 @@ bool reply_arrived(int sock, int wait_ms, ReplySeen &seen) {
     if (n <= 0) {
       continue; // timeout tick
     }
-    if (parse_reply(buf, static_cast<std::size_t>(n), seen)) {
+    const Kind kind = parse(buf, static_cast<std::size_t>(n), seen);
+    if (kind == want) {
       return true;
+    }
+    if (kind != Kind::None && others != nullptr) {
+      ++*others;
     }
   }
   return false;
+}
+
+bool reply_arrived(int sock, int wait_ms, Seen &seen) {
+  return arrived(sock, wait_ms, Kind::Data, seen);
 }
 
 bool run_checks() {
@@ -355,10 +433,11 @@ bool run_checks() {
   timeval tv{0, 50000};
   ::setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
 
-  // The server: a 600 ms hold so check 5 fits the test.
+  // The server: a 2 s hold, long enough for checks 2-4 to run their course
+  // before it and short enough for check 7 to fit the test.
   espp::RtpsParticipant server({.interface_address = ip_str,
                                 .log_level = espp::Logger::Verbosity::WARN,
-                                .service_reply_match_timeout = std::chrono::milliseconds(600)});
+                                .service_reply_match_timeout = std::chrono::milliseconds(2000)});
   CHECK(server.start(), "server start");
   std::atomic<int> served{0};
   CHECK(server.add_service_server({kService, kType},
@@ -407,30 +486,49 @@ bool run_checks() {
   CHECK(served.load() == 1, "the request was served");
 
   // 2. The reply is held: nothing from the reply writer in 300 ms.
-  ReplySeen seen;
+  Seen seen;
   CHECK(!reply_arrived(sock, 300, seen), "no reply DATA while the reply reader is unknown");
 
-  // 3. The reply reader is announced: the held reply follows the match.
+  // 3. The reply reader is announced: the reply writer heartbeats it at once,
+  //    announcing nothing (the reply is still held).
   send_to_ports(sock, ip, true,
                 data_message(peer, rtps::ENTITYID_SEDP_BUILTIN_SUBSCRIPTIONS_WRITER,
                              rtps::ENTITYID_SEDP_BUILTIN_SUBSCRIPTIONS_READER, 1, {},
                              sedp_payload(reply_reader, rtps::rpc::service_reply_topic(kService),
                                           rtps::rpc::service_response_type(kType), ip, port)));
-  CHECK(reply_arrived(sock, 1000, seen), "the reply arrives once the reply reader is matched");
+  int data_seen = 0;
+  CHECK(arrived(sock, 500, Kind::Heartbeat, seen, &data_seen),
+        "the reply writer heartbeats the reader once it is matched");
+  CHECK(data_seen == 0, "no reply DATA with the match alone");
+  CHECK(seen.first == 1 && seen.last == 0, "the heartbeat announces an empty history");
+  const rtps::EntityId_t reply_writer = seen.writer;
+
+  // 4. Cyclone's pre-emptive ACKNACK (count 0) does not release the reply.
+  send_to_ports(sock, ip, false,
+                acknack_message(peer, reply_reader.entityId, reply_writer, /*base=*/1,
+                                /*count=*/0));
+  CHECK(!reply_arrived(sock, 250, seen), "no reply DATA on a pre-emptive ACKNACK numbered 0");
+
+  // 5. The ACKNACK answering the heartbeat (count 1) does.
+  send_to_ports(sock, ip, false,
+                acknack_message(peer, reply_reader.entityId, reply_writer, /*base=*/1,
+                                /*count=*/1));
+  CHECK(reply_arrived(sock, 1000, seen), "the reply arrives once the reader has acknowledged");
   CHECK(seen.related_seq == 1, "it is the reply to request 1");
   CHECK(seen.payload.size() == sizeof(kReply) &&
             std::memcmp(seen.payload.data(), kReply, sizeof(kReply)) == 0,
         "it carries the handler's response");
 
-  // 4. With the reader matched, a reply is written at once.
+  // 6. With the reader acknowledged, a reply is written at once.
   send_request(2, reply_reader);
-  CHECK(reply_arrived(sock, 1000, seen), "a request with the reader matched is answered at once");
+  CHECK(reply_arrived(sock, 1000, seen),
+        "a request with the reader acknowledged is answered at once");
   CHECK(seen.related_seq == 2, "it is the reply to request 2");
 
-  // 5. A reader that never appears: held for the timeout, then written anyway.
+  // 7. A reader that never appears: held for the timeout, then written anyway.
   send_request(3, never_announced);
   CHECK(!reply_arrived(sock, 300, seen), "a reply for an unknown reader is held");
-  CHECK(reply_arrived(sock, 1700, seen), "... and written once the hold times out");
+  CHECK(reply_arrived(sock, 2500, seen), "... and written once the hold times out");
   CHECK(seen.related_seq == 3, "it is the reply to request 3");
 
   server.stop();

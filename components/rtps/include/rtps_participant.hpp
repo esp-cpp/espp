@@ -196,12 +196,15 @@ public:
     /// until its fd actually closes (normally immediate).
     uint8_t max_prioritized_endpoint_ports{4};
     /// How long a service reply may wait for the requester's reply reader to
-    /// be matched before it is written regardless. A client sends its request
-    /// as soon as ITS side has matched both endpoints, while this side's reply
-    /// writer can learn of the client's reply reader a little later (one more
-    /// SEDP exchange). A reply written before that match is never sent to the
-    /// reader - a VOLATILE reader takes it for pre-match history - and the call
-    /// times out. Replies are therefore held until the match, up to this long
+    /// be matched and to acknowledge the reply writer before it is written
+    /// regardless. A client sends its request as soon as ITS side has matched
+    /// both endpoints, while this side's reply writer can learn of the
+    /// client's reply reader a little later (one more SEDP exchange). A reply
+    /// written before that match is never sent to the reader - a VOLATILE
+    /// reader takes it for pre-match history - and the call times out; a
+    /// Cyclone DDS reader applies that rule to the first HEARTBEAT it
+    /// processes, so the reply also waits for the reader's answer to one
+    /// (its ACKNACK). Replies are therefore held until then, up to this long
     /// (then written anyway, with a warning). Zero disables the hold.
     std::chrono::milliseconds service_reply_match_timeout{1000};
   };
@@ -383,10 +386,11 @@ public:
     /// Number of service servers matched to this client right now: a server
     /// counts once its request reader has acknowledged our request writer
     /// (every reliable reader sends an ACKNACK when it matches, so this is the
-    /// server's own confirmation that it has discovered us) and its reply
-    /// writer is matched to our reply reader, the two legs
-    /// rmw_service_server_is_available checks. 0 until discovery has run, or
-    /// while the server is away.
+    /// server's own confirmation that it has discovered us; a Cyclone DDS
+    /// reader counts once it has answered our heartbeat, since it skips what
+    /// the first one it processes announces) and its reply writer is matched
+    /// to our reply reader, the two legs rmw_service_server_is_available
+    /// checks. 0 until discovery has run, or while the server is away.
     std::size_t server_count() const;
 
     /// Requests sent and not yet answered. Entries older than
@@ -937,10 +941,11 @@ protected:
   // follow the same rule.
   std::vector<std::shared_ptr<ServiceServerContext>> service_servers_;
   std::vector<std::shared_ptr<ServiceClient>> service_clients_;
-  /// Service replies held until their requester's reply reader is matched (see
-  /// Config::service_reply_match_timeout and ServiceResponder::reply()): the
-  /// servers holding one. A match flushes them at once (the engine's
-  /// subscriber-matched callback); a timer enforces the deadline. The timer is
+  /// Service replies held until their requester's reply reader is matched and
+  /// has acknowledged the reply writer (see Config::service_reply_match_timeout
+  /// and ServiceResponder::reply()): the servers holding one. A match flushes
+  /// the acknowledged ones at once (the engine's subscriber-matched callback);
+  /// a timer polls for the acknowledgement and enforces the deadline. The timer is
   /// created by the first held reply and kept until stop(): creating one per
   /// hold fragmented the ESP32's internal RAM (every task stack lives there)
   /// until a creation failed and the thread constructor's exception took the
