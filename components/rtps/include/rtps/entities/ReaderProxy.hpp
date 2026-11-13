@@ -47,8 +47,10 @@ struct ReaderProxy {
   /// written before it may still reach a reader that has not discovered us,
   /// and a VOLATILE one drops it. Cyclone DDS numbers that pre-emptive
   /// ACKNACK 0, and a VOLATILE Cyclone reader also skips everything the first
-  /// heartbeat it processes announces, so a count-0 ACKNACK does not set this;
-  /// the one that answers our heartbeat does (see StatefulWriter::onNewAckNack).
+  /// heartbeat it processes announces, so an EMPTY ACKNACK numbered 0 does
+  /// not set this; the one that answers our heartbeat does, and so does any
+  /// ACKNACK that requests samples, whatever its count (see
+  /// StatefulWriter::onNewAckNack).
   bool acknowledged = false;
   SequenceNumber_t lastAckNackSequenceNumber = {0, 1};
 
