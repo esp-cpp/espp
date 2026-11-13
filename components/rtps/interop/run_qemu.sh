@@ -25,8 +25,11 @@ case "$FLASH" in "$REPO_ROOT"/*) FLASH_IN="/work${FLASH#"$REPO_ROOT"}" ;; *) ech
 ROS_DISTRO="${ROS_DISTRO:-jazzy}" # jazzy (default) or humble, see the Dockerfile
 docker build --build-arg "ROS_DISTRO=$ROS_DISTRO" -t "espp-rtps-interop-$ROS_DISTRO" .
 # MEMORY_STAGES_ONLY=1 (the memory suite on a profile that only boots for its
-# markers) must reach the harness inside the container.
+# markers) must reach the harness inside the container; 1 is the only value
+# it understands, so nothing else is forwarded.
+STAGES_ONLY_ARG=""
+[ "${MEMORY_STAGES_ONLY:-0}" = 1 ] && STAGES_ONLY_ARG="-e MEMORY_STAGES_ONLY=1"
 exec docker run --rm --network none --cap-add NET_ADMIN --device /dev/net/tun \
-  ${MEMORY_STAGES_ONLY:+-e "MEMORY_STAGES_ONLY=$MEMORY_STAGES_ONLY"} \
+  $STAGES_ONLY_ARG \
   -v "$REPO_ROOT":/work "espp-rtps-interop-$ROS_DISTRO" \
   bash /work/components/rtps/interop/run_qemu_interop.sh "$FLASH_IN" "${2:-matrix}"

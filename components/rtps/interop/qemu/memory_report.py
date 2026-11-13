@@ -57,8 +57,9 @@ def library_sizes(size_components):
         return None
     for name, entry in size_components.items():
         if entry.get("abbrev_name") == "librtps.a" or name.endswith("/librtps.a"):
+            # a memory type the report does not list is unknown (n/a), not zero
             types = entry.get("memory_types", {})
-            return {key: types.get(key, {}).get("size", 0) for key, _ in LIBRARY_ROWS}
+            return {key: types[key].get("size") if key in types else None for key, _ in LIBRARY_ROWS}
     return None
 
 
