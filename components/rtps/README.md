@@ -191,6 +191,7 @@ via `include/rtps/config.hpp`.
 | `RTPS_SPDP_RESEND_PERIOD_MS` | 0 = profile default (2000 on ESP32) | Participant announcement period. Keep it well below the announced lease. |
 | `RTPS_SPDP_CYCLECOUNT_HEARTBEAT` | 0 = profile default (2) | Remote liveliness is checked every `(n + 1)` announce rounds. |
 | `RTPS_SF_WRITER_HB_PERIOD_MS` | 0 = profile default (4000 on ESP32) | RELIABLE writer HEARTBEAT period (a quarter of it while a reader has unacknowledged changes). |
+| `RTPS_SFR_ACKNACK_MIN_INTERVAL_MS` | 0 = profile default (100) | Shortest gap between a RELIABLE reader's ACKNACKs to one writer: HEARTBEAT answers are coalesced to one per interval while samples are missing, and a HEARTBEAT with the FinalFlag gets none when nothing is. |
 | `RTPS_SPDP_DEFAULT_REMOTE_LEASE_DURATION_S` | 0 = profile default (5 on ESP32) | The lease we announce for ourselves, and the lease assumed for a peer that announces none. |
 | `RTPS_SPDP_MAX_REMOTE_LEASE_DURATION_S` | 0 = profile default (90 on ESP32) | Cap on a remote participant's lease: a silent peer is dropped after `min(its lease, this)`. |
 
@@ -230,6 +231,14 @@ stateless writer + 1 stateless reader for SPDP and 2 stateful writers + 2
 stateful readers for SEDP (which also count against the per-participant caps) -
 so size pools as "usable + builtins". `add_writer()`/`add_reader()` report the
 bound limits, the reserved slots, and the usable counts when a creation fails.
+
+`HISTORY_SIZE_STATEFUL` also sizes the two SEDP writers, which keep one change
+per live user endpoint of the participant: with static storage it must be at
+least `NUM_WRITERS_PER_PARTICIPANT - 3` and `NUM_READERS_PER_PARTICIPANT - 3`
+(a `static_assert` in `config.hpp` enforces it), since an SEDP writer never
+overwrites a live announcement - when its history is full it gives up a sent
+dispose first and otherwise refuses the announcement, failing the endpoint
+creation instead of silently un-discovering the oldest endpoint.
 
 For a **fully custom profile**, the source-level escape hatch is defining
 `RTPS_CONFIG_HEADER` to your own header path (it replaces the profile header

@@ -119,6 +119,23 @@ StatefulWriter::newChange(ChangeKind_t kind, const uint8_t *data, DataSize_t siz
     return nullptr;
   }
 
+  // A builtin (SEDP) writer's history IS the list of this participant's live
+  // endpoint announcements: a KEEP_LAST drop of the oldest one would
+  // un-discover that endpoint for every peer joining later, and the endpoint
+  // could then never be deleted (its change gone, see SEDPAgent::deleteWriter).
+  // When the ring is full, give up a sent dispose-after-write change first (it
+  // only waits for a retransmission) and otherwise refuse: the endpoint
+  // creation fails loudly instead. Static storage sizes this away (the
+  // static_assert in config.hpp); user writers keep the drop-oldest history.
+  // Regression test: pc/tests/rtps_sedp_history_overflow.cpp.
+  if (isBuiltinEndpoint() && m_history.wouldDropOldestOnAdd() &&
+      !m_history.dropOldestSentDisposeAfterWrite()) {
+    logger_.error("Builtin writer history full, refusing the discovery change: "
+                  "HISTORY_SIZE_STATEFUL ({}) must cover the participant's endpoints",
+                  static_cast<int>(Config::HISTORY_SIZE_STATEFUL));
+    return nullptr;
+  }
+
   // A full history may drop its oldest change on the next addChange: the static
   // ring always does, and the dynamic (host) ring does too when it hits its
   // 16-bit index ceiling and grow() refuses to resize. When a drop happens the
@@ -315,6 +332,26 @@ void StatefulWriter::onNewAckNack(const SubmessageAckNack &msg,
   // Preemptive ack nack
   if (nextSN.low == 0 && nextSN.high == 0) {
     SFW_LOG("Received preemptive acknack, sending heartbeat.");
+    sendHeartBeat();
+    return;
+  }
+
+  // A reader that requests nothing while it has not acknowledged our last
+  // change is asking where we stand (RTPS 2.5 8.4.15.5: an ACKNACK with an
+  // empty set is a request for a HEARTBEAT). Cyclone DDS's pre-emptive
+  // ACKNACK is base 1 with count 0, not base 0, and is repeated every second
+  // until a HEARTBEAT arrives; answering it only on the periodic heartbeat
+  // left a window of up to the heartbeat period in which a change written
+  // for the new reader - a service reply to the request it sent right after
+  // matching - was announced by the FIRST heartbeat it ever saw from us, and
+  // a VOLATILE reader takes everything in that heartbeat for pre-match
+  // history and skips it (the interop matrix's service call under loss, with
+  // rmw_cyclonedds_cpp). Answer now. No ping-pong: a reader that has
+  // everything acknowledges base = last + 1 and gets no heartbeat for it.
+  // Regression test: pc/tests/rtps_acknack_heartbeat_reply.cpp.
+  if (msg.readerSNState.numBits == 0 && !m_history.isEmpty() &&
+      !(m_history.getLastUsedSequenceNumber() < msg.readerSNState.base)) {
+    SFW_LOG("Reader behind and requesting nothing: answering with a heartbeat.");
     sendHeartBeat();
     return;
   }

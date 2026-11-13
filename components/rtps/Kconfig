@@ -91,14 +91,14 @@ menu "RTPS"
             default 0
             range 0 255
             help
-                Per-participant writer cap; the 3 builtin discovery writers count against it. 0 keeps the selected profile's value.
+                Per-participant writer cap; the 3 builtin discovery writers count against it. With static storage HISTORY_SIZE_STATEFUL must be at least this minus 3 (the SEDP writer keeps one change per user writer; checked at compile time). 0 keeps the selected profile's value.
 
         config RTPS_LIMIT_NUM_READERS_PER_PARTICIPANT
             int "NUM_READERS_PER_PARTICIPANT (0 = profile default)"
             default 0
             range 0 255
             help
-                Per-participant reader cap; the 3 builtin discovery readers count against it. 0 keeps the selected profile's value.
+                Per-participant reader cap; the 3 builtin discovery readers count against it. With static storage HISTORY_SIZE_STATEFUL must be at least this minus 3 (the SEDP writer keeps one change per user reader; checked at compile time). 0 keeps the selected profile's value.
 
         config RTPS_LIMIT_NUM_WRITER_PROXIES_PER_READER
             int "NUM_WRITER_PROXIES_PER_READER (0 = profile default)"
@@ -155,7 +155,7 @@ menu "RTPS"
             default 0
             range 0 255
             help
-                History depth (samples) per stateful endpoint. 0 keeps the selected profile's value.
+                History depth (samples) per stateful endpoint. The two SEDP writers use it too, one change per live user endpoint: with static storage it must be at least NUM_WRITERS_PER_PARTICIPANT - 3 and NUM_READERS_PER_PARTICIPANT - 3 (checked at compile time), or a participant could not announce all its endpoints. 0 keeps the selected profile's value.
 
         config RTPS_LIMIT_MAX_TYPENAME_LENGTH
             int "MAX_TYPENAME_LENGTH (0 = profile default)"
@@ -261,6 +261,20 @@ menu "RTPS"
                 changes the writer sends them four times as often (a quarter of
                 this). Lower it for faster repair at the cost of metatraffic.
                 0 keeps the selected profile's value (4000 embedded, 2000 host).
+
+        config RTPS_SFR_ACKNACK_MIN_INTERVAL_MS
+            int "SFR_ACKNACK_MIN_INTERVAL_MS: shortest gap between a reader's ACKNACKs to one writer (0 = profile default)"
+            default 0
+            range 0 65535
+            help
+                A RELIABLE reader that is missing samples answers a writer's
+                HEARTBEATs with an ACKNACK at most once per this many ms (a
+                HEARTBEAT it misses nothing for gets no answer when its
+                FinalFlag is set). Each ACKNACK asks for up to 32 samples,
+                which the writer resends at once, so this bounds the repair
+                rate; it also keeps a reader that fell behind from answering
+                every stale HEARTBEAT it works through, each answer bringing a
+                GAP + HEARTBEAT back. 0 keeps the profile's value (100).
 
         config RTPS_SPDP_DEFAULT_REMOTE_LEASE_DURATION_S
             int "SPDP_DEFAULT_REMOTE_LEASE_DURATION_S: our announced lease / default remote lease, seconds (0 = profile default)"

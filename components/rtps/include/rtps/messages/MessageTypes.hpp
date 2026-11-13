@@ -297,6 +297,23 @@ struct SubmessageGap {
   }
 };
 
+/// RTPS 2.5 8.3.7.10 NackFrag: the fragments of one sample a reader is still
+/// missing. Sent by a reliable reader that holds part of a fragmented sample
+/// (see StatefulReader::onNewHeartbeat).
+struct SubmessageNackFrag {
+  SubmessageHeader header;
+  EntityId_t readerId;
+  EntityId_t writerId;
+  SequenceNumber_t writerSN;
+  FragmentNumberSet fragmentNumberState;
+  Count_t count;
+  static uint16_t getRawSize(const FragmentNumberSet &set) {
+    return static_cast<uint16_t>(SubmessageHeader::getRawSize() + (2 * 3 + 2 * 1) // 2 EntityIDs
+                                 + sizeof(SequenceNumber_t) + FragmentNumberSet::getRawSize(set) +
+                                 sizeof(Count_t));
+  }
+};
+
 struct SubmessageAckNack {
   SubmessageHeader header;
   EntityId_t readerId;
@@ -431,6 +448,27 @@ template <typename Buffer> bool serializeMessage(Buffer &buffer, SubmessageAckNa
   if (msg.readerSNState.numBits != 0) {
     buffer.append(reinterpret_cast<uint8_t *>(msg.readerSNState.bitMap.data()),
                   4 * (((msg.readerSNState.numBits - 1) / 32) + 1));
+  }
+  buffer.append(reinterpret_cast<uint8_t *>(&msg.count.value), sizeof(msg.count.value));
+  return true;
+}
+
+template <typename Buffer> bool serializeMessage(Buffer &buffer, SubmessageNackFrag &msg) {
+  if (!buffer.reserve(SubmessageNackFrag::getRawSize(msg.fragmentNumberState))) {
+    return false;
+  }
+  serializeMessage(buffer, msg.header);
+  buffer.append(msg.readerId.entityKey.data(), msg.readerId.entityKey.size());
+  buffer.append(reinterpret_cast<uint8_t *>(&msg.readerId.entityKind), sizeof(EntityKind_t));
+  buffer.append(msg.writerId.entityKey.data(), msg.writerId.entityKey.size());
+  buffer.append(reinterpret_cast<uint8_t *>(&msg.writerId.entityKind), sizeof(EntityKind_t));
+  buffer.append(reinterpret_cast<uint8_t *>(&msg.writerSN.high), sizeof(msg.writerSN.high));
+  buffer.append(reinterpret_cast<uint8_t *>(&msg.writerSN.low), sizeof(msg.writerSN.low));
+  buffer.append(reinterpret_cast<uint8_t *>(&msg.fragmentNumberState.base), sizeof(uint32_t));
+  buffer.append(reinterpret_cast<uint8_t *>(&msg.fragmentNumberState.numBits), sizeof(uint32_t));
+  if (msg.fragmentNumberState.numBits != 0) {
+    buffer.append(reinterpret_cast<uint8_t *>(msg.fragmentNumberState.bitMap.data()),
+                  4 * (((msg.fragmentNumberState.numBits - 1) / 32) + 1));
   }
   buffer.append(reinterpret_cast<uint8_t *>(&msg.count.value), sizeof(msg.count.value));
   return true;

@@ -25,12 +25,15 @@ Author: i11 - Embedded Software, RWTH Aachen University
 
 #include "rtps/entities/StatefulReader.hpp"
 
+#include <chrono>
+
 #include "rtps/communication/EsppTransport.hpp"
 #include "rtps/messages/MessageFactory.hpp"
 #include "rtps/storages/PayloadBuffer.hpp"
 #include "rtps/utils/Diagnostics.hpp"
 #include "rtps/utils/Log.hpp"
 #include <algorithm>
+#include <limits>
 #include <mutex>
 
 #if SFR_VERBOSE && RTPS_GLOBAL_VERBOSE
@@ -92,6 +95,9 @@ void StatefulReader::newChange(const ReaderCacheChange &cacheChange) {
     auto it = std::find_if(m_proxies.begin(), m_proxies.end(), matches_writer);
     if (it != m_proxies.end()) {
       WriterProxy &proxy = *it;
+      if (proxy.lastAnnouncedSN < cacheChange.sn) {
+        proxy.lastAnnouncedSN = cacheChange.sn; // a DATA proves the number exists
+      }
       if (proxy.expectedSN == cacheChange.sn) {
         // Claim the SN under the proxies mutex; the callbacks run below,
         // still serialized by m_delivery_mutex so delivery order matches
@@ -129,6 +135,20 @@ bool StatefulReader::addNewMatchedWriter(const WriterProxy &newProxy) {
   return m_proxies.add(newProxy);
 }
 
+namespace {
+// Applies the GAP's advance of expectedSN only as far as the writer has
+// announced (see onNewGapMessage), on every return path.
+struct CapExpectedSN {
+  rtps::WriterProxy *writer;
+  rtps::SequenceNumber_t limit;
+  ~CapExpectedSN() {
+    if (limit < writer->expectedSN) {
+      writer->expectedSN = limit;
+    }
+  }
+};
+} // namespace
+
 bool StatefulReader::onNewGapMessage(const SubmessageGap &msg, const GuidPrefix_t &remotePrefix) {
   std::lock_guard<std::recursive_mutex> lock(m_proxies_mutex);
   if (!m_is_initialized_) {
@@ -151,8 +171,38 @@ bool StatefulReader::onNewGapMessage(const SubmessageGap &msg, const GuidPrefix_
     return false;
   }
 
+  // A GAP names sequence numbers the writer will never send - but only ones
+  // it has shown to exist (RTPS 2.5 8.4.9.3.2 lists them as "sent"). Fast DDS
+  // sends a GAP for the NEXT number of its SEDP writer after an endpoint
+  // deletion (a hole where the deleted endpoint's announcement stood), then
+  // writes that very number for the next endpoint it announces: applied as
+  // sent, the GAP skipped the announcement and every one after it, so a peer
+  // that churned its publishers (the interop matrix's churn case against
+  // rmw_fastrtps_cpp) was never matched again. A GAP wholly above the highest
+  // number the writer has announced (HEARTBEAT lastSN, or a DATA) is ignored
+  // - the next HEARTBEAT decides - and one that reaches past it is applied
+  // only up to it. Regression test: pc/tests/rtps_gap_before_data.cpp.
+  if (writer->lastAnnouncedSN < msg.gapStart) {
+    SFR_LOG("Ignoring a GAP from {}.{} beyond the writer's last announced {}.{}",
+            (int)msg.gapStart.high, (int)msg.gapStart.low, (int)writer->lastAnnouncedSN.high,
+            (int)writer->lastAnnouncedSN.low);
+    return true;
+  }
+  SequenceNumber_t announcedNext = writer->lastAnnouncedSN;
+  // Not past the top of the range: a HEARTBEAT may legitimately announce the
+  // last representable number, and incrementing it would overflow the signed
+  // high word (as StatelessReader::newChange guards).
+  if (!(announcedNext.high == std::numeric_limits<int32_t>::max() &&
+        announcedNext.low == std::numeric_limits<uint32_t>::max())) {
+    ++announcedNext;
+  }
+  const CapExpectedSN cap{writer, announcedNext};
+
   // Case 1: We are still waiting for messages before gapStart
   if (writer->expectedSN < msg.gapStart) {
+    if (!ackNackAllowed(*writer)) {
+      return true; // coalesced (see onNewHeartbeat); the HEARTBEAT after a GAP asks again
+    }
     PacketInfo info;
     info.srcPort = m_srcPort;
     info.destAddr = writer->remoteLocator.getIp4AddressBytes();
@@ -203,6 +253,9 @@ bool StatefulReader::onNewGapMessage(const SubmessageGap &msg, const GuidPrefix_
       if (msg.gapList.isSet(bit)) {
         writer->expectedSN++;
       } else {
+        if (!ackNackAllowed(*writer)) {
+          return true; // coalesced (see onNewHeartbeat)
+        }
         PacketInfo info;
         info.srcPort = m_srcPort;
         info.destAddr = writer->remoteLocator.getIp4AddressBytes();
@@ -280,6 +333,9 @@ bool StatefulReader::onNewHeartbeat(const SubmessageHeartbeat &msg,
     }
   }
 
+  if (writer->lastAnnouncedSN < msg.lastSN) {
+    writer->lastAnnouncedSN = msg.lastSN;
+  }
   if (writer->expectedSN < msg.firstSN) {
     SFR_LOG("expectedSN < firstSN, advancing expectedSN");
     writer->expectedSN = msg.firstSN;
@@ -296,8 +352,46 @@ bool StatefulReader::onNewHeartbeat(const SubmessageHeartbeat &msg,
   rtps::MessageFactory::addSubMessageInfoDST(payload, dst);
   auto missing_sns = writer->getMissing(msg.firstSN, msg.lastSN);
   bool final_flag = (missing_sns.numBits == 0);
+  // RTPS 2.5 8.4.12.2 (FinalFlag): a HEARTBEAT the reader misses nothing for
+  // needs no answer when the writer set FinalFlag (Cyclone DDS sets it on the
+  // one it piggybacks on every DATA). And a reader that IS missing samples
+  // answers at most once per SFR_ACKNACK_MIN_INTERVAL_MS per writer, as Fast
+  // DDS and Cyclone DDS coalesce theirs. Answering every HEARTBEAT at once let
+  // a reader that fell behind a 20 Hz Cyclone writer spiral: each stale
+  // HEARTBEAT it worked through got an ACKNACK, each ACKNACK brought a GAP +
+  // HEARTBEAT back, and its backlog grew faster than it drained until nothing
+  // else got through (the QEMU soak's Cyclone cycles). The writer repeats its
+  // HEARTBEAT, so a suppressed answer is only deferred. Regression test:
+  // pc/tests/rtps_acknack_coalescing.cpp.
+  if (final_flag && msg.header.finalFlag()) {
+    return true;
+  }
+  if (!ackNackAllowed(*writer)) {
+    return true;
+  }
   rtps::MessageFactory::addAckNack(payload, msg.writerId, m_attributes.endpointGuid.entityId,
                                    missing_sns, writer->getNextAckNackCount(), final_flag);
+#ifdef RTPS_ENABLE_FRAGMENTATION
+  // Part of one of the announced samples is here already: ask for the rest by
+  // NACK_FRAG in the same datagram (RTPS 2.5 8.4.12.2.5 / 8.3.7.10). Cyclone
+  // DDS answers an ACKNACK that names a fragmented sample with its FIRST
+  // fragment only and leaves the rest to NACK_FRAG, so without one a sample
+  // whose fragments were partly missed (the QEMU soak's 30 KB samples from a
+  // Cyclone publisher that wrote before this reader had matched it) never
+  // completed, and held the reassembly slot against every sample after it.
+  // Regression test: pc/tests/rtps_nack_frag.cpp.
+  {
+    SequenceNumber_t partialSN{};
+    FragmentNumberSet missingFrags{};
+    if (missingFragments(writerProxyGuid, partialSN, missingFrags) && !(partialSN < msg.firstSN) &&
+        !(msg.lastSN < partialSN)) {
+      rtps::MessageFactory::addNackFrag(payload, msg.writerId, m_attributes.endpointGuid.entityId,
+                                        partialSN, missingFrags, writer->getNextNackFragCount());
+      SFR_LOG("Sending nackfrag for {}.{} from fragment {} ({} bits).", (int)partialSN.high,
+              (int)partialSN.low, (int)missingFrags.base, (int)missingFrags.numBits);
+    }
+  }
+#endif
 
   SFR_LOG("Sending acknack base {} bits {}.", (int)missing_sns.base.low, (int)missing_sns.numBits);
   info.payload = std::move(payload.bytes);
@@ -305,6 +399,17 @@ bool StatefulReader::onNewHeartbeat(const SubmessageHeartbeat &msg,
     return false;
   }
   m_transport->sendPacket(info);
+  return true;
+}
+
+bool StatefulReader::ackNackAllowed(WriterProxy &writer) {
+  const auto now = std::chrono::steady_clock::now();
+  if (writer.lastAckNackSentAt != std::chrono::steady_clock::time_point{} &&
+      now - writer.lastAckNackSentAt <
+          std::chrono::milliseconds(Config::SFR_ACKNACK_MIN_INTERVAL_MS)) {
+    return false;
+  }
+  writer.lastAckNackSentAt = now;
   return true;
 }
 

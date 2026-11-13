@@ -36,6 +36,7 @@ Author: i11 - Embedded Software, RWTH Aachen University
 #include "task.hpp"
 
 #include <atomic>
+#include <chrono>
 #include <memory>
 #include <mutex>
 
@@ -87,6 +88,30 @@ private:
   bool initialized = false;
   static void receiveCallback(void *callee, const ReaderCacheChange &cacheChange);
   void handleSPDPPackage(const ReaderCacheChange &cacheChange);
+  /// The prefix of the PID_PARTICIPANT_GUID in a PL_CDR payload (big- or
+  /// little-endian, as its encapsulation header says) when that GUID names a
+  /// participant (ENTITYID_BUILD_IN_PARTICIPANT, as the inline key hash must),
+  /// else GUIDPREFIX_UNKNOWN. For a dispose that carries the key in its
+  /// payload rather than inline.
+  static GuidPrefix_t participantPrefixInPayload(const uint8_t *data, DataSize_t size);
+  /// Participants that disposed themselves lately: the prefix, the dispose's
+  /// sequence number and when it came. An announcement of such a prefix with
+  /// a lower number is a delayed or duplicated copy from before the dispose
+  /// and must not bring the participant back: the SPDP reader filters
+  /// sequence numbers only for writers it knows, and a removed participant's
+  /// went with it. Forgotten after DISPOSE_MEMORY_MS - a peer whose prefix is
+  /// stable across restarts (this engine's, on ESP targets) starts a new
+  /// writer at 1 and must be discovered again promptly.
+  struct DisposedParticipant {
+    GuidPrefix_t prefix{};
+    SequenceNumber_t sn{};
+    std::chrono::steady_clock::time_point at{};
+  };
+  static constexpr uint32_t DISPOSE_MEMORY_MS = 2 * Config::SPDP_RESEND_PERIOD_MS;
+  std::array<DisposedParticipant, 8> m_disposed{};
+  size_t m_nextDisposed = 0;
+  void rememberDispose(const GuidPrefix_t &prefix, const SequenceNumber_t &sn);
+  bool isFromBeforeDispose(const GuidPrefix_t &prefix, const SequenceNumber_t &sn) const;
   void processProxyData();
   bool addProxiesForBuiltInEndpoints();
 

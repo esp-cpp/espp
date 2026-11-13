@@ -24,6 +24,7 @@ Author: i11 - Embedded Software, RWTH Aachen University
 */
 
 #include "rtps/discovery/SPDPAgent.hpp"
+
 #include "rtps/discovery/ParticipantProxyData.hpp"
 #include "rtps/entities/Participant.hpp"
 #include "rtps/entities/Reader.hpp"
@@ -31,8 +32,10 @@ Author: i11 - Embedded Software, RWTH Aachen University
 #include "rtps/messages/MessageTypes.hpp"
 #include "rtps/utils/Log.hpp"
 #include "rtps/utils/udpUtils.hpp"
+#include <algorithm>
 
 #include <chrono>
+#include <cstring>
 #include <mutex>
 #include <thread>
 
@@ -97,6 +100,10 @@ void SPDPAgent::handleSPDPPackage(const ReaderCacheChange &cacheChange) {
   SPDP_LOG("SPDPPackage size: {}", cacheChange.size);
 
   if (cacheChange.kind == ChangeKind_t::ALIVE) {
+    if (isFromBeforeDispose(cacheChange.writerGuid.prefix, cacheChange.sn)) {
+      SPDP_LOG("Announcement from before the participant's dispose, ignored");
+      return;
+    }
     // The payload's endianness is selected by the encapsulation identifier
     // (first two bytes); endianness doesn't matter for reading those since
     // they are single bytes.
@@ -115,8 +122,107 @@ void SPDPAgent::handleSPDPPackage(const ReaderCacheChange &cacheChange) {
       SPDP_LOG("ParticipantProxyData deserialization failed");
     }
   } else {
-    // TODO RemoveParticipant
+    // The peer disposed its participant instance (it is leaving the domain):
+    // forget it now, with every proxy of its endpoints, instead of when its
+    // lease runs out. The instance is named by the inline-QoS key hash; a
+    // peer that leaves the hash out carries the GUID in the payload.
+    // Only the peer's own SPDP writer may dispose it, and only itself: a
+    // DATA from another writer, or naming another participant, is malformed
+    // (or hostile) and must not remove anyone.
+    if (!(cacheChange.writerGuid.entityId == ENTITYID_SPDP_BUILTIN_PARTICIPANT_WRITER)) {
+      return;
+    }
+    GuidPrefix_t prefix = GUIDPREFIX_UNKNOWN;
+    if (cacheChange.hasKeyHash) {
+      if (cacheChange.keyHash.entityId == ENTITYID_BUILD_IN_PARTICIPANT) {
+        prefix = cacheChange.keyHash.prefix;
+      }
+    } else {
+      prefix = participantPrefixInPayload(m_inputBuffer.data(), cacheChange.size);
+    }
+    if (prefix == GUIDPREFIX_UNKNOWN || prefix == mp_participant->m_guidPrefix) {
+      return;
+    }
+    if (!(prefix == cacheChange.writerGuid.prefix)) {
+      logger_.warn("Participant dispose from {:02x}{:02x}{:02x}{:02x} names another participant, "
+                   "ignored",
+                   cacheChange.writerGuid.prefix.id[0], cacheChange.writerGuid.prefix.id[1],
+                   cacheChange.writerGuid.prefix.id[2], cacheChange.writerGuid.prefix.id[3]);
+      return;
+    }
+    rememberDispose(prefix, cacheChange.sn);
+    if (mp_participant->findRemoteParticipant(prefix) == nullptr) {
+      return; // never known, or already gone
+    }
+    SPDP_LOG("Remote participant disposed, removing");
+    // Lock order as on eviction (processProxyData): this agent's mutex, then
+    // the SEDP agent's and the participant's inside removeRemoteParticipant.
+    mp_participant->removeRemoteParticipant(prefix);
   }
+}
+
+rtps::GuidPrefix_t SPDPAgent::participantPrefixInPayload(const uint8_t *data, DataSize_t size) {
+  // A PL_CDR parameter list behind the 4-byte encapsulation header, in the
+  // byte order the header selects (as the ALIVE path reads it); only
+  // PID_PARTICIPANT_GUID is of interest, the dispose carries little else.
+  if (size < 4 || data[0] != 0x00 || (data[1] != 0x02 && data[1] != 0x03)) {
+    return GUIDPREFIX_UNKNOWN; // not PL_CDR_BE (0x0002) / PL_CDR_LE (0x0003)
+  }
+  CdrReader buffer(asBytes(data, size), data[1] == SMElement::SCHEME_PL_CDR_LE[1]
+                                            ? std::endian::little
+                                            : std::endian::big);
+  skipBytes(buffer, 4);
+  while (buffer.remaining() >= 4) {
+    const auto pid = buffer.read<uint16_t>();
+    const auto length = buffer.read<uint16_t>();
+    if (!pid || !length || *pid == ParameterId::PID_SENTINEL || buffer.remaining() < *length) {
+      break;
+    }
+    if (*pid == ParameterId::PID_PARTICIPANT_GUID && *length == 16) {
+      // The whole GUID: only one naming a participant may dispose one (a
+      // malformed payload naming the sender's own endpoint would otherwise
+      // take the participant and all its matches down with it).
+      Guid_t guid;
+      if (readBytes(buffer, guid.prefix.id.data(), guid.prefix.id.size()) &&
+          readBytes(buffer, guid.entityId.entityKey.data(), guid.entityId.entityKey.size())) {
+        const auto kind = buffer.read<uint8_t>();
+        if (kind) {
+          guid.entityId.entityKind = static_cast<EntityKind_t>(*kind);
+          if (guid.entityId == ENTITYID_BUILD_IN_PARTICIPANT) {
+            return guid.prefix;
+          }
+        }
+      }
+      break;
+    }
+    skipBytes(buffer, *length);
+    alignTo4(buffer); // parameters are 4-byte aligned
+  }
+  return GUIDPREFIX_UNKNOWN;
+}
+
+void SPDPAgent::rememberDispose(const GuidPrefix_t &prefix, const SequenceNumber_t &sn) {
+  const auto now = std::chrono::steady_clock::now();
+  auto known = std::find_if(m_disposed.begin(), m_disposed.end(),
+                            [&](const DisposedParticipant &e) { return e.prefix == prefix; });
+  if (known != m_disposed.end()) {
+    known->sn = sn;
+    known->at = now;
+    return;
+  }
+  m_disposed[m_nextDisposed] = DisposedParticipant{prefix, sn, now};
+  m_nextDisposed = (m_nextDisposed + 1) % m_disposed.size();
+}
+
+bool SPDPAgent::isFromBeforeDispose(const GuidPrefix_t &prefix, const SequenceNumber_t &sn) const {
+  const auto now = std::chrono::steady_clock::now();
+  for (const auto &entry : m_disposed) {
+    if (entry.prefix == prefix && entry.at != std::chrono::steady_clock::time_point{} &&
+        now - entry.at < std::chrono::milliseconds(DISPOSE_MEMORY_MS)) {
+      return !(entry.sn < sn);
+    }
+  }
+  return false;
 }
 
 void SPDPAgent::processProxyData() {

@@ -152,6 +152,8 @@ private:
   //! participant, i.e. we exchange data with it. Takes m_mutex (recursive:
   //! callable from the eviction path that already holds it).
   bool hasUserEndpointProxyOf(const GuidPrefix_t &prefix);
+  //! Clears the slot holding `endpoint` (an add that could not be announced).
+  template <typename Slots, typename Endpoint> void releaseSlot(Slots &slots, Endpoint *endpoint);
 
   SPDPAgent m_spdpAgent;
   SEDPAgent m_sedpAgent;

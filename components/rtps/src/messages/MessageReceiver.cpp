@@ -162,6 +162,18 @@ bool MessageReceiver::processDataSubmessage(MessageProcessingInfo &msgInfo,
   // SampleIdentity). Plain pub/sub leaves this unset.
   bool hasRelatedSampleIdentity = false;
   rpc::SampleIdentity relatedSampleIdentity{};
+  // Discovery disposes: a peer that deletes an endpoint or leaves the domain
+  // writes a DATA whose inline QoS carries PID_STATUS_INFO (the change kind,
+  // RTPS 2.5 9.6.3.9) and PID_KEY_HASH (the instance, 9.6.3.8), and usually no
+  // payload. Fast DDS, Cyclone DDS and this engine all do (SEDPAgent::
+  // announceEndpointDeletion). They are taken from the inline QoS here, where
+  // they live; the payload parser (TopicData::readFromBuffer) never sees the
+  // inline QoS. Before this every dispose was dropped and a deleted remote
+  // endpoint stayed matched until its participant's lease ran out.
+  // Regression test: pc/tests/rtps_sedp_inline_qos_dispose.cpp.
+  ChangeKind_t changeKind = ChangeKind_t::ALIVE;
+  bool hasKeyHash = false;
+  Guid_t keyHash = GUID_UNKNOWN;
 
   if ((submsgHeader.flags & FLAG_INLINE_QOS) != 0) {
     const uint8_t *cursor = serializedData;
@@ -199,6 +211,23 @@ bool MessageReceiver::processDataSubmessage(MessageProcessingInfo &msgInfo,
         memcpy(&seq.low, cursor + 20, sizeof(seq.low));
         relatedSampleIdentity = rpc::SampleIdentity{g, seq};
         hasRelatedSampleIdentity = true;
+      } else if (pid == SMElement::PID_STATUS_INFO && length == 4) {
+        // Four octets, big-endian flags: bit 0 (of the last octet) disposed,
+        // bit 1 unregistered. Disposed wins when both are set (9.6.3.9).
+        const uint8_t status = cursor[3];
+        if ((status & 0x01) != 0) {
+          changeKind = ChangeKind_t::NOT_ALIVE_DISPOSED;
+        } else if ((status & 0x02) != 0) {
+          changeKind = ChangeKind_t::NOT_ALIVE_UNREGISTERED;
+        }
+      } else if (pid == SMElement::PID_KEY_HASH && length == 16) {
+        // A discovery instance's key is its GUID, so the 16-byte hash IS the
+        // GUID (prefix 12 + entityKey 3 + entityKind 1; 9.6.3.8: a key of at
+        // most 16 bytes is carried as-is).
+        memcpy(keyHash.prefix.id.data(), cursor, keyHash.prefix.id.size());
+        memcpy(keyHash.entityId.entityKey.data(), cursor + 12, keyHash.entityId.entityKey.size());
+        memcpy(&keyHash.entityId.entityKind, cursor + 15, sizeof(EntityKind_t));
+        hasKeyHash = true;
       }
 
       cursor += length;
@@ -257,14 +286,16 @@ bool MessageReceiver::processDataSubmessage(MessageProcessingInfo &msgInfo,
   }
   if (reader != nullptr) {
     Guid_t writerGuid{sourceState.sourceGuidPrefix, dataSubmsg.writerId};
-    ReaderCacheChange change{ChangeKind_t::ALIVE,
+    ReaderCacheChange change{changeKind,
                              writerGuid,
                              dataSubmsg.writerSN,
                              serializedData,
                              size,
                              hasRelatedSampleIdentity,
                              relatedSampleIdentity,
-                             sourceState.sourceVendor};
+                             sourceState.sourceVendor,
+                             hasKeyHash,
+                             keyHash};
     reader->newChangeIfCurrent(readerGen, change);
   } else {
 #if RECV_VERBOSE && RTPS_GLOBAL_VERBOSE

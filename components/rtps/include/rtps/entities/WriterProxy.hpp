@@ -27,14 +27,23 @@ Author: i11 - Embedded Software, RWTH Aachen University
 #define RTPS_WRITERPROXY_H
 
 #include "rtps/common/types.hpp"
+#include <chrono>
 #include <rtps/common/Locator.hpp>
 
 namespace rtps {
 struct WriterProxy {
   Guid_t remoteWriterGuid;
   SequenceNumber_t expectedSN;
+  /// The highest sequence number the writer has shown to exist: the lastSN
+  /// of its HEARTBEATs, or a DATA it sent. A GAP that only names numbers
+  /// above it is premature and is not applied (see
+  /// StatefulReader::onNewGapMessage).
+  SequenceNumber_t lastAnnouncedSN{0, 0};
   Count_t ackNackCount;
   Count_t hbCount;
+  /// When the last ACKNACK answering this writer's HEARTBEAT or GAP went out
+  /// (never: the epoch); see Config::SFR_ACKNACK_MIN_INTERVAL_MS.
+  std::chrono::steady_clock::time_point lastAckNackSentAt{};
   bool is_reliable = false;
   LocatorIPv4 remoteLocator;
 
@@ -89,6 +98,13 @@ struct WriterProxy {
     const Count_t tmp = ackNackCount;
     ++ackNackCount.value;
     return tmp;
+  }
+  /// NACK_FRAGs are counted on their own (RTPS 2.5 8.3.7.10: the count tells
+  /// a writer a duplicate from a retransmitted one).
+  Count_t nackFragCount{0};
+  Count_t getNextNackFragCount() {
+    ++nackFragCount.value;
+    return nackFragCount;
   }
 };
 } // namespace rtps

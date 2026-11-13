@@ -295,6 +295,28 @@ void addAckNack(Buffer &buffer, EntityId_t writerId, EntityId_t readerId,
   serializeMessage(buffer, subMsg);
 }
 
+/// A NACK_FRAG for the fragments of `writerSN` in `missing` (RTPS 2.5 8.3.7.10).
+template <class Buffer>
+void addNackFrag(Buffer &buffer, EntityId_t writerId, EntityId_t readerId,
+                 const SequenceNumber_t &writerSN, const FragmentNumberSet &missing,
+                 Count_t count) {
+  SubmessageNackFrag subMsg;
+  subMsg.header.submessageId = SubmessageKind::NACK_FRAG;
+#if IS_LITTLE_ENDIAN
+  subMsg.header.flags = FLAG_LITTLE_ENDIAN;
+#else
+  subMsg.header.flags = FLAG_BIG_ENDIAN;
+#endif
+  subMsg.header.octetsToNextHeader =
+      SubmessageNackFrag::getRawSize(missing) - numBytesUntilEndOfLength;
+  subMsg.writerId = writerId;
+  subMsg.readerId = readerId;
+  subMsg.writerSN = writerSN;
+  subMsg.fragmentNumberState = missing;
+  subMsg.count = count;
+  serializeMessage(buffer, subMsg);
+}
+
 template <class Buffer>
 void addSubmessageGap(Buffer &buffer, EntityId_t writerId, EntityId_t readerId,
                       const SequenceNumber_t &firstMissing, const SequenceNumber_t &nextValid) {

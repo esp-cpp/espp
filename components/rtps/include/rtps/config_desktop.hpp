@@ -202,6 +202,17 @@ const uint16_t SPDP_WRITER_STACKSIZE = RTPS_CFG_SPDP_WRITER_STACKSIZE; // byte
 #define RTPS_CFG_SF_WRITER_HB_PERIOD_MS 2000
 #endif
 const uint16_t SF_WRITER_HB_PERIOD_MS = RTPS_CFG_SF_WRITER_HB_PERIOD_MS;
+// A reliable reader that is missing samples answers a writer's HEARTBEATs with
+// an ACKNACK at most once per SFR_ACKNACK_MIN_INTERVAL_MS (and one it misses
+// nothing for not at all when its FinalFlag is set). Fast DDS and Cyclone DDS
+// coalesce their responses the same way; answering every HEARTBEAT at once
+// let a reader that fell behind a 20 Hz writer spiral: each stale HEARTBEAT it
+// worked through got an ACKNACK, each ACKNACK a GAP + HEARTBEAT back, and
+// the backlog grew faster than it drained (the QEMU soak).
+#ifndef RTPS_CFG_SFR_ACKNACK_MIN_INTERVAL_MS
+#define RTPS_CFG_SFR_ACKNACK_MIN_INTERVAL_MS 100
+#endif
+const uint16_t SFR_ACKNACK_MIN_INTERVAL_MS = RTPS_CFG_SFR_ACKNACK_MIN_INTERVAL_MS;
 // Every participant announces itself (SPDP) every SPDP_RESEND_PERIOD_MS.
 #ifndef RTPS_CFG_SPDP_RESEND_PERIOD_MS
 #define RTPS_CFG_SPDP_RESEND_PERIOD_MS 1000

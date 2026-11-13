@@ -210,6 +210,34 @@ struct SequenceNumberSet {
   }
 };
 
+/// RTPS 2.5 9.4.2.8 FragmentNumberSet: a 1-based fragment number the set
+/// starts at, how many bits follow, and ceil(numBits / 32) words of them, the
+/// first fragment in the highest bit of the first word (as SequenceNumberSet).
+struct FragmentNumberSet {
+  uint32_t base = 1;
+  uint32_t numBits = 0;
+  std::array<uint32_t, (SNS_MAX_NUM_BITS / 32)> bitMap{};
+
+  void set(uint32_t bit) {
+    if (bit < SNS_MAX_NUM_BITS) {
+      bitMap[bit / 32] |= uint32_t{1} << (31 - (bit % 32));
+    }
+  }
+  bool isSet(uint32_t bit) const {
+    if (bit >= SNS_MAX_NUM_BITS) {
+      return false;
+    }
+    return (bitMap[bit / 32] & (uint32_t{1} << (31 - (bit % 32)))) != 0;
+  }
+  static uint16_t getRawSize(const FragmentNumberSet &set) {
+    uint16_t bitMapSize = 0;
+    if (set.numBits != 0) {
+      bitMapSize = static_cast<uint16_t>(4 * (((set.numBits - 1) / 32) + 1));
+    }
+    return static_cast<uint16_t>(sizeof(uint32_t) + sizeof(uint32_t) + bitMapSize);
+  }
+};
+
 struct FragmentNumber_t {
   uint32_t value;
 };

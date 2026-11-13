@@ -28,6 +28,7 @@ Author: i11 - Embedded Software, RWTH Aachen University
 #include "rtps/entities/Writer.hpp"
 #include "rtps/messages/MessageReceiver.hpp"
 #include "rtps/utils/Log.hpp"
+#include <algorithm>
 #include <mutex>
 
 #if PARTICIPANT_VERBOSE && RTPS_GLOBAL_VERBOSE
@@ -101,6 +102,13 @@ rtps::Writer *Participant::addWriter(Writer *pWriter) {
   // participant), so nesting the agent call under m_mutex is a lock-order
   // inversion that deadlocks under concurrent discovery traffic. The global
   // order is SEDPAgent::m_mutex -> Participant::m_mutex, never the reverse.
+  //
+  // The agent's mutex is held across reservation, announcement and rollback
+  // (taken first, in that global order, as deleteWriter() does): a receive
+  // handler must not match a remote endpoint to a slot whose announcement is
+  // then refused - the rollback would reset the writer with the only record
+  // of that remote, which would never be matched again.
+  std::lock_guard<std::recursive_mutex> sedp_lock(m_sedpAgent.getMutex());
   bool inserted = false;
   {
     std::lock_guard<std::recursive_mutex> lock(m_mutex);
@@ -115,8 +123,11 @@ rtps::Writer *Participant::addWriter(Writer *pWriter) {
   if (!inserted) {
     return nullptr;
   }
-  if (m_hasBuilInEndpoints) {
-    m_sedpAgent.addWriter(*pWriter);
+  if (m_hasBuilInEndpoints && !m_sedpAgent.addWriter(*pWriter)) {
+    // Not announced is not discoverable: give the slot back so the creation
+    // fails cleanly (the SEDP agent said why).
+    releaseSlot(m_writers, pWriter);
+    return nullptr;
   }
   return pWriter;
 }
@@ -135,7 +146,9 @@ bool Participant::isWritersFull() {
 rtps::Reader *Participant::addReader(Reader *pReader) {
   // Slot under m_mutex, SEDP announcement outside it - see addWriter() for
   // the lock-order rationale (SEDPAgent::m_mutex must never be acquired while
-  // holding m_mutex).
+  // holding m_mutex), and for why the agent's mutex is held across the whole
+  // reservation / announcement / rollback.
+  std::lock_guard<std::recursive_mutex> sedp_lock(m_sedpAgent.getMutex());
   bool inserted = false;
   {
     std::lock_guard<std::recursive_mutex> lock(m_mutex);
@@ -150,10 +163,20 @@ rtps::Reader *Participant::addReader(Reader *pReader) {
   if (!inserted) {
     return nullptr;
   }
-  if (m_hasBuilInEndpoints) {
-    m_sedpAgent.addReader(*pReader);
+  if (m_hasBuilInEndpoints && !m_sedpAgent.addReader(*pReader)) {
+    releaseSlot(m_readers, pReader); // see addWriter()
+    return nullptr;
   }
   return pReader;
+}
+
+template <typename Slots, typename Endpoint>
+void Participant::releaseSlot(Slots &slots, Endpoint *endpoint) {
+  std::lock_guard<std::recursive_mutex> lock(m_mutex);
+  auto it = std::find(slots.begin(), slots.end(), endpoint);
+  if (it != slots.end()) {
+    *it = nullptr;
+  }
 }
 
 bool Participant::deleteReader(Reader *reader) {

@@ -195,6 +195,15 @@ public:
     /// cap is a TRUE fd bound: a released endpoint's socket counts against it
     /// until its fd actually closes (normally immediate).
     uint8_t max_prioritized_endpoint_ports{4};
+    /// How long a service reply may wait for the requester's reply reader to
+    /// be matched before it is written regardless. A client sends its request
+    /// as soon as ITS side has matched both endpoints, while this side's reply
+    /// writer can learn of the client's reply reader a little later (one more
+    /// SEDP exchange). A reply written before that match is never sent to the
+    /// reader - a VOLATILE reader takes it for pre-match history - and the call
+    /// times out. Replies are therefore held until the match, up to this long
+    /// (then written anyway, with a warning). Zero disables the hold.
+    std::chrono::milliseconds service_reply_match_timeout{1000};
   };
 
   /// Construct the participant (does not open sockets; see start()).
@@ -233,6 +242,24 @@ public:
   /// \return True on success (false when not started or when the engine's
   ///         reader pool is exhausted).
   bool add_reader(const ReaderConfig &config);
+
+  /// Distinct remote writers matched to any local reader on `topic` right now
+  /// (add_reader() allows several readers on one topic, e.g. a reliable and a
+  /// best-effort one; a writer matched to more than one of them counts once):
+  /// the peers' publishers discovery paired with them, as counted by the
+  /// engine. A peer that deletes its publisher or leaves the domain drops out
+  /// as soon as its dispose arrives, a silent peer when its lease runs out.
+  /// \param topic The topic name used in add_reader().
+  /// \return The count, 0 when there is no such reader or the participant is
+  ///         not started.
+  std::size_t matched_writers(const std::string &topic) const;
+
+  /// Remote readers matched to the writer on `topic` right now (see
+  /// matched_writers()).
+  /// \param topic The topic name used in add_writer().
+  /// \return The count, 0 when there is no such writer or the participant is
+  ///         not started.
+  std::size_t matched_readers(const std::string &topic) const;
 
   /// Maximum size of a single published CDR payload, in bytes.
   ///
@@ -817,6 +844,25 @@ protected:
   // follow the same rule.
   std::vector<std::shared_ptr<ServiceServerContext>> service_servers_;
   std::vector<std::shared_ptr<ServiceClient>> service_clients_;
+  /// Service replies held until their requester's reply reader is matched (see
+  /// Config::service_reply_match_timeout and ServiceResponder::reply()): the
+  /// servers holding one. A match flushes them at once (the engine's
+  /// subscriber-matched callback); a timer enforces the deadline. The timer is
+  /// created by the first held reply and kept until stop(): creating one per
+  /// hold fragmented the ESP32's internal RAM (every task stack lives there)
+  /// until a creation failed and the thread constructor's exception took the
+  /// device down (the QEMU soak, after 13 cycles of service calls).
+  std::mutex held_replies_mutex_;
+  std::vector<std::weak_ptr<ServiceServerContext>> servers_with_held_replies_;
+  std::unique_ptr<espp::Timer> held_replies_timer_;
+  /// List the server and make sure the deadline timer runs. False when the
+  /// timer could not be created (no memory for its task): the caller must
+  /// not hold the reply, there would be nothing to write it at the deadline.
+  bool note_held_reply(const std::shared_ptr<ServiceServerContext> &server);
+  /// Write every held reply whose reader is now matched (or whose deadline
+  /// passed); true while something is still held.
+  bool sweep_held_replies();
+  void flush_held_replies(); ///< sweep, when anything is held (the match path)
 
   struct ActionServerContext;
   std::vector<std::shared_ptr<ActionServerContext>> action_servers_;
