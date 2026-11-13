@@ -31,8 +31,10 @@
 //  3. once the reply reader is announced over SEDP, the reply writer
 //     heartbeats it within 500 ms (an empty history: first 1, last 0) and
 //     still sends no reply DATA;
-//  4. a pre-emptive ACKNACK numbered 0 (Cyclone's) does not release the
-//     reply: nothing for 250 ms. Fails with the match alone;
+//  4. a pre-emptive ACKNACK numbered 0 (Cyclone's) is answered with a
+//     heartbeat within 500 ms (the empty history again: what a reader whose
+//     match heartbeat was lost needs to complete the handshake) and does not
+//     release the reply: no DATA for 250 ms. Fails with the match alone;
 //  5. an ACKNACK numbered 1 (the answer to the heartbeat) does: the reply
 //     DATA arrives within 1 s. Fails without the hold: the writer had no
 //     reader when the reply was written, so only its heartbeats ever reach
@@ -517,11 +519,18 @@ bool run_checks() {
   CHECK(seen.first == 1 && seen.last == 0, "the heartbeat announces an empty history");
   const rtps::EntityId_t reply_writer = seen.writer;
 
-  // 4. Cyclone's pre-emptive ACKNACK (count 0) does not release the reply.
+  // 4. Cyclone's pre-emptive ACKNACK (count 0) is answered with a heartbeat
+  //    (the writer's next periodic one is seconds away, so this is the answer)
+  //    and does not release the reply.
   send_to_ports(sock, ip, false,
                 acknack_message(peer, reply_reader.entityId, reply_writer, /*base=*/1,
                                 /*count=*/0));
-  CHECK(!reply_arrived(sock, 250, seen), "no reply DATA on a pre-emptive ACKNACK numbered 0");
+  data_seen = 0;
+  CHECK(arrived(sock, 500, Kind::Heartbeat, seen, &data_seen),
+        "a pre-emptive ACKNACK numbered 0 is answered with a heartbeat");
+  CHECK(seen.first == 1 && seen.last == 0, "... announcing the empty history");
+  CHECK(data_seen == 0 && !reply_arrived(sock, 250, seen),
+        "no reply DATA on a pre-emptive ACKNACK numbered 0");
 
   // 5. The ACKNACK answering the heartbeat (count 1) does.
   send_to_ports(sock, ip, false,
