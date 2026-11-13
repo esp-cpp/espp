@@ -664,7 +664,17 @@ void RtpsParticipant::DeferredDispatch::arm(std::shared_ptr<void> owner) {
   // full the transport parks the job (one per dispatcher, drain semantics)
   // and its retry task resubmits it, so a queued (possibly lone/last)
   // delivery is never stranded waiting for traffic that may not come.
-  // close() withdraws a parked job through cancelGuaranteed().
+  // Submitted under the dispatcher mutex so that close() - which marks the
+  // dispatcher closed under it and then withdraws the parked job through
+  // cancelGuaranteed() - either sees the arm refused here or cancels what it
+  // parked: an arm slipping in between would park a job holding the removed
+  // endpoint's context. The transport takes only its own pending-job mutex
+  // under this one, never a dispatcher's.
+  std::lock_guard<std::mutex> lock(mutex);
+  if (closed) {
+    in_flight = false;
+    return;
+  }
   transport->submitGuaranteedDrain(
       this, [this, owner]() { drain(owner); }, band);
 }
@@ -2311,18 +2321,29 @@ bool RtpsParticipant::add_action_server(const ActionConfig &config, action_goal_
           // all - forgotten again and rejected to the client - rather than
           // held without ever running.
           std::weak_ptr<ActionServerContext> weak_server = server;
-          const bool queued = server->exec_pool &&
-                              server->exec_pool->try_submit(
-                                  [gstate, weak_server]() {
-                                    auto s = weak_server.lock();
-                                    if (!s) {
-                                      return;
-                                    }
-                                    publish_goal_status(s->self, s->status_topic, gstate->goal_id,
-                                                        ract::GoalStatus::EXECUTING);
-                                    s->execute(ActionGoalHandle(gstate));
-                                  },
-                                  server->band);
+          const bool queued =
+              server->exec_pool &&
+              server->exec_pool->try_submit(
+                  [gstate, weak_server]() {
+                    auto s = weak_server.lock();
+                    if (!s) {
+                      return;
+                    }
+                    // EXECUTING, unless the goal was cancelled while it
+                    // waited: it is CANCELING then, and stays so until the
+                    // execute callback terminates it. Under the goal's
+                    // mutex: the cancel path sets the flag and publishes
+                    // CANCELING under it too, so the two never cross.
+                    {
+                      std::lock_guard<std::mutex> lock(gstate->mutex);
+                      if (!gstate->cancel_requested.load()) {
+                        publish_goal_status(s->self, s->status_topic, gstate->goal_id,
+                                            ract::GoalStatus::EXECUTING);
+                      }
+                    }
+                    s->execute(ActionGoalHandle(gstate));
+                  },
+                  server->band);
           if (!queued) {
             logger_.warn("Action server: the execute workers are stopped; goal rejected");
             std::lock_guard<std::mutex> lock(server->goals_mutex);
@@ -2473,9 +2494,15 @@ bool RtpsParticipant::add_action_server(const ActionConfig &config, action_goal_
                  ++refused;
                  continue;
                }
-               if (!gstate->cancel_requested.exchange(true)) {
-                 publish_goal_status(server->self, server->status_topic, goal_id,
-                                     ract::GoalStatus::CANCELING);
+               {
+                 // Under the goal's mutex, so a worker starting this goal right
+                 // now cannot publish EXECUTING after CANCELING (see the
+                 // execute job).
+                 std::lock_guard<std::mutex> glock(gstate->mutex);
+                 if (!gstate->cancel_requested.exchange(true)) {
+                   publish_goal_status(server->self, server->status_topic, goal_id,
+                                       ract::GoalStatus::CANCELING);
+                 }
                }
                canceling.push_back(goal_id);
              }
@@ -3284,6 +3311,7 @@ struct RtpsParticipant::NativeActionServerContext {
   std::string feedback_topic;
   native_execute_callback_t execute{nullptr};
   std::atomic<uint32_t> next_handle{1};
+  std::size_t max_goals_in_flight{0}; ///< running + waiting goals held at once; 0 = unlimited
   // The execute workers (see make_exec_pool): stopped in stop() before the
   // domain is torn down. Goals run at `band`.
   std::unique_ptr<espp::ThreadPool> exec_pool;
@@ -3349,6 +3377,7 @@ bool RtpsParticipant::add_native_action_server(const ActionConfig &config,
   ctx->feedback_topic = rtps::rpc::native_feedback_topic(config.action);
   ctx->execute = std::move(execute);
   ctx->band = config.band;
+  ctx->max_goals_in_flight = config.max_goals_in_flight;
   ctx->exec_pool = make_exec_pool(config);
   if (!ctx->exec_pool->is_running()) {
     logger_.error("Native action server '{}': the execute workers could not be started",
@@ -3372,7 +3401,22 @@ bool RtpsParticipant::add_native_action_server(const ActionConfig &config,
       {rtps::rpc::native_goal_service(config.action), config.type_name, config.band, config.dscp},
       [this, weak, on_goal](std::span<const uint8_t> goal) -> std::vector<uint8_t> {
         auto server = weak.lock();
-        if (server == nullptr || (on_goal && !on_goal(goal))) {
+        if (server == nullptr) {
+          return rtps::rpc::native_make_goal_reply(false, 0);
+        }
+        // Bounded like the ROS 2 server: a goal beyond max_goals_in_flight
+        // (running or waiting for an execute worker - `goals` holds a goal
+        // until its execute job finishes) is rejected before on_goal.
+        if (server->max_goals_in_flight > 0) {
+          std::lock_guard<std::mutex> lock(server->goals_mutex);
+          if (server->goals.size() >= server->max_goals_in_flight) {
+            logger_.warn("Native action server: {} goals in flight (max_goals_in_flight); "
+                         "goal rejected",
+                         server->goals.size());
+            return rtps::rpc::native_make_goal_reply(false, 0);
+          }
+        }
+        if (on_goal && !on_goal(goal)) {
           return rtps::rpc::native_make_goal_reply(false, 0);
         }
         const uint32_t handle = server->next_handle.fetch_add(1);

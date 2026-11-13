@@ -90,12 +90,18 @@ EsppTransport::EsppTransport(RxCallback callback, void *args, const TaskConfig &
   pool_config.max_queue_size = 64;
   pool_config.worker_task_config = m_tasks.worker_task;
   m_pool = std::make_shared<espp::ThreadPool>(pool_config);
+  if (!m_pool->is_running()) {
+    logger_.error("The receive workers ('{}') could not be started", m_tasks.worker_task.name);
+  }
 
   espp::SocketReactor::Config reactor_config;
   reactor_config.thread_pool = m_pool;
   reactor_config.loop_task_config = m_tasks.reactor_task;
   reactor_config.log_level = espp::Logger::Verbosity::WARN;
   m_reactor = std::make_shared<espp::SocketReactor>(reactor_config);
+  if (!m_reactor->is_running()) {
+    logger_.error("The socket reactor ('{}') could not be started", m_tasks.reactor_task.name);
+  }
 
   // The guaranteed-submission retry task, created now rather than on the
   // first rejection: a task created under load (the only time a rejection
@@ -116,6 +122,13 @@ EsppTransport::EsppTransport(RxCallback callback, void *args, const TaskConfig &
                   "rejects will be dropped",
                   m_tasks.retry_task.name);
   }
+}
+
+EsppTransport::~EsppTransport() { stop(); }
+
+bool EsppTransport::tasksRunning() const {
+  return m_pool && m_pool->is_running() && m_reactor && m_reactor->is_running() &&
+         m_retryTaskRunning;
 }
 
 bool EsppTransport::retryLoop(std::mutex &m, std::condition_variable &cv, bool &notified) {

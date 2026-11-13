@@ -100,13 +100,21 @@ bool wait_until(const std::function<bool()> &pred, std::chrono::milliseconds tim
 }
 
 bool run() {
+  // Everything the callbacks touch is declared BEFORE the participants, so a
+  // failed CHECK (which returns from here) destroys the participants - and
+  // with them every callback - first.
+  std::atomic<int> executing{0};
+  std::atomic<int> peak{0};
+  std::atomic<int> finished{0};
+  StatusBoard board;
+  std::atomic<int> serial_running{0};
+  std::atomic<int> serial_peak{0};
+  std::atomic<int> serial_done{0};
+
   Rtps server({.log_level = espp::Logger::Verbosity::ERROR});
   Rtps client({.log_level = espp::Logger::Verbosity::ERROR});
   CHECK(server.start() && client.start(), "start");
 
-  std::atomic<int> executing{0};
-  std::atomic<int> peak{0};
-  std::atomic<int> finished{0};
   const auto execute = [&](Rtps::ActionGoalHandle h) {
     const int now = executing.fetch_add(1) + 1;
     int seen = peak.load();
@@ -129,7 +137,6 @@ bool run() {
             [](const Rtps::GoalId &, std::span<const uint8_t>) { return true; }, execute),
         "add_action_server");
 
-  StatusBoard board;
   CHECK(client.add_reader({.topic = ract::action_status_topic(kAction),
                            .type_name = ract::action_status_type(),
                            .reliability = Rtps::Reliability::RELIABLE,
@@ -209,9 +216,6 @@ bool run() {
 
   // 3. The default: one worker, goals one after another.
   constexpr const char *kSerial = "/pool_serial";
-  std::atomic<int> serial_running{0};
-  std::atomic<int> serial_peak{0};
-  std::atomic<int> serial_done{0};
   CHECK(server.add_action_server(
             {.action = kSerial, .type_name = kType, .result_timeout = 2s},
             [](const Rtps::GoalId &, std::span<const uint8_t>) { return true; },

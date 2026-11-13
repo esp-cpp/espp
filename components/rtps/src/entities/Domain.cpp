@@ -66,6 +66,11 @@ Domain::Domain(rtps::EsppTransport &transport, const rtps::Ip4AddressBytes &loca
 
 bool Domain::initializeTransport() {
   assert(m_transport != nullptr);
+  if (!m_transport->tasksRunning()) {
+    logger_.error("The transport's tasks did not all start (a core id or stack size the "
+                  "platform refuses?): the domain cannot run");
+    return false;
+  }
   // Metatraffic (SPDP discovery multicast) is registered at the configured
   // metatraffic band (High by default) so discovery dispatch overtakes queued
   // user-traffic handling; user multicast runs at the user-traffic band.
@@ -102,7 +107,17 @@ bool Domain::completeInit() {
   task_config.task_config = m_config.protocol_task;
   task_config.log_level = espp::Logger::Verbosity::WARN;
   m_protocolTask = espp::Task::make_unique(task_config);
-  (void)m_protocolTask->start();
+  if (!m_protocolTask->start()) {
+    // Without it nothing announces this participant or heartbeats its
+    // writers: the initialization fails as a whole (the facade tears the
+    // domain down on false).
+    logger_.error("The protocol task ('{}') could not be started (a core id or stack size the "
+                  "platform refuses?)",
+                  m_config.protocol_task.name);
+    m_protocolTask.reset();
+    m_initComplete = false;
+    return false;
+  }
 
   for (uint8_t slot = 0; slot < m_numParticipants; ++slot) {
     m_participants[slot].getSPDPAgent().start();

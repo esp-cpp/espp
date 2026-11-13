@@ -93,7 +93,17 @@ public:
 
   EsppTransport(RxCallback callback, void *args); ///< the default tasks
   EsppTransport(RxCallback callback, void *args, const TaskConfig &tasks);
-  ~EsppTransport() = default;
+  /// Stops the tasks (stop(), idempotent) before any member they use is
+  /// destroyed: the retry task's loop touches the nudge state declared after
+  /// it, and a transport that was never stop()ped (a standalone one in a test,
+  /// the Domain's unused default one) must not tear that down under its task.
+  ~EsppTransport();
+
+  /// Whether every task of the transport started: the receive workers, the
+  /// reactor loop and the retry task. A core id or a stack the platform
+  /// refuses leaves one stopped, and nothing can be sent or received without
+  /// them; the Domain fails its initialization on false.
+  bool tasksRunning() const;
 
   /// Ensure a receive channel exists for the port. Unicast ports are bound
   /// with address/port reuse DISABLED so an in-use port fails loudly (the
