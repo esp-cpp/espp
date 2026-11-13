@@ -320,12 +320,8 @@ bool SEDPAgent::matchRemoteReader(Writer &writer, const ReaderProxy &proxy) {
 }
 
 template <typename Pool> bool SEDPAgent::isKnown(Pool &pool, const rtps::Guid_t &guid) {
-  for (const auto &entry : pool) {
-    if (entry.endpointGuid == guid) {
-      return true;
-    }
-  }
-  return false;
+  return std::any_of(pool.begin(), pool.end(),
+                     [&](const auto &entry) { return entry.endpointGuid == guid; });
 }
 
 void SEDPAgent::retryKnownRemoteEndpoints() {

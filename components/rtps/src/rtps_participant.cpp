@@ -4,6 +4,7 @@
 #include <atomic>
 #include <condition_variable>
 #include <cstdio>
+#include <iterator>
 #include <limits>
 #include <map>
 #include <memory>
@@ -1361,9 +1362,8 @@ struct RtpsParticipant::ServiceClient::Impl
     {
       std::lock_guard<std::mutex> lock(mutex);
       gone.reserve(pending.size());
-      for (auto &kv : pending) {
-        gone.push_back(std::move(kv.second));
-      }
+      std::transform(pending.begin(), pending.end(), std::back_inserter(gone),
+                     [](auto &kv) { return std::move(kv.second); });
       pending.clear();
     }
     finish_abandoned(gone);
@@ -2942,9 +2942,9 @@ struct RtpsParticipant::NativeServiceClient::Impl {
     std::vector<Pending> gone;
     {
       std::lock_guard<std::mutex> lock(mutex);
-      for (auto &kv : pending) {
-        gone.push_back(std::move(kv.second));
-      }
+      gone.reserve(pending.size());
+      std::transform(pending.begin(), pending.end(), std::back_inserter(gone),
+                     [](auto &kv) { return std::move(kv.second); });
       pending.clear();
     }
     finish_abandoned(gone);
