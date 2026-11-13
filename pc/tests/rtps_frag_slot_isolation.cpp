@@ -128,9 +128,12 @@ bool run_checks() {
   fragment(reader, unknown, 3, 1, stray);
   fragment(reader, unknown, 3, 2, stray);
   fragment(reader, unknown, 3, 3, stray);
-  if (delivered.samples.size() != 1 || delivered.samples[0] != stray) {
+  // (the fragment() calls above fill `delivered` through the reader's callback,
+  // which cppcheck's value flow does not see)
+  const std::size_t late_delivered = delivered.samples.size();
+  if (late_delivered != 1 || delivered.samples.front() != stray) {
     std::printf("FAIL: the late-matched writer's sample was not delivered (%zu delivered)\n",
-                delivered.samples.size());
+                late_delivered);
     return false;
   }
 

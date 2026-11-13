@@ -22,6 +22,7 @@
 //
 // Exits 0 on success, 1 on failure.
 
+#include <algorithm>
 #include <atomic>
 #include <chrono>
 #include <cstdint>
@@ -56,9 +57,7 @@ const std::vector<uint8_t> kEmpty{0x00, 0x01, 0x00, 0x00, 0x00};
 ract::GoalUuid make_id(uint8_t n) {
   ract::GoalUuid id{};
   std::mt19937 rng(12345u + n);
-  for (auto &b : id) {
-    b = static_cast<uint8_t>(rng());
-  }
+  std::generate(id.begin(), id.end(), [&rng] { return static_cast<uint8_t>(rng()); });
   id[0] = n;
   return id;
 }

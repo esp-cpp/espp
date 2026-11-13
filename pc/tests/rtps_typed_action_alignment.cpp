@@ -135,7 +135,7 @@ bool end_to_end() {
   CHECK(act.is_valid() && cli.is_valid(), "typed action endpoints");
   CHECK(cli.wait_for_server(10s), "wait_for_server");
 
-  const auto run = [&](int64_t x, espp::GoalStatus want, AlignResult want_result,
+  const auto run = [&](int64_t x, espp::GoalStatus want, const AlignResult &want_result,
                        const char *what) -> bool {
     auto out = std::make_shared<Outcome>();
     const bool sent = cli.send_goal(
@@ -171,13 +171,11 @@ bool end_to_end() {
     // first goal (wait_for_server covers the three services only): the writer
     // replays it once the match lands, which can be after the result. Give
     // it a moment rather than racing discovery.
-    if (!out->feedback) {
-      const auto fb_deadline = std::chrono::steady_clock::now() + 5s;
-      while (!out->feedback && std::chrono::steady_clock::now() < fb_deadline) {
-        lock.unlock();
-        std::this_thread::sleep_for(20ms);
-        lock.lock();
-      }
+    const auto fb_deadline = std::chrono::steady_clock::now() + 5s;
+    while (!out->feedback && std::chrono::steady_clock::now() < fb_deadline) {
+      lock.unlock();
+      std::this_thread::sleep_for(20ms);
+      lock.lock();
     }
     std::printf("%s: status %d, result {%g, %d, %g}, feedback {%d, %g}\n", what,
                 static_cast<int>(out->status), out->result.first, out->result.n, out->result.last,
