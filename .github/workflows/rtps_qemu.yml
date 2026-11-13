@@ -114,7 +114,10 @@ jobs:
     timeout-minutes: 45
     permissions:
       contents: read
-      issues: write # the report as a comment on the pull request (an issue comment)
+      # the report as a comment on the pull request: an issue comment, but on a
+      # pull_request event GitHub checks the pull-requests permission for it
+      issues: write
+      pull-requests: write
     steps:
       - uses: actions/checkout@v7
         with:
