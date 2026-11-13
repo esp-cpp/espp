@@ -10,6 +10,7 @@
 #include <mutex>
 #include <optional>
 #include <random>
+#include <stdexcept>
 #include <thread>
 #include <unordered_map>
 #include <vector>
@@ -1102,6 +1103,9 @@ bool RtpsParticipant::note_held_reply(const std::shared_ptr<ServiceServerContext
         .auto_start = true,
         .log_level = espp::Logger::Verbosity::WARN,
     });
+    if (!held_replies_timer_->is_running()) {
+      throw std::runtime_error("its task did not start"); // Task::start() said why
+    }
   } catch (const std::exception &e) {
     held_replies_timer_.reset();
     logger_.error("Held-reply deadline timer could not be started ({}); replies are written "
