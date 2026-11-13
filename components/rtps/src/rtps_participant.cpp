@@ -1923,10 +1923,10 @@ std::unique_ptr<espp::ThreadPool> make_exec_pool(const RtpsParticipant::ActionCo
     // "exec_<action>" with everything but letters and digits replaced by '_',
     // capped at 15 characters: FreeRTOS keeps configMAX_TASK_NAME_LEN (16 by
     // default) including the terminator, and '/' in a name reads badly in logs.
-    std::string name = "exec_";
-    for (const char c : config.action) {
-      name.push_back(std::isalnum(static_cast<unsigned char>(c)) ? c : '_');
-    }
+    std::string name = "exec_" + config.action;
+    std::transform(name.begin() + 5, name.end(), name.begin() + 5, [](const char c) {
+      return std::isalnum(static_cast<unsigned char>(c)) ? c : '_';
+    });
     if (name.back() == '_' && name.size() > 5) {
       name.pop_back();
     }
