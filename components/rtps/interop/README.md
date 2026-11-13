@@ -122,7 +122,7 @@ where every task stack and lwIP buffer must live, against PSRAM - at boot, after
 `start()` and after the endpoints exist. The suite then adds one thing at a time
 on the host and reads the device's heap after each: a remote participant with
 nothing the device subscribes to, a second one, one whose publisher matches the
-device's reliable subscriber, a service call, one 30 KB sample, and finally all
+device's reliable subscriber, a service call, an action goal, one 30 KB sample, and finally all
 peers gone. CI builds the firmware once per limits profile (embedded, host,
 host_large: `sdkconfig.profile.*.defaults`, each build with its own `sdkconfig`
 - IDF applies `SDKCONFIG_DEFAULTS` only when it creates one, so a build
@@ -142,7 +142,7 @@ tens of bytes of heap because its slot was paid for at `start()` (the Domain,
 75 KB on the embedded profile, goes to PSRAM; the 40 KB `start()` takes from
 internal RAM is tasks and sockets), so the per-object costs live in the
 `sizeof` and stage tables, while the low-water mark column shows the transients
-a service call or a 30 KB sample causes on top.
+a service call, an action goal or a 30 KB sample causes on top.
 
 What only this can show: the embedded pools and knobs as built, lwIP's socket
 and reassembly behaviour, FreeRTOS priorities for the engine's threads,

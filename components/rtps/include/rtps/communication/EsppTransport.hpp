@@ -30,11 +30,14 @@ This file is part of the espp embeddedRTPS port.
 #include "rtps/communication/PacketInfo.hpp"
 #include "rtps/config.hpp"
 #include "socket_reactor.hpp"
+#include "task.hpp"
 #include "thread_pool.hpp"
-#include "timer.hpp"
 #include "udp_socket.hpp"
 
 #include <array>
+#include <atomic>
+#include <chrono>
+#include <condition_variable>
 #include <map>
 #include <memory>
 #include <mutex>
@@ -60,7 +63,34 @@ class EsppTransport : public espp::BaseComponent {
 public:
   using RxCallback = ReceiveCallback;
 
-  EsppTransport(RxCallback callback, void *args);
+  /// The transport's tasks. Defaults come from the compile-time rtps::Config
+  /// (menuconfig RTPS -> Tasks); a core id or a bigger stack is set here.
+  struct TaskConfig {
+    /// Receive worker tasks: every received datagram and every writer's send
+    /// is dispatched on one of them.
+    std::size_t worker_count{2};
+    espp::Task::BaseConfig worker_task{
+        .name = "rtps_worker",
+        .stack_size_bytes = static_cast<size_t>(rtps::Config::THREAD_POOL_READER_STACKSIZE),
+        .priority = static_cast<size_t>(rtps::Config::THREAD_POOL_READER_PRIO),
+    };
+    /// The socket reactor's loop task (select() over every channel).
+    espp::Task::BaseConfig reactor_task{
+        .name = "rtps_reactor",
+        .stack_size_bytes = static_cast<size_t>(rtps::Config::THREAD_POOL_READER_STACKSIZE),
+        .priority = static_cast<size_t>(rtps::Config::THREAD_POOL_READER_PRIO),
+    };
+    /// The guaranteed-submission retry task (see submitGuaranteed()): sleeps
+    /// until a job is parked, then resubmits parked jobs as the pool frees up.
+    espp::Task::BaseConfig retry_task{
+        .name = "rtps_job_retry",
+        .stack_size_bytes = 4096,
+        .priority = static_cast<size_t>(rtps::Config::THREAD_POOL_READER_PRIO),
+    };
+  };
+
+  EsppTransport(RxCallback callback, void *args); ///< the default tasks
+  EsppTransport(RxCallback callback, void *args, const TaskConfig &tasks);
   ~EsppTransport() = default;
 
   /// Ensure a receive channel exists for the port. Unicast ports are bound
@@ -161,6 +191,9 @@ private:
   /// producer count.
   void parkPendingJob(const void *key, std::function<void()> job, espp::QosBand band,
                       bool cap_to_one);
+  /// parkPendingJob() under m_pendingMutex; false when stopping (nothing parked).
+  bool parkPendingJobLocked(const void *key, std::function<void()> job, espp::QosBand band,
+                            bool cap_to_one);
 
   RxCallback m_rxCallback{nullptr};
   void *m_callbackArgs{nullptr};
@@ -192,13 +225,12 @@ private:
   std::shared_ptr<espp::SocketReactor> m_reactor{};
   mutable std::vector<std::string> m_multicastGroups;
 
-  /// Guaranteed-submission retry state (see submitGuaranteed()). The timer is
-  /// created lazily on the first rejection and NEVER self-cancels (its callback
-  /// always returns false; it is a cheap no-op once the pending map drains);
-  /// only stop() cancels it - synchronously, BEFORE stopping the reactor/pool,
-  /// so no retry callback runs during or after teardown. (A self-cancelling
-  /// espp::Timer leaves running_ set while its task exits, so a later start()
-  /// would no-op against a dead task and strand parked work - hence keep-alive.)
+  /// Guaranteed-submission retry state (see submitGuaranteed()). One task,
+  /// created with the transport (deterministic memory: a task created under
+  /// load is the one that fails to start), that sleeps on its condition
+  /// variable until a job is parked, resubmits parked jobs round-robin, and
+  /// re-tries every RETRY_PERIOD while the pool stays full. stop() stops it
+  /// first, BEFORE the reactor/pool, so no retry runs during or after teardown.
   struct PendingProgress {
     std::function<void()> job;
     espp::QosBand band{espp::QosBand::Normal};
@@ -215,8 +247,25 @@ private:
   /// no producer can be starved at this stage; band priority is applied by the
   /// pool's banded queues once a job is admitted.
   std::size_t m_drainRotor{0};
-  std::unique_ptr<espp::Timer> m_retryTimer;
   bool m_stopping{false};
+  /// Set under m_pendingMutex whenever m_pendingByKey is non-empty; the retry
+  /// task waits for it (through its own mutex/cv, published below).
+  std::atomic<bool> m_pendingWork{false};
+  static constexpr std::chrono::milliseconds RETRY_PERIOD{20};
+  std::unique_ptr<espp::Task> m_retryTask;
+  /// The retry task publishes its synchronization objects under
+  /// m_retryNudgeMutex before its first wait (nudgeRetry() wakes it from
+  /// parkPendingJob(), on any thread); stop() nulls them before the task is
+  /// destroyed, so a racing nudge no-ops instead of touching a dead task.
+  std::mutex m_retryNudgeMutex;
+  std::mutex *m_retryMutex = nullptr;
+  std::condition_variable *m_retryCv = nullptr;
+  bool retryLoop(std::mutex &m, std::condition_variable &cv, bool &notified);
+  void nudgeRetry();
+  /// One resubmission pass over the parked jobs (m_pendingMutex held by the
+  /// caller). True when the pool rejected one: the rest wait for RETRY_PERIOD.
+  bool drainPendingLocked();
+  TaskConfig m_tasks;
 };
 
 } // namespace rtps

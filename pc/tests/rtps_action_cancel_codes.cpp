@@ -107,8 +107,11 @@ bool run() {
 
   std::atomic<bool> allow_cancel{true};
   std::atomic<int> active{0};
+  // Three execute workers: the stamp checks below keep three goals live at
+  // once (the default single worker would run them one after another).
   const Rtps::ActionConfig cfg{.action = "/cancel_codes",
-                               .type_name = "espp_test::action::dds_::CancelCodes"};
+                               .type_name = "espp_test::action::dds_::CancelCodes",
+                               .execute_workers = 3};
   CHECK(server.add_action_server(
             cfg, [](const Rtps::GoalId &, std::span<const uint8_t>) { return true; },
             [&active](Rtps::ActionGoalHandle h) {

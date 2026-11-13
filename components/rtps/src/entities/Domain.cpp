@@ -47,7 +47,7 @@ using rtps::Domain;
 
 Domain::Domain(const rtps::Ip4AddressBytes &localIpAddress, const DomainConfig &config)
     : espp::BaseComponent("RtpsDomain", espp::Logger::Verbosity::WARN)
-    , m_defaultTransport(&Domain::datagramJumppad, this)
+    , m_defaultTransport(&Domain::datagramJumppad, this, config.transport)
     , m_transport(&m_defaultTransport)
     , m_localIpAddress(localIpAddress)
     , m_config(config) {
@@ -99,10 +99,7 @@ bool Domain::completeInit() {
   task_config.callback = [this](std::mutex &m, std::condition_variable &cv, bool &notified) {
     return protocolLoop(m, cv, notified);
   };
-  task_config.task_config.name = "rtps_protocol";
-  task_config.task_config.stack_size_bytes =
-      Config::SPDP_WRITER_STACKSIZE > 4096 ? Config::SPDP_WRITER_STACKSIZE : 4096;
-  task_config.task_config.priority = Config::SPDP_WRITER_PRIO;
+  task_config.task_config = m_config.protocol_task;
   task_config.log_level = espp::Logger::Verbosity::WARN;
   m_protocolTask = espp::Task::make_unique(task_config);
   (void)m_protocolTask->start();

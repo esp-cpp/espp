@@ -127,8 +127,9 @@ public:
   /// Called when a goal arrives; return true to accept it, false to reject.
   /// Runs on an engine worker thread - return promptly.
   using goal_callback_t = std::function<bool(const Goal &)>;
-  /// Called (on its own thread) to run an accepted goal to completion via the
-  /// handle (publish_feedback / succeed / abort).
+  /// Called (on one of the server's execute workers, see Config) to run an
+  /// accepted goal to completion via the handle (publish_feedback / succeed /
+  /// abort).
   using execute_callback_t = std::function<void(Handle &)>;
 
   /// Configuration for a typed action server.
@@ -136,8 +137,20 @@ public:
     std::string action;         ///< Action name, e.g. "/fibonacci".
     std::string type_name;      ///< Base DDS type (ROS 2), or any matching name (native).
     goal_callback_t on_goal;    ///< Accept/reject each incoming goal.
-    execute_callback_t execute; ///< Run each accepted goal (own thread).
+    execute_callback_t execute; ///< Run each accepted goal (on an execute worker).
     RtpsProtocol protocol{RtpsProtocol::ROS2}; ///< Wire protocol.
+    /// Goals held at once (executing or waiting for a worker); see
+    /// RtpsParticipant::ActionConfig::max_goals_in_flight. 0 = unlimited.
+    std::size_t max_goals_in_flight{8};
+    /// Execute workers (see RtpsParticipant::ActionConfig::execute_workers)
+    /// and their task configuration (stack size, priority, core id; see
+    /// RtpsParticipant::ActionConfig::execute_task).
+    std::size_t execute_workers{1};
+    espp::Task::BaseConfig execute_task{
+        .name = "",
+        .stack_size_bytes = 4096,
+        .priority = 5,
+    };
     /// Priority band inherited by all of the action's underlying endpoints
     /// (see RtpsParticipant::ActionConfig::band, incl. the ration note).
     espp::QosBand band{espp::QosBand::Normal};
@@ -155,7 +168,13 @@ public:
     auto execute = config.execute;
     if (config.protocol == RtpsProtocol::NATIVE) {
       valid_ = participant.add_native_action_server(
-          {config.action, config.type_name, config.band, config.dscp},
+          {.action = config.action,
+           .type_name = config.type_name,
+           .band = config.band,
+           .dscp = config.dscp,
+           .max_goals_in_flight = config.max_goals_in_flight,
+           .execute_workers = config.execute_workers,
+           .execute_task = config.execute_task},
           [on_goal](std::span<const uint8_t> goal_bytes) -> bool {
             auto g = detail::rtps_deserialize<Goal>(goal_bytes);
             return g && (!on_goal || on_goal(*g));
@@ -184,6 +203,9 @@ public:
            .type_name = config.type_name,
            .band = config.band,
            .dscp = config.dscp,
+           .max_goals_in_flight = config.max_goals_in_flight,
+           .execute_workers = config.execute_workers,
+           .execute_task = config.execute_task,
            .unknown_goal_response = detail::rtps_serialize<GetResultResponse<Result>>(
                GetResultResponse<Result>{0, Result{}})},
           [on_goal](const RtpsParticipant::GoalId &, std::span<const uint8_t> goal_bytes) -> bool {

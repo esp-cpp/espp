@@ -669,6 +669,17 @@ run_memory() {
     result "memory_service_call" $srv_rc
     sleep 4
     step_json "after a service call$([ $srv_rc -eq 0 ] || echo ' (the call FAILED)')" "$(mem_status)"
+    # an action goal (the goal state, the get_result hold, the execute worker
+    # running): attributed to a completed goal only when the client saw the
+    # result and the device logged running it
+    m=$(mark)
+    timeout 40 ros2 action send_goal /qemu_fibonacci example_interfaces/action/Fibonacci "{order: 5}" > /tmp/mem_action.log 2>&1
+    local act_rc=$?
+    grep -q "sequence" /tmp/mem_action.log || act_rc=1
+    [ "$(count_since "$m" "RTPSTEST action order=5 len=5")" -ge 1 ] || act_rc=1
+    result "memory_action_goal" $act_rc
+    sleep 4
+    step_json "after an action goal$([ $act_rc -eq 0 ] || echo ' (the goal FAILED)')" "$(mem_status)"
     # one 30 KB sample: the reassembly and receive buffers grow once to it.
     # Published a few times at 0.5 Hz (the first may go out before the match)
     # and waited for by its marker, up to 20 s
