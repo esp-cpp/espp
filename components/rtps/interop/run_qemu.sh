@@ -24,6 +24,9 @@ FLASH="${1:-$PWD/qemu/build/qemu_flash.bin}"
 case "$FLASH" in "$REPO_ROOT"/*) FLASH_IN="/work${FLASH#"$REPO_ROOT"}" ;; *) echo "the image must live inside the repo ($REPO_ROOT)"; exit 2 ;; esac
 ROS_DISTRO="${ROS_DISTRO:-jazzy}" # jazzy (default) or humble, see the Dockerfile
 docker build --build-arg "ROS_DISTRO=$ROS_DISTRO" -t "espp-rtps-interop-$ROS_DISTRO" .
+# MEMORY_STAGES_ONLY=1 (the memory suite on a profile that only boots for its
+# markers) must reach the harness inside the container.
 exec docker run --rm --network none --cap-add NET_ADMIN --device /dev/net/tun \
+  ${MEMORY_STAGES_ONLY:+-e "MEMORY_STAGES_ONLY=$MEMORY_STAGES_ONLY"} \
   -v "$REPO_ROOT":/work "espp-rtps-interop-$ROS_DISTRO" \
   bash /work/components/rtps/interop/run_qemu_interop.sh "$FLASH_IN" "${2:-matrix}"

@@ -123,14 +123,19 @@ jobs:
       - name: Run the memory suite on every limits profile
         # The embedded firmware runs the host-driven steps as well; the other
         # profiles boot for their sizeof and stage markers only.
+        # Every profile runs (a failure in one must not hide the others'
+        # numbers); the step fails afterwards if any did, and the report and
+        # the artifact below still publish (always()).
         run: |
           cd components/rtps/interop
+          failed=""
           for profile in embedded host host_large; do
             dir="$PWD/qemu/images/qemu-flash-$profile"
             if [ "$profile" = embedded ]; then unset MEMORY_STAGES_ONLY; else export MEMORY_STAGES_ONLY=1; fi
             # the suite writes memory.json and the device log next to the image
-            ./run_qemu.sh "$dir/qemu_flash.bin" memory || echo "memory suite failed for $profile"
+            ./run_qemu.sh "$dir/qemu_flash.bin" memory || failed="$failed $profile"
           done
+          if [ -n "$failed" ]; then echo "memory suite failed for:$failed"; exit 1; fi
       - name: Report
         if: always()
         run: |

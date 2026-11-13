@@ -658,13 +658,31 @@ run_memory() {
     # a participant whose publisher matches the device's reliable subscriber
     timeout 100 ros2 topic pub -r 1 /qemu_rx std_msgs/msg/String "data: 'mem'" > /dev/null 2>&1 & pids+=($!)
     sleep 10; step_json "+1 remote participant with a matched publisher" "$(mem_status)"
-    # a service call (the reply writer's history, the held-reply machinery)
-    timeout 30 ros2 service call /qemu_add_two_ints example_interfaces/srv/AddTwoInts "{a: 1, b: 2}" > /dev/null 2>&1
-    sleep 4; step_json "after a service call" "$(mem_status)"
-    # one 30 KB sample: the reassembly and receive buffers grow once to it
+    # a service call (the reply writer's history, the held-reply machinery):
+    # the reading is attributed to a completed call only when the client got
+    # its reply and the device logged serving it
+    local m; m=$(mark)
+    timeout 30 ros2 service call /qemu_add_two_ints example_interfaces/srv/AddTwoInts "{a: 1, b: 2}" > /tmp/mem_srv.log 2>&1
+    local srv_rc=$?
+    grep -q "sum=3" /tmp/mem_srv.log || srv_rc=1
+    [ "$(count_since "$m" "RTPSTEST srv 1+2=3")" -ge 1 ] || srv_rc=1
+    result "memory_service_call" $srv_rc
+    sleep 4
+    step_json "after a service call$([ $srv_rc -eq 0 ] || echo ' (the call FAILED)')" "$(mem_status)"
+    # one 30 KB sample: the reassembly and receive buffers grow once to it.
+    # Published a few times at 0.5 Hz (the first may go out before the match)
+    # and waited for by its marker, up to 20 s
+    m=$(mark)
     local big; big=$(head -c 30000 /dev/zero | tr '\0' x)
-    timeout 20 ros2 topic pub -t 1 -r 1 /qemu_big std_msgs/msg/String "data: '$big'" > /dev/null 2>&1
-    sleep 4; step_json "after one 30 KB sample" "$(mem_status)"
+    timeout 20 ros2 topic pub -t 3 -r 0.5 /qemu_big std_msgs/msg/String "data: '$big'" > /dev/null 2>&1 & pids+=($!)
+    local big_rc=1 i
+    for i in $(seq 1 20); do
+      if [ "$(count_since "$m" "RTPSTEST big_rx len=30000")" -ge 1 ]; then big_rc=0; break; fi
+      sleep 1
+    done
+    result "memory_big_sample" $big_rc
+    sleep 2
+    step_json "after one 30 KB sample$([ $big_rc -eq 0 ] || echo ' (NOT delivered)')" "$(mem_status)"
     stop_pids "${pids[@]}"
     sleep 16 # the capped lease (8 s) and a liveliness sweep: every peer forgotten
     step_json "all peers gone" "$(mem_status)"
