@@ -337,7 +337,6 @@ bool run_checks() {
     // 8-bit entity keys: spread the writers over as many peers as needed.
     unsigned announced = 0;
     uint8_t peer_no = 10;
-    rtps::GuidPrefix_t last_peer{};
     rtps::Guid_t last_writer{};
     std::string last_topic;
     while (announced < cap + 1) {
@@ -346,9 +345,8 @@ bool run_checks() {
            data_message(p, rtps::ENTITYID_SPDP_BUILTIN_PARTICIPANT_WRITER,
                         rtps::ENTITYID_SPDP_BUILTIN_PARTICIPANT_READER, 1, {}, spdp_payload(p)));
       uint32_t sn = 0;
-      for (uint8_t key = 1; key != 0 && announced < cap + 1; ++key, ++announced) {
-        last_peer = p;
-        last_writer = writer_guid(p, key);
+      for (unsigned key = 1; key <= 255 && announced < cap + 1; ++key, ++announced) {
+        last_writer = writer_guid(p, static_cast<uint8_t>(key));
         last_topic = "reg_topic_" + std::to_string(announced);
         feed(part, data_message(p, rtps::ENTITYID_SEDP_BUILTIN_PUBLICATIONS_WRITER,
                                 rtps::ENTITYID_SEDP_BUILTIN_PUBLICATIONS_READER, ++sn, {},
