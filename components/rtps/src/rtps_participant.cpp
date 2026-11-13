@@ -901,10 +901,12 @@ struct RtpsParticipant::ServiceServerContext
     bool reply_reader_known{false};
     rtps::GuidPrefix_t requester{}; // else: any reader of the requester's participant
     std::chrono::steady_clock::time_point deadline{};
+    uint32_t token{0}; // names the entry while it is held (see reply())
   };
   static constexpr std::size_t MAX_HELD_REPLIES = 8;
   std::mutex held_mutex;
   std::vector<HeldReply> held;
+  uint32_t held_token_seq{0}; // under held_mutex
 
   static bool reader_matched(rtps::Writer &writer, const HeldReply &reply) {
     return reply.reply_reader_known ? writer.hasProxy(reply.reply_reader)
@@ -1034,68 +1036,83 @@ void RtpsParticipant::ServiceResponder::reply(std::span<const uint8_t> response)
   }
   wire.deadline = std::chrono::steady_clock::now() + timeout;
   bool held = false;
+  uint32_t token = 0;
   {
     std::lock_guard<std::mutex> held_lock(server->held_mutex);
     if (server->held.size() < ServiceServerContext::MAX_HELD_REPLIES) {
-      server->held.push_back(std::move(wire));
+      token = ++server->held_token_seq;
+      wire.token = token;
+      server->held.push_back(wire);
       held = true;
     }
   }
-  if (!held) {
-    // Never lose a reply to the cap: it goes out now, as before the hold existed.
-    state_->self->logger_.warn("Service '{}': {} replies already waiting for their reply "
-                               "reader; writing this one unmatched",
-                               state_->service, ServiceServerContext::MAX_HELD_REPLIES);
-    ServiceServerContext::write(*state_->reply_writer, wire);
-    return;
+  if (held && !state_->self->note_held_reply(server)) {
+    // No deadline timer: take the reply back (unless the match flushed it
+    // meanwhile) and write it now rather than hold it with nothing to end the
+    // hold.
+    std::lock_guard<std::mutex> held_lock(server->held_mutex);
+    const auto it =
+        std::find_if(server->held.begin(), server->held.end(),
+                     [&](const ServiceServerContext::HeldReply &r) { return r.token == token; });
+    if (it == server->held.end()) {
+      return; // already written by the match
+    }
+    server->held.erase(it);
+    held = false;
   }
-  state_->self->note_held_reply(server);
+  if (!held) {
+    // Never lose a reply to the cap or to a missing timer: it goes out now, as
+    // before the hold existed.
+    state_->self->logger_.warn(
+        "Service '{}': reply written without waiting for its reply reader ({})", state_->service,
+        token == 0 ? "the held-reply table is full" : "no deadline timer could be created");
+    ServiceServerContext::write(*state_->reply_writer, wire);
+  }
 }
 
-void RtpsParticipant::note_held_reply(const std::shared_ptr<ServiceServerContext> &server) {
-  std::unique_ptr<espp::Timer> finished; // a self-cancelled timer, destroyed outside the lock
-  {
-    std::lock_guard<std::mutex> lock(held_replies_mutex_);
-    const bool listed =
-        std::any_of(servers_with_held_replies_.begin(), servers_with_held_replies_.end(),
-                    [&](const std::weak_ptr<ServiceServerContext> &w) {
-                      return !w.owner_before(server) && !server.owner_before(w);
-                    });
-    if (!listed) {
-      servers_with_held_replies_.push_back(server);
-    }
-    if (held_replies_timer_ && !held_replies_timer_done_) {
-      return; // running: it sweeps until nothing is held
-    }
-    // The match itself flushes a held reply (subscriber_matched_trampoline);
-    // this timer only enforces the deadline and backs the match up, so it runs
-    // at a tenth of the default timeout and cancels itself once nothing is
-    // held. A cancelled espp::Timer cannot be restarted (see
-    // DeferredDispatch::ensure_retry_timer_locked), so the next hold replaces
-    // it - the old object is destroyed after the lock is released, as its task
-    // may still be returning from the callback that cancelled it.
-    finished = std::move(held_replies_timer_);
-    held_replies_timer_done_ = false;
+bool RtpsParticipant::note_held_reply(const std::shared_ptr<ServiceServerContext> &server) {
+  std::lock_guard<std::mutex> lock(held_replies_mutex_);
+  const bool listed =
+      std::any_of(servers_with_held_replies_.begin(), servers_with_held_replies_.end(),
+                  [&](const std::weak_ptr<ServiceServerContext> &w) {
+                    return !w.owner_before(server) && !server.owner_before(w);
+                  });
+  if (!listed) {
+    servers_with_held_replies_.push_back(server);
+  }
+  if (held_replies_timer_) {
+    return true;
+  }
+  // One deadline timer per participant, created by the first held reply and
+  // kept until stop() (see the member's comment). The match itself flushes a
+  // held reply (subscriber_matched_trampoline), so this only enforces the
+  // deadline and backs the match up: a tenth of the default timeout is plenty,
+  // and a tick with nothing held is a lock and an empty check. A task may fail
+  // to start when its stack cannot be allocated; the caller then writes the
+  // reply at once instead of holding it.
+  try {
     held_replies_timer_ = std::make_unique<espp::Timer>(espp::Timer::Config{
         .name = "rtps_reply_hold",
         .period = std::chrono::milliseconds(100),
         .delay = std::chrono::milliseconds(100),
         .callback = [this]() -> bool {
-          if (sweep_held_replies()) {
-            return false; // something is still held
-          }
-          std::lock_guard<std::mutex> lock(held_replies_mutex_);
-          if (!servers_with_held_replies_.empty()) {
-            return false; // a reply was held while the sweep ran
-          }
-          held_replies_timer_done_ = true; // the next hold replaces this timer
-          return true;
+          sweep_held_replies();
+          return false; // never self-cancel (a cancelled espp::Timer cannot restart)
         },
         .auto_start = true,
         .log_level = espp::Logger::Verbosity::WARN,
     });
+  } catch (const std::exception &e) {
+    held_replies_timer_.reset();
+    logger_.error("Held-reply deadline timer could not be started ({}); replies are written "
+                  "without waiting for their reply reader",
+                  e.what());
+    std::erase_if(servers_with_held_replies_, [&](const std::weak_ptr<ServiceServerContext> &w) {
+      return !w.owner_before(server) && !server.owner_before(w);
+    });
+    return false;
   }
-  finished.reset();
+  return true;
 }
 
 void RtpsParticipant::flush_held_replies() {

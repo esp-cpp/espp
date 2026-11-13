@@ -847,13 +847,18 @@ protected:
   /// Service replies held until their requester's reply reader is matched (see
   /// Config::service_reply_match_timeout and ServiceResponder::reply()): the
   /// servers holding one. A match flushes them at once (the engine's
-  /// subscriber-matched callback); a timer, alive only while something is
-  /// held, enforces the deadline. stop() destroys it.
+  /// subscriber-matched callback); a timer enforces the deadline. The timer is
+  /// created by the first held reply and kept until stop(): creating one per
+  /// hold fragmented the ESP32's internal RAM (every task stack lives there)
+  /// until a creation failed and the thread constructor's exception took the
+  /// device down (the QEMU soak, after 13 cycles of service calls).
   std::mutex held_replies_mutex_;
   std::vector<std::weak_ptr<ServiceServerContext>> servers_with_held_replies_;
   std::unique_ptr<espp::Timer> held_replies_timer_;
-  bool held_replies_timer_done_{false}; ///< the timer cancelled itself (under held_replies_mutex_)
-  void note_held_reply(const std::shared_ptr<ServiceServerContext> &server);
+  /// List the server and make sure the deadline timer runs. False when the
+  /// timer could not be created (no memory for its task): the caller must
+  /// not hold the reply, there would be nothing to write it at the deadline.
+  bool note_held_reply(const std::shared_ptr<ServiceServerContext> &server);
   /// Write every held reply whose reader is now matched (or whose deadline
   /// passed); true while something is still held.
   bool sweep_held_replies();
