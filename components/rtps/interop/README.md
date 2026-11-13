@@ -131,7 +131,9 @@ runs the suite on each - the embedded one with the host-driven steps, the
 others for their `sizeof` and stage markers (`MEMORY_STAGES_ONLY=1`) - and
 `qemu/memory_report.py` merges the suite's `memory.json`
 with `idf.py size-components --format json2` (the rtps library's flash, IRAM
-and DRAM) into the job's step summary and the `rtps-memory` artifact. Costs are
+and DRAM) into the job's step summary, the `rtps-memory` artifact and, on a
+pull request from this repository, one comment on the pull request that every
+run updates in place. Costs are
 negative deltas of free heap; fragmentation adds noise of a few hundred bytes,
 and the largest free internal block is reported alongside the free total
 because that is what a task stack or a 30 KB buffer actually needs. Read it

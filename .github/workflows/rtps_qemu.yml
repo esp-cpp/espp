@@ -112,6 +112,9 @@ jobs:
     needs: firmware
     runs-on: ubuntu-latest
     timeout-minutes: 45
+    permissions:
+      contents: read
+      issues: write # the report as a comment on the pull request (an issue comment)
     steps:
       - uses: actions/checkout@v7
         with:
@@ -140,8 +143,36 @@ jobs:
         if: always()
         run: |
           cd components/rtps/interop/qemu
-          python3 memory_report.py --summary "${GITHUB_STEP_SUMMARY:-/dev/stdout}" --json rtps-memory.json \
+          rm -f rtps-memory-report.md
+          python3 memory_report.py --summary rtps-memory-report.md --json rtps-memory.json \
             $(for p in embedded host host_large; do d="images/qemu-flash-$p"; echo "$p:$d/memory.json:$d/size-components.json"; done)
+          cat rtps-memory-report.md >> "${GITHUB_STEP_SUMMARY:-/dev/null}"
+      - name: Post the report on the pull request
+        # As esp-cpp/esp-idf-size-delta does: one comment per pull request,
+        # found by its identifier and updated in place on every run, so the
+        # thread does not fill up with tables. Only for pull requests from this
+        # repository: a fork's token cannot write comments.
+        if: always() && github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ github.token }}
+          script: |
+            const fs = require('fs');
+            const identifier = '<!-- rtps-memory-report -->';
+            const report = fs.readFileSync('components/rtps/interop/qemu/rtps-memory-report.md', 'utf8');
+            const sha = context.payload.pull_request.head.sha.slice(0, 9);
+            const runUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+            const body = `${identifier}\n${report}\n_The QEMU memory suite on ${sha} ([run](${runUrl})); the full numbers are the run's \`rtps-memory\` artifact._\n`;
+            const {owner, repo, number} = context.issue;
+            const comments = await github.paginate(github.rest.issues.listComments, {owner, repo, issue_number: number});
+            const existing = comments.find(c => c.body && c.body.includes(identifier));
+            if (existing) {
+              await github.rest.issues.updateComment({owner, repo, comment_id: existing.id, body});
+              console.log(`Updated comment ${existing.id}`);
+            } else {
+              await github.rest.issues.createComment({owner, repo, issue_number: number, body});
+              console.log('Created the comment');
+            }
       - uses: actions/upload-artifact@v4
         if: always()
         with:
