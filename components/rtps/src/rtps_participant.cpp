@@ -1475,29 +1475,33 @@ struct RtpsParticipant::ServiceClient::Impl
   std::optional<uint64_t> send(std::span<const uint8_t> request, reply_callback_t on_reply,
                                std::shared_ptr<SyncSlot> sync,
                                std::function<void()> on_abandon = nullptr) {
-    // The engine stays up for the whole send (see Pin): the proxy walk, the
-    // vendor lookups and the newChange all dereference this run's endpoints.
-    const Pin pinned = pin();
-    if (!pinned) {
-      refuse("request", "the participant is not running (stopped, or stopping)");
-      return std::nullopt;
-    }
     // Room in the pending table: drop what has expired first, then refuse at
     // the cap (a server that stopped answering must not take the client down
-    // with it, see max_pending_requests).
+    // with it, see max_pending_requests). Done BEFORE the engine pin below:
+    // an expired entry's on_abandon is user code and may stop() the
+    // participant, and stop() waits for every registered engine operation -
+    // held across this send, that wait would never end. The table needs only
+    // its own mutex.
+    bool full = false;
     {
       std::vector<Pending> gone;
-      bool full = false;
       {
         std::lock_guard<std::mutex> lock(mutex);
         prune_expired_locked(gone);
         full = max_pending != 0 && pending.size() >= max_pending;
       }
       finish_abandoned(gone);
-      if (full) {
-        refuse("request", "the pending table is full (max_pending_requests); no server answers");
-        return std::nullopt;
-      }
+    }
+    // The engine stays up for the rest of the send (see Pin): the proxy walk,
+    // the vendor lookups and the newChange all dereference this run's endpoints.
+    const Pin pinned = pin();
+    if (!pinned) {
+      refuse("request", "the participant is not running (stopped, or stopping)");
+      return std::nullopt;
+    }
+    if (full) {
+      refuse("request", "the pending table is full (max_pending_requests); no server answers");
+      return std::nullopt;
     }
     Pending entry{std::move(on_reply), std::move(sync)};
     entry.on_abandon = std::move(on_abandon);
@@ -2964,27 +2968,27 @@ struct RtpsParticipant::NativeServiceClient::Impl {
   std::optional<uint32_t> send(std::span<const uint8_t> request, reply_callback_t on_reply,
                                std::shared_ptr<SyncSlot> sync,
                                std::function<void()> on_abandon = nullptr) {
-    const Pin pinned = pin();
-    if (!pinned) {
-      return std::nullopt; // not running, or a handle from an earlier run: silent
-    }
+    // Expired entries first and OUTSIDE the engine pin, as in
+    // ServiceClient::Impl::send(): their on_abandon may stop() the participant.
+    bool full = false;
     {
       std::vector<Pending> gone;
-      bool full = false;
       {
         std::lock_guard<std::mutex> lock(mutex);
         prune_expired_locked(gone);
         full = max_pending != 0 && pending.size() >= max_pending;
       }
       finish_abandoned(gone);
-      if (full) {
-        if (self != nullptr) {
-          self->logger_.warn("Native service client '{}': request refused, the pending table is "
-                             "full (max_pending_requests); no server answers",
-                             request_topic);
-        }
-        return std::nullopt;
-      }
+    }
+    const Pin pinned = pin();
+    if (!pinned) {
+      return std::nullopt; // not running, or a handle from an earlier run: silent
+    }
+    if (full) {
+      self->logger_.warn("Native service client '{}': request refused, the pending table is "
+                         "full (max_pending_requests); no server answers",
+                         request_topic);
+      return std::nullopt;
     }
     rtps::rpc::NativeHeader h;
     h.client_prefix = my_prefix;

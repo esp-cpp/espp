@@ -25,13 +25,19 @@
 //     max_pending_requests 1 and nothing answering, 8 threads x 20 call_async
 //     get exactly ONE request through in total (the check used to run under
 //     an earlier hold of the lock than the insert).
+//  7. An expired request's on_abandon may stop() the participant: the expiry
+//     runs from a later call_async(), which used to hold the engine-operation
+//     pin stop() waits for (both client kinds; fails as a hang without the fix).
 //
 // Exits 0 on success, 1 on failure.
 
 #include <atomic>
 #include <chrono>
 #include <cstdio>
+#include <cstdlib>
+#include <functional>
 #include <future>
+#include <memory>
 #include <thread>
 #include <vector>
 
@@ -307,6 +313,86 @@ int main() {
   if (!ok) {
     return 1;
   }
+  // 7. An expired request's on_abandon may stop() the participant. The
+  //    expiry runs from a LATER call_async() on the same client, which used
+  //    to hold the engine-operation pin across it - and stop() waits for
+  //    every such pin, so that stop() never returned. Both client kinds.
+  for (int native = 0; native < 2; ++native) {
+    auto part = std::make_shared<Rtps>(Rtps::Config{.log_level = espp::Logger::Verbosity::ERROR});
+    if (!part->start()) {
+      std::printf("FAIL: start (abandon-stops)\n");
+      return 1;
+    }
+    std::atomic<bool> stopped{false};
+    auto on_abandon = [part, &stopped]() {
+      part->stop();
+      stopped.store(true);
+    };
+    bool first = false;
+    std::function<bool()> second;
+    std::shared_ptr<Rtps> hole; // the ROS form's never-answering server (another participant)
+    if (native == 0) {
+      // A ROS-form request needs a matched server; a deferred one that drops
+      // its responder never answers (the native client below sends to nobody).
+      hole = std::make_shared<Rtps>(Rtps::Config{.log_level = espp::Logger::Verbosity::ERROR});
+      if (!hole->start() || !hole->add_service_server_deferred(
+                                {.service = "/abandon_stops", .type_name = kType},
+                                [](std::span<const uint8_t>, Rtps::ServiceResponder) {})) {
+        std::printf("FAIL: add_service_server_deferred (abandon-stops)\n");
+        return 1;
+      }
+      auto c = part->add_service_client({.service = "/abandon_stops",
+                                         .type_name = kType,
+                                         .request_timeout = 100ms,
+                                         .max_pending_requests = 8});
+      if (!c || !c->wait_for_server(10s)) {
+        std::printf("FAIL: add_service_client / wait_for_server (abandon-stops)\n");
+        return 1;
+      }
+      first = c->call_async(kRequest, nullptr, on_abandon);
+      second = [c]() { return c->call_async(kRequest, nullptr, nullptr); };
+    } else {
+      auto c = part->add_native_service_client({.service = "/abandon_stops_native",
+                                                .type_name = kType,
+                                                .request_timeout = 100ms,
+                                                .max_pending_requests = 8});
+      if (!c) {
+        std::printf("FAIL: add_native_service_client (abandon-stops)\n");
+        return 1;
+      }
+      first = c->call_async(kRequest, nullptr, on_abandon);
+      second = [c]() { return c->call_async(kRequest, nullptr, nullptr); };
+    }
+    if (!first) {
+      std::printf("FAIL: the first request was refused (abandon-stops, native=%d)\n", native);
+      return 1;
+    }
+    std::this_thread::sleep_for(250ms); // past the timeout: the next send expires it
+    std::atomic<bool> returned{false};
+    std::thread sender([&] {
+      second();
+      returned.store(true);
+    });
+    const auto deadline = std::chrono::steady_clock::now() + 5s;
+    while (!returned.load() && std::chrono::steady_clock::now() < deadline) {
+      std::this_thread::sleep_for(10ms);
+    }
+    if (!returned.load()) {
+      std::printf("FAIL: call_async never returned after on_abandon called stop() "
+                  "(native=%d): deadlock\n",
+                  native);
+      std::fflush(stdout);
+      std::_Exit(1); // the sender thread is stuck; joining it would hang too
+    }
+    sender.join();
+    if (!stopped.load()) {
+      std::printf("FAIL: on_abandon did not run from the later send (native=%d)\n", native);
+      return 1;
+    }
+    std::printf("on_abandon stopped the participant from inside a later call_async (native=%d)\n",
+                native);
+  }
+
   std::printf("PASS\n");
   return 0;
 }

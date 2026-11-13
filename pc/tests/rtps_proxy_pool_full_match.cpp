@@ -326,6 +326,40 @@ bool run_checks() {
   CHECK(writer->isProxy(late_reader), "the reader that waited for a slot is matched now");
   CHECK(writer->getProxiesCount() == 1, "only the late reader remains matched");
   CHECK(reader->getProxiesCount() == 0, "the departed peer's writers are all unmatched");
+
+  // 4. The known-remote-endpoint registry grows with dynamic storage: more
+  //    remote writers than its initial capacity, each on its own topic and
+  //    none with a local reader yet, are all remembered, so a reader created
+  //    afterwards for the LAST one still matches it (an early fullness return
+  //    used to forget everything past the capacity on the host too).
+  if (kPoolsGrow) {
+    const auto cap = static_cast<unsigned>(rtps::Config::MAX_NUM_UNMATCHED_REMOTE_WRITERS);
+    // 8-bit entity keys: spread the writers over as many peers as needed.
+    unsigned announced = 0;
+    uint8_t peer_no = 10;
+    rtps::GuidPrefix_t last_peer{};
+    rtps::Guid_t last_writer{};
+    std::string last_topic;
+    while (announced < cap + 1) {
+      const rtps::GuidPrefix_t p = peer_prefix(peer_no++);
+      feed(part,
+           data_message(p, rtps::ENTITYID_SPDP_BUILTIN_PARTICIPANT_WRITER,
+                        rtps::ENTITYID_SPDP_BUILTIN_PARTICIPANT_READER, 1, {}, spdp_payload(p)));
+      uint32_t sn = 0;
+      for (uint8_t key = 1; key != 0 && announced < cap + 1; ++key, ++announced) {
+        last_peer = p;
+        last_writer = writer_guid(p, key);
+        last_topic = "reg_topic_" + std::to_string(announced);
+        feed(part, data_message(p, rtps::ENTITYID_SEDP_BUILTIN_PUBLICATIONS_WRITER,
+                                rtps::ENTITYID_SEDP_BUILTIN_PUBLICATIONS_READER, ++sn, {},
+                                sedp_payload(last_writer, last_topic.c_str(), kType, false)));
+      }
+    }
+    rtps::Reader *late = domain.createReader(*part, last_topic.c_str(), kType, false, {0, 0, 0, 0});
+    CHECK(late != nullptr, "createReader for the writer past the registry's capacity");
+    CHECK(late->isProxy(last_writer),
+          "dynamic storage: a remote writer past the registry's initial capacity is remembered");
+  }
   return true;
 }
 

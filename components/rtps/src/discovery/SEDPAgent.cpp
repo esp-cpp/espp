@@ -160,6 +160,8 @@ void SEDPAgent::rememberRemoteWriter(const TopicDataCompressed &writerData) {
   if (isKnown(m_knownRemoteWriters, writerData.endpointGuid)) {
     return; // a re-announcement
   }
+#ifndef RTPS_STORAGE_DYNAMIC
+  // Static storage only: with dynamic storage add() grows the pool instead.
   if (m_knownRemoteWriters.isFull()) {
     // Not remembered: a local reader created later cannot match it. Said once
     // per fill; the flag resets when a record is forgotten.
@@ -171,6 +173,7 @@ void SEDPAgent::rememberRemoteWriter(const TopicDataCompressed &writerData) {
     }
     return;
   }
+#endif
   SEDP_LOG("Remembering remote writer {:x} {:x}.", writerData.topicHash, writerData.typeHash);
   m_knownRemoteWriters.add(writerData);
 }
@@ -179,6 +182,7 @@ void SEDPAgent::rememberRemoteReader(const TopicDataCompressed &readerData) {
   if (isKnown(m_knownRemoteReaders, readerData.endpointGuid)) {
     return;
   }
+#ifndef RTPS_STORAGE_DYNAMIC
   if (m_knownRemoteReaders.isFull()) {
     if (!m_knownRemoteReadersFullWarned) {
       m_knownRemoteReadersFullWarned = true;
@@ -188,6 +192,7 @@ void SEDPAgent::rememberRemoteReader(const TopicDataCompressed &readerData) {
     }
     return;
   }
+#endif
   SEDP_LOG("Remembering remote reader {:x} {:x}.", readerData.topicHash, readerData.typeHash);
   m_knownRemoteReaders.add(readerData);
 }
