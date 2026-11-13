@@ -244,7 +244,7 @@ class ServiceClient:
             try:
                 fut.set_result(value)
             except concurrent.futures.InvalidStateError:
-                pass
+                pass  # already completed by the other path: the first value stands
 
         if not self.call_async(request, resolve, lambda: resolve(None)):
             resolve(None)
