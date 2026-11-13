@@ -42,3 +42,13 @@ CONFIG_RTPS_LIMIT_MAX_TYPENAME_LENGTH=96
 # and friends) run 70-85 characters: over the profile's 64-character topic-name
 # cap ("Topic name length 77 exceeds maximum allowed length 64", skipped).
 CONFIG_RTPS_LIMIT_MAX_TOPICNAME_LENGTH=96
+
+# The firmware hosts a ROS 2 action server next to its topics and service:
+# five more RELIABLE writers (status, feedback, three replies) and three more
+# request readers than the embedded profile's pools of five hold, and more
+# endpoints per participant than its cap of ten. Raised here for the embedded
+# build only - the host profiles reset these to their own (larger) defaults.
+CONFIG_RTPS_LIMIT_NUM_STATEFUL_WRITERS=10
+CONFIG_RTPS_LIMIT_NUM_STATEFUL_READERS=10
+CONFIG_RTPS_LIMIT_NUM_WRITERS_PER_PARTICIPANT=12
+CONFIG_RTPS_LIMIT_NUM_READERS_PER_PARTICIPANT=12
