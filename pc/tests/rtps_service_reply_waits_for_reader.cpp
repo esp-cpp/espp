@@ -316,6 +316,15 @@ struct Seen {
   std::vector<uint8_t> payload;
 };
 
+// The wire fields are little-endian (the flag every submessage this engine
+// sends on a little-endian host carries; the parser checks it and reads
+// explicitly, so the test does not depend on the host's byte order).
+uint32_t read_u32_le(const uint8_t *p) {
+  return static_cast<uint32_t>(p[0]) | (static_cast<uint32_t>(p[1]) << 8) |
+         (static_cast<uint32_t>(p[2]) << 16) | (static_cast<uint32_t>(p[3]) << 24);
+}
+uint16_t read_u16_le(const uint8_t *p) { return static_cast<uint16_t>(p[0] | (p[1] << 8)); }
+
 bool user_writer(uint8_t kind) {
   return kind == static_cast<uint8_t>(rtps::EntityKind_t::USER_DEFINED_WRITER_WITHOUT_KEY) ||
          kind == static_cast<uint8_t>(rtps::EntityKind_t::USER_DEFINED_WRITER_WITH_KEY);
@@ -331,8 +340,13 @@ Kind parse(const uint8_t *buf, std::size_t n, Seen &seen) {
   while (pos + 4 <= n) {
     const uint8_t id = buf[pos];
     const uint8_t flags = buf[pos + 1];
-    uint16_t o2n = 0;
-    std::memcpy(&o2n, buf + pos + 2, sizeof(o2n));
+    const bool little_endian = (flags & rtps::FLAG_LITTLE_ENDIAN) != 0;
+    // Both lengths are endianness-flagged; without the flag the submessage
+    // cannot be walked, so the datagram is given up on.
+    if (!little_endian) {
+      break;
+    }
+    const uint16_t o2n = read_u16_le(buf + pos + 2);
     const std::size_t body = pos + 4;
     const std::size_t end = o2n == 0 ? n : std::min(n, body + o2n);
     if (id == static_cast<uint8_t>(rtps::SubmessageKind::HEARTBEAT) && body + 28 <= end &&
@@ -342,14 +356,13 @@ Kind parse(const uint8_t *buf, std::size_t n, Seen &seen) {
       std::memcpy(seen.prefix.id.data(), buf + 8, seen.prefix.id.size());
       std::memcpy(seen.writer.entityKey.data(), buf + body + 4, 3);
       seen.writer.entityKind = static_cast<rtps::EntityKind_t>(buf[body + 7]);
-      std::memcpy(&seen.first, buf + body + 12, 4);
-      std::memcpy(&seen.last, buf + body + 20, 4);
+      seen.first = read_u32_le(buf + body + 12);
+      seen.last = read_u32_le(buf + body + 20);
       return seen.kind;
     }
     if (id == static_cast<uint8_t>(rtps::SubmessageKind::DATA) && body + 20 <= end &&
         user_writer(buf[body + 11])) {
-      uint16_t o2iq = 0;
-      std::memcpy(&o2iq, buf + body + 2, sizeof(o2iq));
+      const uint16_t o2iq = read_u16_le(buf + body + 2);
       std::size_t cursor = body + 4 + o2iq;
       seen = Seen{};
       seen.kind = Kind::Data;
@@ -358,9 +371,8 @@ Kind parse(const uint8_t *buf, std::size_t n, Seen &seen) {
       seen.writer.entityKind = static_cast<rtps::EntityKind_t>(buf[body + 11]);
       if ((flags & rtps::FLAG_INLINE_QOS) != 0) {
         while (cursor + 4 <= end) {
-          uint16_t pid = 0, len = 0;
-          std::memcpy(&pid, buf + cursor, 2);
-          std::memcpy(&len, buf + cursor + 2, 2);
+          const uint16_t pid = read_u16_le(buf + cursor);
+          const uint16_t len = read_u16_le(buf + cursor + 2);
           cursor += 4;
           if (pid == static_cast<uint16_t>(rtps::SMElement::ParameterId::PID_SENTINEL)) {
             break;
@@ -368,7 +380,7 @@ Kind parse(const uint8_t *buf, std::size_t n, Seen &seen) {
           if ((pid == rtps::rpc::PID_RELATED_SAMPLE_IDENTITY ||
                pid == rtps::rpc::PID_CUSTOM_RELATED_SAMPLE_IDENTITY) &&
               len >= rtps::rpc::SAMPLE_IDENTITY_CDR_SIZE && cursor + 24 <= end) {
-            std::memcpy(&seen.related_seq, buf + cursor + 20, 4);
+            seen.related_seq = read_u32_le(buf + cursor + 20);
           }
           cursor += len;
         }
@@ -387,8 +399,8 @@ Kind parse(const uint8_t *buf, std::size_t n, Seen &seen) {
 }
 
 // Drain the socket for up to `wait_ms`: true when a submessage of kind `want`
-// arrived (in `seen`). Submessages of the other kind are counted in `others`
-// and skipped.
+// arrived (in `seen`, which is left untouched otherwise). Submessages of the
+// other kind are counted in `others` and skipped.
 bool arrived(int sock, int wait_ms, Kind want, Seen &seen, int *others = nullptr) {
   const auto deadline = std::chrono::steady_clock::now() + std::chrono::milliseconds(wait_ms);
   uint8_t buf[2048];
@@ -397,8 +409,10 @@ bool arrived(int sock, int wait_ms, Kind want, Seen &seen, int *others = nullptr
     if (n <= 0) {
       continue; // timeout tick
     }
-    const Kind kind = parse(buf, static_cast<std::size_t>(n), seen);
+    Seen parsed;
+    const Kind kind = parse(buf, static_cast<std::size_t>(n), parsed);
     if (kind == want) {
+      seen = std::move(parsed);
       return true;
     }
     if (kind != Kind::None && others != nullptr) {

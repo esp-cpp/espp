@@ -356,20 +356,24 @@ void StatefulWriter::onNewAckNack(const SubmessageAckNack &msg,
   rtps::SequenceNumber_t nextSN = msg.readerSNState.base;
 
   // Cyclone DDS numbers the pre-emptive ACKNACK it sends on matching us 0 and
-  // every later one from 1: a count of 0 is a reader that has not processed a
-  // HEARTBEAT of ours yet. Such a reader has discovered us, but a change
-  // written for it now is announced by the FIRST heartbeat it processes, and
-  // a VOLATILE Cyclone reader takes everything that heartbeat announces for
-  // pre-match history and skips it. So it does not acknowledge us (see
-  // ReaderProxy::acknowledged): what waits for the acknowledgement - a
-  // service reply held for the requester's reply reader, a client's
-  // wait_for_server - waits for the ACKNACK the reader sends once it has a
-  // heartbeat, which the match itself (addNewMatchedReader) and this
+  // every later one from 1: an ACKNACK numbered 0 that requests nothing is a
+  // reader that has not processed a HEARTBEAT of ours yet. Such a reader has
+  // discovered us, but a change written for it now is announced by the FIRST
+  // heartbeat it processes, and a VOLATILE Cyclone reader takes everything
+  // that heartbeat announces for pre-match history and skips it. So it does
+  // not acknowledge us (see ReaderProxy::acknowledged): what waits for the
+  // acknowledgement - a service reply held for the requester's reply reader,
+  // a client's wait_for_server - waits for the ACKNACK the reader sends once
+  // it has a heartbeat, which the match itself (addNewMatchedReader) and this
   // pre-emptive ACKNACK both trigger below. Fast DDS and this engine start
   // their counts at 1; their pre-emptive ACKNACK acknowledges at once, and
-  // neither skips what its first heartbeat announces.
-  const bool preemptive = (nextSN.low == 0 && nextSN.high == 0) || msg.count.value == 0;
-  if (msg.count.value != 0) {
+  // neither skips what its first heartbeat announces. An ACKNACK that
+  // requests samples has a heartbeat behind it whatever its count (a count
+  // that wrapped, a vendor counting from 0): it acknowledges, and it is
+  // processed below like any other.
+  const bool preemptive = (nextSN.low == 0 && nextSN.high == 0) ||
+                          (msg.count.value == 0 && msg.readerSNState.numBits == 0);
+  if (msg.count.value != 0 || msg.readerSNState.numBits != 0) {
     reader->acknowledged = true;
   }
 
