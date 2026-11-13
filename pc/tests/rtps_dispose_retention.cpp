@@ -22,6 +22,7 @@
 //
 // Exits 0 on success, 1 on the first failed check.
 
+#include <algorithm>
 #include <array>
 #include <chrono>
 #include <cstdint>
@@ -219,21 +220,24 @@ bool burst(rtps::StatefulWriter &writer, int round) {
   }
   // Let the transport's workers send the burst (one DATA per progress run).
   std::this_thread::sleep_for(std::chrono::milliseconds(500));
-  for (const auto &sn : sns) {
-    if (!writer.isInHistory(sn)) {
-      std::printf("FAIL: round %d: SN %u dropped from history right after the burst\n", round,
-                  sn.low);
-      return false;
-    }
+  const auto dropped = std::find_if(sns.begin(), sns.end(), [&](const rtps::SequenceNumber_t &sn) {
+    return !writer.isInHistory(sn);
+  });
+  if (dropped != sns.end()) {
+    std::printf("FAIL: round %d: SN %u dropped from history right after the burst\n", round,
+                dropped->low);
+    return false;
   }
   // The retention is 4 s from each send; the protocol task sweeps on its
   // heartbeat cadence.
   std::this_thread::sleep_for(std::chrono::milliseconds(6500));
-  for (const auto &sn : sns) {
-    if (writer.isInHistory(sn)) {
-      std::printf("FAIL: round %d: SN %u still in history after the retention\n", round, sn.low);
-      return false;
-    }
+  const auto retained = std::find_if(sns.begin(), sns.end(), [&](const rtps::SequenceNumber_t &sn) {
+    return writer.isInHistory(sn);
+  });
+  if (retained != sns.end()) {
+    std::printf("FAIL: round %d: SN %u still in history after the retention\n", round,
+                retained->low);
+    return false;
   }
   return true;
 }

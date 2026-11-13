@@ -115,6 +115,9 @@ bool run_checks() {
   fragment(reader, unknown, 2, 1, stray);
   fragment(reader, unknown, 2, 2, stray);
   fragment(reader, unknown, 2, 3, stray);
+  // fragment() fills `delivered` through the reader's callback, which cppcheck's
+  // value flow does not see; the same below.
+  // cppcheck-suppress knownConditionTrueFalse
   if (!delivered.samples.empty()) {
     std::printf("FAIL: a sample from an unmatched writer was delivered\n");
     return false;
@@ -128,9 +131,8 @@ bool run_checks() {
   fragment(reader, unknown, 3, 1, stray);
   fragment(reader, unknown, 3, 2, stray);
   fragment(reader, unknown, 3, 3, stray);
-  // (the fragment() calls above fill `delivered` through the reader's callback,
-  // which cppcheck's value flow does not see)
   const std::size_t late_delivered = delivered.samples.size();
+  // cppcheck-suppress knownConditionTrueFalse
   if (late_delivered != 1 || delivered.samples.front() != stray) {
     std::printf("FAIL: the late-matched writer's sample was not delivered (%zu delivered)\n",
                 late_delivered);
