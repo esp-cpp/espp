@@ -253,58 +253,63 @@ bool MessageReceiver::processDataSubmessage(MessageProcessingInfo &msgInfo,
   // dispatch through the guarded wrapper: the endpoint can be deleted (and its
   // slot reused) between resolving the pointer and delivering, and a stale
   // delivery must not reach the slot's NEXT endpoint (wrong topic/callback).
-  Reader *reader;
-  uint32_t readerGen = 0;
-  if (dataSubmsg.readerId == ENTITYID_UNKNOWN) {
+  Participant::ReaderRefs readers{};
+  const std::size_t numReaders = resolveReaders(dataSubmsg.readerId, dataSubmsg.writerId,
+                                                sourceState.sourceGuidPrefix, readers);
 #if RECV_VERBOSE && RTPS_GLOBAL_VERBOSE
-    RECV_LOG("Received ENTITYID_UNKNOWN readerID, searching for writer ID = ");
-    printGuid(Guid_t{sourceState.sourceGuidPrefix, dataSubmsg.writerId});
-#endif
-    if (dataSubmsg.writerId == ENTITYID_SPDP_BUILTIN_PARTICIPANT_WRITER) {
-      // A DATA may leave the reader unnamed (RTPS 2.5 8.3.7.2). The SPDP reader
-      // is best-effort and matches no remote writer, so the writer lookup below
-      // cannot resolve it: route the SPDP writer's DATA to it directly.
-      // Regression test: pc/tests/rtps_spdp_unknown_reader.cpp.
-      reader = mp_part->getReader(ENTITYID_SPDP_BUILTIN_PARTICIPANT_READER, readerGen);
-    } else {
-      reader = mp_part->getReaderByWriterId(
-          Guid_t{sourceState.sourceGuidPrefix, dataSubmsg.writerId}, readerGen);
-    }
-    if (reader != nullptr)
-      RECV_LOG("Found reader!");
-  } else {
-    reader = mp_part->getReader(dataSubmsg.readerId, readerGen);
-#if RECV_VERBOSE && RTPS_GLOBAL_VERBOSE
-    auto reader_by_writer =
-        mp_part->getReaderByWriterId(Guid_t{sourceState.sourceGuidPrefix, dataSubmsg.writerId});
-
-    if (reader_by_writer == nullptr && reader != nullptr) {
-      RECV_LOG("FOUND By READER ID, NOT BY WRITER ID =");
-      printGuid(Guid_t{sourceState.sourceGuidPrefix, dataSubmsg.writerId});
-    }
-#endif
-  }
-  if (reader != nullptr) {
-    Guid_t writerGuid{sourceState.sourceGuidPrefix, dataSubmsg.writerId};
-    ReaderCacheChange change{changeKind,
-                             writerGuid,
-                             dataSubmsg.writerSN,
-                             serializedData,
-                             size,
-                             hasRelatedSampleIdentity,
-                             relatedSampleIdentity,
-                             sourceState.sourceVendor,
-                             hasKeyHash,
-                             keyHash};
-    reader->newChangeIfCurrent(readerGen, change);
-  } else {
-#if RECV_VERBOSE && RTPS_GLOBAL_VERBOSE
+  if (numReaders == 0) {
     RECV_LOG("Couldn't find a reader with id: ");
     printEntityId(dataSubmsg.readerId);
+  }
 #endif
+  Guid_t writerGuid{sourceState.sourceGuidPrefix, dataSubmsg.writerId};
+  ReaderCacheChange change{changeKind,
+                           writerGuid,
+                           dataSubmsg.writerSN,
+                           serializedData,
+                           size,
+                           hasRelatedSampleIdentity,
+                           relatedSampleIdentity,
+                           sourceState.sourceVendor,
+                           hasKeyHash,
+                           keyHash};
+  for (std::size_t i = 0; i < numReaders; ++i) {
+    readers[i].reader->newChangeIfCurrent(readers[i].generation, change);
   }
 
   return true;
+}
+
+std::size_t MessageReceiver::resolveReaders(const EntityId_t &readerId, const EntityId_t &writerId,
+                                            const GuidPrefix_t &sourcePrefix,
+                                            Participant::ReaderRefs &out) {
+  // A submessage names its reader, or leaves it unnamed (ENTITYID_UNKNOWN,
+  // RTPS 2.5 8.3.7.2: multicast, or a writer sending to several readers at
+  // once); the unnamed form is for EVERY local reader matched to the writer -
+  // two readers on one topic in this participant both get it (the first alone
+  // used to). The SPDP reader is best-effort and matches no remote writer, so
+  // the SPDP writer's unnamed DATA is routed to it directly (pc/tests/
+  // rtps_spdp_unknown_reader.cpp). Each reader comes with its slot generation,
+  // captured under the participant lock, for the *IfCurrent dispatch.
+  if (readerId != ENTITYID_UNKNOWN) {
+    uint32_t generation = 0;
+    Reader *reader = mp_part->getReader(readerId, generation);
+    if (reader == nullptr) {
+      return 0;
+    }
+    out[0] = Participant::ReaderRef{reader, generation};
+    return 1;
+  }
+  if (writerId == ENTITYID_SPDP_BUILTIN_PARTICIPANT_WRITER) {
+    uint32_t generation = 0;
+    Reader *reader = mp_part->getReader(ENTITYID_SPDP_BUILTIN_PARTICIPANT_READER, generation);
+    if (reader == nullptr) {
+      return 0;
+    }
+    out[0] = Participant::ReaderRef{reader, generation};
+    return 1;
+  }
+  return mp_part->getReadersByWriterId(Guid_t{sourcePrefix, writerId}, out);
 }
 
 #ifdef RTPS_ENABLE_FRAGMENTATION
@@ -366,19 +371,15 @@ bool MessageReceiver::processDataFragSubmessage(MessageProcessingInfo &msgInfo,
   }
   const DataSize_t fragDataLen = static_cast<DataSize_t>(submessageEnd - serializedData);
 
-  Reader *reader;
-  uint32_t readerGen = 0;
-  if (frag.readerId == ENTITYID_UNKNOWN) {
-    reader = mp_part->getReaderByWriterId(Guid_t{sourceState.sourceGuidPrefix, frag.writerId},
-                                          readerGen);
-  } else {
-    reader = mp_part->getReader(frag.readerId, readerGen);
-  }
-  if (reader != nullptr) {
-    Guid_t writerGuid{sourceState.sourceGuidPrefix, frag.writerId};
-    reader->newFragmentIfCurrent(readerGen, writerGuid, frag.writerSN, frag.fragmentStartingNum,
-                                 frag.fragmentsInSubmessage, frag.fragmentSize, frag.sampleSize,
-                                 serializedData, fragDataLen, sourceState.sourceVendor);
+  Participant::ReaderRefs readers{};
+  const std::size_t numReaders =
+      resolveReaders(frag.readerId, frag.writerId, sourceState.sourceGuidPrefix, readers);
+  Guid_t writerGuid{sourceState.sourceGuidPrefix, frag.writerId};
+  for (std::size_t i = 0; i < numReaders; ++i) {
+    readers[i].reader->newFragmentIfCurrent(readers[i].generation, writerGuid, frag.writerSN,
+                                            frag.fragmentStartingNum, frag.fragmentsInSubmessage,
+                                            frag.fragmentSize, frag.sampleSize, serializedData,
+                                            fragDataLen, sourceState.sourceVendor);
   }
   return true;
 }
@@ -391,25 +392,22 @@ bool MessageReceiver::processHeartbeatSubmessage(MessageProcessingInfo &msgInfo,
     return false;
   }
 
-  uint32_t readerGen = 0;
-  Reader *reader;
-  if (submsgHB.readerId == ENTITYID_UNKNOWN) {
-    // A HEARTBEAT addressed to the destination participant rather than to one
-    // reader (readerId ENTITYID_UNKNOWN, RTPS 2.5 8.3.7.5): CycloneDDS sends its
-    // SEDP and user-data heartbeats this way. Resolve the reader through the
-    // writer it is matched to, as the DATA path does.
-    reader = mp_part->getReaderByWriterId(Guid_t{sourceState.sourceGuidPrefix, submsgHB.writerId},
-                                          readerGen);
-  } else {
-    reader = mp_part->getReader(submsgHB.readerId, readerGen);
-  }
-  if (reader != nullptr) {
-    reader->onNewHeartbeatIfCurrent(readerGen, submsgHB, sourceState.sourceGuidPrefix);
-    mp_part->refreshRemoteParticipantLiveliness(sourceState.sourceGuidPrefix);
-    return true;
-  } else {
+  // A HEARTBEAT addressed to the destination participant rather than to one
+  // reader (readerId ENTITYID_UNKNOWN, RTPS 2.5 8.3.7.5): CycloneDDS sends its
+  // SEDP and user-data heartbeats this way. Resolved through the writer, to
+  // every reader matched to it, as the DATA path does.
+  Participant::ReaderRefs readers{};
+  const std::size_t numReaders =
+      resolveReaders(submsgHB.readerId, submsgHB.writerId, sourceState.sourceGuidPrefix, readers);
+  if (numReaders == 0) {
     return false;
   }
+  for (std::size_t i = 0; i < numReaders; ++i) {
+    readers[i].reader->onNewHeartbeatIfCurrent(readers[i].generation, submsgHB,
+                                               sourceState.sourceGuidPrefix);
+  }
+  mp_part->refreshRemoteParticipantLiveliness(sourceState.sourceGuidPrefix);
+  return true;
 }
 
 bool MessageReceiver::processAckNackSubmessage(MessageProcessingInfo &msgInfo,
@@ -436,19 +434,16 @@ bool MessageReceiver::processGapSubmessage(MessageProcessingInfo &msgInfo,
     return false;
   }
 
-  uint32_t readerGen = 0;
-  Reader *reader;
-  if (submsgGap.readerId == ENTITYID_UNKNOWN) {
-    reader = mp_part->getReaderByWriterId(Guid_t{sourceState.sourceGuidPrefix, submsgGap.writerId},
-                                          readerGen);
-  } else {
-    reader = mp_part->getReader(submsgGap.readerId, readerGen);
-  }
-  if (reader != nullptr) {
-    reader->onNewGapIfCurrent(readerGen, submsgGap, sourceState.sourceGuidPrefix);
-    return true;
-  } else {
+  Participant::ReaderRefs readers{};
+  const std::size_t numReaders =
+      resolveReaders(submsgGap.readerId, submsgGap.writerId, sourceState.sourceGuidPrefix, readers);
+  if (numReaders == 0) {
     return false;
   }
+  for (std::size_t i = 0; i < numReaders; ++i) {
+    readers[i].reader->onNewGapIfCurrent(readers[i].generation, submsgGap,
+                                         sourceState.sourceGuidPrefix);
+  }
+  return true;
 }
 #undef RECV_VERBOSE

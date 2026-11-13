@@ -32,6 +32,7 @@ Author: i11 - Embedded Software, RWTH Aachen University
 #include "rtps/utils/CdrBuffer.hpp"
 #include "rtps/utils/Log.hpp"
 #include <algorithm>
+#include <array>
 #include <mutex>
 #include <span>
 
@@ -139,37 +140,64 @@ rtps::LocatorIPv4 endpointUnicastLocator(rtps::Participant *part, const rtps::To
 }
 } // namespace
 
-void SEDPAgent::addUnmatchedRemoteWriter(const TopicData &writerData) {
-  addUnmatchedRemoteWriter(TopicDataCompressed(writerData));
+void SEDPAgent::rememberRemoteWriter(const TopicData &writerData) {
+  // The record keeps the locator the endpoint's traffic goes to, resolved as
+  // for a match now (endpointUnicastLocator): a peer that announces no
+  // PID_UNICAST_LOCATOR (Cyclone DDS) uses its participant's default, and a
+  // local reader created later must get that one, not an invalid locator.
+  TopicDataCompressed record(writerData);
+  record.unicastLocator = endpointUnicastLocator(m_part, writerData);
+  rememberRemoteWriter(record);
 }
 
-void SEDPAgent::addUnmatchedRemoteReader(const TopicData &readerData) {
-  addUnmatchedRemoteReader(TopicDataCompressed(readerData));
+void SEDPAgent::rememberRemoteReader(const TopicData &readerData) {
+  TopicDataCompressed record(readerData);
+  record.unicastLocator = endpointUnicastLocator(m_part, readerData); // see above
+  rememberRemoteReader(record);
 }
 
-void SEDPAgent::addUnmatchedRemoteWriter(const TopicDataCompressed &writerData) {
-  if (m_unmatchedRemoteWriters.isFull()) {
-#if SEDP_VERBOSE
-    SEDP_LOG("List of unmatched remote writers is full.");
-#endif
+void SEDPAgent::rememberRemoteWriter(const TopicDataCompressed &writerData) {
+  if (isKnown(m_knownRemoteWriters, writerData.endpointGuid)) {
+    return; // a re-announcement
+  }
+#ifndef RTPS_STORAGE_DYNAMIC
+  // Static storage only: with dynamic storage add() grows the pool instead.
+  if (m_knownRemoteWriters.isFull()) {
+    // Not remembered: a local reader created later cannot match it. Said once
+    // per fill; the flag resets when a record is forgotten.
+    if (!m_knownRemoteWritersFullWarned) {
+      m_knownRemoteWritersFullWarned = true;
+      logger_.warn("Known remote writers full (MAX_NUM_UNMATCHED_REMOTE_WRITERS={}): a remote "
+                   "writer cannot be remembered for readers created later",
+                   static_cast<unsigned>(Config::MAX_NUM_UNMATCHED_REMOTE_WRITERS));
+    }
     return;
   }
-  SEDP_LOG("Adding unmatched remote writer {:x} {:x}.", writerData.topicHash, writerData.typeHash);
-  m_unmatchedRemoteWriters.add(writerData);
+#endif
+  SEDP_LOG("Remembering remote writer {:x} {:x}.", writerData.topicHash, writerData.typeHash);
+  m_knownRemoteWriters.add(writerData);
 }
 
-void SEDPAgent::addUnmatchedRemoteReader(const TopicDataCompressed &readerData) {
-  if (m_unmatchedRemoteReaders.isFull()) {
-#if SEDP_VERBOSE
-    SEDP_LOG("List of unmatched remote readers is full.");
-#endif
+void SEDPAgent::rememberRemoteReader(const TopicDataCompressed &readerData) {
+  if (isKnown(m_knownRemoteReaders, readerData.endpointGuid)) {
     return;
   }
-  SEDP_LOG("Adding unmatched remote reader {:x} {:x}.", readerData.topicHash, readerData.typeHash);
-  m_unmatchedRemoteReaders.add(readerData);
+#ifndef RTPS_STORAGE_DYNAMIC
+  if (m_knownRemoteReaders.isFull()) {
+    if (!m_knownRemoteReadersFullWarned) {
+      m_knownRemoteReadersFullWarned = true;
+      logger_.warn("Known remote readers full (MAX_NUM_UNMATCHED_REMOTE_READERS={}): a remote "
+                   "reader cannot be remembered for writers created later",
+                   static_cast<unsigned>(Config::MAX_NUM_UNMATCHED_REMOTE_READERS));
+    }
+    return;
+  }
+#endif
+  SEDP_LOG("Remembering remote reader {:x} {:x}.", readerData.topicHash, readerData.typeHash);
+  m_knownRemoteReaders.add(readerData);
 }
 
-void SEDPAgent::removeUnmatchedEntity(const Guid_t &guid) {
+void SEDPAgent::forgetRemoteEndpoint(const Guid_t &guid) {
   auto isElementToRemove = [&](const TopicDataCompressed &topicData) {
     return topicData.endpointGuid == guid;
   };
@@ -178,11 +206,15 @@ void SEDPAgent::removeUnmatchedEntity(const Guid_t &guid) {
     return (*static_cast<decltype(isElementToRemove) *>(arg))(value);
   };
 
-  m_unmatchedRemoteReaders.remove(thunk, &isElementToRemove);
-  m_unmatchedRemoteWriters.remove(thunk, &isElementToRemove);
+  if (m_knownRemoteReaders.remove(thunk, &isElementToRemove)) {
+    m_knownRemoteReadersFullWarned = false;
+  }
+  if (m_knownRemoteWriters.remove(thunk, &isElementToRemove)) {
+    m_knownRemoteWritersFullWarned = false;
+  }
 }
 
-void SEDPAgent::removeUnmatchedEntitiesOfParticipant(const GuidPrefix_t &guidPrefix) {
+void SEDPAgent::forgetRemoteEndpointsOfParticipant(const GuidPrefix_t &guidPrefix) {
   std::lock_guard<std::recursive_mutex> lock(m_mutex);
   auto isElementToRemove = [&](const TopicDataCompressed &topicData) {
     return topicData.endpointGuid.prefix == guidPrefix;
@@ -192,17 +224,17 @@ void SEDPAgent::removeUnmatchedEntitiesOfParticipant(const GuidPrefix_t &guidPre
     return (*static_cast<decltype(isElementToRemove) *>(arg))(value);
   };
 
-  m_unmatchedRemoteReaders.remove(thunk, &isElementToRemove);
-  m_unmatchedRemoteWriters.remove(thunk, &isElementToRemove);
+  if (m_knownRemoteReaders.remove(thunk, &isElementToRemove)) {
+    m_knownRemoteReadersFullWarned = false;
+  }
+  if (m_knownRemoteWriters.remove(thunk, &isElementToRemove)) {
+    m_knownRemoteWritersFullWarned = false;
+  }
 }
 
-uint32_t SEDPAgent::getNumRemoteUnmatchedReaders() {
-  return m_unmatchedRemoteReaders.getNumElements();
-}
+uint32_t SEDPAgent::getNumKnownRemoteReaders() { return m_knownRemoteReaders.getNumElements(); }
 
-uint32_t SEDPAgent::getNumRemoteUnmatchedWriters() {
-  return m_unmatchedRemoteWriters.getNumElements();
-}
+uint32_t SEDPAgent::getNumKnownRemoteWriters() { return m_knownRemoteWriters.getNumElements(); }
 
 void SEDPAgent::handlePublisherReaderMessage(const TopicData &writerData,
                                              const ReaderCacheChange &change) {
@@ -220,13 +252,20 @@ void SEDPAgent::handlePublisherReaderMessage(const TopicData &writerData,
 #if SEDP_VERBOSE
   SEDP_LOG("PUB T/D {}/{}", writerData.topicName, writerData.typeName);
 #endif
-  Reader *reader = m_part->getMatchingReader(writerData);
-  if (reader == nullptr) {
+  // Remembered first, whatever matches now: a peer announces an endpoint
+  // once, and a local reader created later matches it from the registry
+  // (addReader -> matchKnownRemoteEndpoints). Then every local reader on the
+  // topic gets the writer (several readers may share a topic; a DATA the
+  // writer addresses to ENTITYID_UNKNOWN is for all of them, see
+  // Participant::getReadersByWriterId).
+  rememberRemoteWriter(writerData);
+  Participant::Readers readers;
+  const std::size_t count = m_part->getMatchingReaders(writerData, readers);
+  if (count == 0) {
 #if SEDP_VERBOSE
     SEDP_LOG("SEDPAgent: Couldn't find reader for new Publisher[{}, {}]", writerData.topicName,
              writerData.typeName);
 #endif
-    addUnmatchedRemoteWriter(writerData);
     return;
   }
   // TODO check policies
@@ -239,18 +278,60 @@ void SEDPAgent::handlePublisherReaderMessage(const TopicData &writerData,
 #endif
   const WriterProxy proxy{writerData.endpointGuid, endpointUnicastLocator(m_part, writerData),
                           (writerData.reliabilityKind == ReliabilityKind_t::RELIABLE)};
-  if (reader->addNewMatchedWriter(proxy) &&
-      writerData.reliabilityKind == ReliabilityKind_t::RELIABLE) {
+  for (std::size_t i = 0; i < count; ++i) {
+    // A reader whose proxy pool is full is retried from the registry when a
+    // proxy goes away (removeRemoteEndpoint) or an endpoint is created.
+    matchRemoteWriter(*readers[i], proxy);
+  }
+  if (mfp_onNewPublisherCallback != nullptr) {
+    mfp_onNewPublisherCallback(m_onNewPublisherArgs);
+  }
+}
+
+bool SEDPAgent::matchRemoteWriter(Reader &reader, const WriterProxy &proxy) {
+  if (reader.isProxy(proxy.remoteWriterGuid)) {
+    return true; // a re-announcement, or a retry from the registry
+  }
+  if (!reader.addNewMatchedWriter(proxy)) {
+    logger_.warn(
+        "Reader '{}' has no room for another remote writer "
+        "(NUM_WRITER_PROXIES_PER_READER={}): it stays known and is retried when one goes away",
+        reader.m_attributes.topicName, static_cast<int>(Config::NUM_WRITER_PROXIES_PER_READER));
+    return false;
+  }
+  if (proxy.is_reliable) {
     // Tell the writer we exist, as the SEDP readers do on participant discovery
     // and as Fast DDS and Cyclone DDS readers do on every match: the writer's
     // ReaderProxy::acknowledged is what a service client waits for before it
     // sends (ServiceClient::wait_for_server), and a writer with an empty history
     // sends no HEARTBEAT for us to answer otherwise.
-    reader->sendPreemptiveAckNack(proxy);
+    reader.sendPreemptiveAckNack(proxy);
   }
-  if (mfp_onNewPublisherCallback != nullptr) {
-    mfp_onNewPublisherCallback(m_onNewPublisherArgs);
+  return true;
+}
+
+bool SEDPAgent::matchRemoteReader(Writer &writer, const ReaderProxy &proxy) {
+  if (writer.isProxy(proxy.remoteReaderGuid)) {
+    return true;
   }
+  if (!writer.addNewMatchedReader(proxy)) {
+    logger_.warn(
+        "Writer '{}' has no room for another remote reader "
+        "(NUM_READER_PROXIES_PER_WRITER={}): it stays known and is retried when one goes away",
+        writer.m_attributes.topicName, static_cast<int>(Config::NUM_READER_PROXIES_PER_WRITER));
+    return false;
+  }
+  return true;
+}
+
+template <typename Pool> bool SEDPAgent::isKnown(Pool &pool, const rtps::Guid_t &guid) {
+  return std::any_of(pool.begin(), pool.end(),
+                     [&](const auto &entry) { return entry.endpointGuid == guid; });
+}
+
+void SEDPAgent::retryKnownRemoteEndpoints() {
+  std::lock_guard<std::recursive_mutex> lock(m_mutex);
+  matchKnownRemoteEndpoints();
 }
 
 void SEDPAgent::handleSubscriptionReaderMessage(const ReaderCacheChange &change) {
@@ -319,7 +400,8 @@ void SEDPAgent::handleRemoteEndpointDeletion(const TopicData &topic,
   removeRemoteEndpoint(guid);
 }
 
-bool SEDPAgent::isDisposableBy(const Guid_t &guid, const ReaderCacheChange &change, bool writers) {
+bool SEDPAgent::isDisposableBy(const rtps::Guid_t &guid, const ReaderCacheChange &change,
+                               bool writers) {
   // A participant may only dispose its own endpoints, and the publications
   // writer only writers, the subscriptions writer only readers: anything else
   // is a malformed (or hostile) datagram and must not touch our matches.
@@ -352,8 +434,11 @@ void SEDPAgent::removeRemoteEndpoint(const Guid_t &guid) {
   // Remove entity ID from all proxies of local endpoints
   m_part->removeProxyFromAllEndpoints(guid);
 
-  // Remove entity ID from unmatched endpoints
-  removeUnmatchedEntity(guid);
+  // Forget it: it is gone, nothing created later should match it.
+  forgetRemoteEndpoint(guid);
+
+  // A proxy slot may have come free: an endpoint that waited for one takes it.
+  matchKnownRemoteEndpoints();
 }
 
 void SEDPAgent::handleSubscriptionReaderMessage(const TopicData &readerData,
@@ -367,16 +452,17 @@ void SEDPAgent::handleSubscriptionReaderMessage(const TopicData &readerData,
     return;
   }
 
-  Writer *writer = m_part->getMatchingWriter(readerData);
+  rememberRemoteReader(readerData); // see handlePublisherReaderMessage
+  Participant::Writers writers;
+  const std::size_t count = m_part->getMatchingWriters(readerData, writers);
 #if SEDP_VERBOSE
   SEDP_LOG("SUB T/D {}/{}", readerData.topicName, readerData.typeName);
 #endif
-  if (writer == nullptr) {
+  if (count == 0) {
 #if SEDP_VERBOSE
     SEDP_LOG("SEDPAgent: Couldn't find writer for new subscriber[{}, {}]", readerData.topicName,
              readerData.typeName);
 #endif
-    addUnmatchedRemoteReader(readerData);
     return;
   }
 
@@ -388,15 +474,15 @@ void SEDPAgent::handleSubscriptionReaderMessage(const TopicData &readerData,
     SEDP_LOG("Found a new best-effort subscriber");
   }
 #endif
-  if (readerData.multicastLocator.kind == rtps::LocatorKind_t::LOCATOR_KIND_UDPv4) {
-    writer->addNewMatchedReader(
-        ReaderProxy{readerData.endpointGuid, endpointUnicastLocator(m_part, readerData),
-                    LocatorIPv4(readerData.multicastLocator),
-                    (readerData.reliabilityKind == ReliabilityKind_t::RELIABLE)});
-  } else {
-    writer->addNewMatchedReader(
-        ReaderProxy{readerData.endpointGuid, endpointUnicastLocator(m_part, readerData),
-                    (readerData.reliabilityKind == ReliabilityKind_t::RELIABLE)});
+  const bool reliable = readerData.reliabilityKind == ReliabilityKind_t::RELIABLE;
+  const ReaderProxy proxy =
+      readerData.multicastLocator.kind == rtps::LocatorKind_t::LOCATOR_KIND_UDPv4
+          ? ReaderProxy{readerData.endpointGuid, endpointUnicastLocator(m_part, readerData),
+                        LocatorIPv4(readerData.multicastLocator), reliable}
+          : ReaderProxy{readerData.endpointGuid, endpointUnicastLocator(m_part, readerData),
+                        reliable};
+  for (std::size_t i = 0; i < count; ++i) { // every local writer on the topic
+    matchRemoteReader(*writers[i], proxy);
   }
 
   if (mfp_onNewSubscriberCallback != nullptr) {
@@ -404,26 +490,27 @@ void SEDPAgent::handleSubscriptionReaderMessage(const TopicData &readerData,
   }
 }
 
-void SEDPAgent::tryMatchUnmatchedEndpoints() {
-  // Try to match remote readers with local writers
-  for (auto &proxy : m_unmatchedRemoteReaders) {
-    auto writer = m_part->getMatchingWriter(proxy);
-    if (writer != nullptr) {
-      writer->addNewMatchedReader(ReaderProxy{proxy.endpointGuid, proxy.unicastLocator,
-                                              proxy.multicastLocator, proxy.is_reliable});
-      removeUnmatchedEntity(proxy.endpointGuid);
+void SEDPAgent::matchKnownRemoteEndpoints() {
+  // Every remembered remote endpoint against every compatible local one;
+  // matchRemote*() skips the pairs that already hold a proxy, so this is
+  // cheap to run on each local endpoint creation and each freed proxy. The
+  // registry is not mutated here (records only leave it on dispose / the
+  // participant's departure), so iterating the pool is safe.
+  for (auto &remote : m_knownRemoteReaders) {
+    Participant::Writers writers;
+    const std::size_t count = m_part->getMatchingWriters(remote, writers);
+    const ReaderProxy proxy{remote.endpointGuid, remote.unicastLocator, remote.multicastLocator,
+                            remote.is_reliable};
+    for (std::size_t i = 0; i < count; ++i) {
+      matchRemoteReader(*writers[i], proxy);
     }
   }
-
-  // Try to match remote writers with local readers
-  for (auto &proxy : m_unmatchedRemoteWriters) {
-    auto reader = m_part->getMatchingReader(proxy);
-    if (reader != nullptr) {
-      const WriterProxy writer_proxy{proxy.endpointGuid, proxy.unicastLocator, proxy.is_reliable};
-      if (reader->addNewMatchedWriter(writer_proxy) && proxy.is_reliable) {
-        reader->sendPreemptiveAckNack(writer_proxy); // see SEDPAgent::handlePublisherReaderMessage
-      }
-      removeUnmatchedEntity(proxy.endpointGuid);
+  for (auto &remote : m_knownRemoteWriters) {
+    Participant::Readers readers;
+    const std::size_t count = m_part->getMatchingReaders(remote, readers);
+    const WriterProxy proxy{remote.endpointGuid, remote.unicastLocator, remote.is_reliable};
+    for (std::size_t i = 0; i < count; ++i) {
+      matchRemoteWriter(*readers[i], proxy);
     }
   }
 }
@@ -461,9 +548,9 @@ bool SEDPAgent::addWriter(Writer &writer) {
 #if SEDP_VERBOSE
   SEDP_LOG("Added new change to sedpPubWriter.\n");
 #endif
-  // Only now take the waiting remote readers out of the unmatched registry: a
-  // refused announcement resets the writer, and they would be gone with it.
-  tryMatchUnmatchedEndpoints();
+  // Only now give the new writer the remembered remote readers: a refused
+  // announcement resets the writer, and the proxies would be gone with it.
+  matchKnownRemoteEndpoints();
   return true;
 }
 
@@ -514,7 +601,7 @@ void SEDPAgent::jumppadTakeProxyOfDisposedReader(const Reader *reader, const Wri
   topic_data.is_reliable = proxy.is_reliable;
   topic_data.multicastLocator.kind = LocatorKind_t::LOCATOR_KIND_INVALID;
   topic_data.unicastLocator = proxy.remoteLocator;
-  agent->addUnmatchedRemoteWriter(topic_data);
+  agent->rememberRemoteWriter(topic_data); // already known, unless the registry was full then
 }
 
 void SEDPAgent::jumppadTakeProxyOfDisposedWriter(const Writer *writer, const ReaderProxy &proxy,
@@ -525,7 +612,7 @@ void SEDPAgent::jumppadTakeProxyOfDisposedWriter(const Writer *writer, const Rea
   topic_data.is_reliable = proxy.is_reliable;
   topic_data.multicastLocator.kind = LocatorKind_t::LOCATOR_KIND_INVALID;
   topic_data.unicastLocator = proxy.remoteLocator;
-  agent->addUnmatchedRemoteReader(topic_data);
+  agent->rememberRemoteReader(topic_data);
 }
 
 bool SEDPAgent::deleteReader(Reader *reader) {
@@ -544,8 +631,8 @@ bool SEDPAgent::deleteReader(Reader *reader) {
     return false;
   }
 
-  // Move all matched proxies of this endpoint to the list of unmatched
-  // endpoints
+  // The remote writers it matched stay known for a reader created later
+  // (they are, unless the registry was full when they were announced).
   reader->dumpAllProxies(SEDPAgent::jumppadTakeProxyOfDisposedReader, this);
 
   return true;
@@ -563,8 +650,7 @@ bool SEDPAgent::deleteWriter(Writer *writer) {
     return false;
   }
 
-  // Move all matched proxies of this endpoint to the list of unmatched
-  // endpoints
+  // The remote readers it matched stay known for a writer created later.
   writer->dumpAllProxies(SEDPAgent::jumppadTakeProxyOfDisposedWriter, this);
 
   return true;
@@ -602,6 +688,6 @@ bool SEDPAgent::addReader(Reader &reader) {
 #if SEDP_VERBOSE
   SEDP_LOG("Added new change to sedpSubWriter.\n");
 #endif
-  tryMatchUnmatchedEndpoints(); // see addWriter()
+  matchKnownRemoteEndpoints(); // see addWriter()
   return true;
 }

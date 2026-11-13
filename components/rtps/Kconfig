@@ -126,7 +126,10 @@ menu "RTPS"
             range 0 255 if RTPS_LIMITS_PROFILE_EMBEDDED
             range 0 65535
             help
-                Registry of discovered-but-unmatched remote writers. 0 keeps the selected profile's value.
+                Remote writers remembered from discovery, matched or not (a peer announces
+                an endpoint once, so a reader created later matches it from this registry;
+                a record leaves on the writer's dispose or its participant's departure).
+                Size it for every remote user writer on the domain. 0 keeps the selected profile's value.
 
         config RTPS_LIMIT_MAX_NUM_UNMATCHED_REMOTE_READERS
             int "MAX_NUM_UNMATCHED_REMOTE_READERS (0 = profile default)"
@@ -134,7 +137,9 @@ menu "RTPS"
             range 0 255 if RTPS_LIMITS_PROFILE_EMBEDDED
             range 0 65535
             help
-                Registry of discovered-but-unmatched remote readers. 0 keeps the selected profile's value.
+                Remote readers remembered from discovery, matched or not (see
+                MAX_NUM_UNMATCHED_REMOTE_WRITERS). Size it for every remote user reader on
+                the domain. 0 keeps the selected profile's value.
 
         config RTPS_LIMIT_MAX_NUM_READER_CALLBACKS
             int "MAX_NUM_READER_CALLBACKS (0 = profile default)"

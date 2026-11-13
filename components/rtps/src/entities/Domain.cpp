@@ -899,30 +899,47 @@ rtps::Reader *Domain::createReader(Participant &part, const char *topicName, con
 }
 
 bool rtps::Domain::deleteReader(Participant &part, Reader *reader) {
-  std::lock_guard<std::recursive_mutex> lock(m_mutex);
-  if (reader == nullptr || !reader->isInitialized()) {
-    return false;
+  // m_mutex covers the participant's slot removal and the port bookkeeping,
+  // but NOT reader->reset(): reset() drains the reader's in-flight dispatches,
+  // i.e. waits for a user callback that may be running right now, and that
+  // callback may legitimately create an endpoint (createWriter/createReader
+  // take m_mutex). Holding m_mutex across the drain made that a deadlock: the
+  // callback's createWriter() waited for m_mutex, reset() waited for the
+  // callback. Between the slot removal and reset() the reader is still
+  // initialized, so the pool cannot hand its slot to a concurrent creation
+  // (the allocator skips initialized slots), and its generation is retired
+  // first thing in reset(). Regression test:
+  // pc/tests/rtps_delete_reader_callback_domain_api.cpp.
+  bool had_dedicated_port = false;
+  Ip4Port_t dedicated_port = 0;
+  {
+    std::lock_guard<std::recursive_mutex> lock(m_mutex);
+    if (reader == nullptr || !reader->isInitialized()) {
+      return false;
+    }
+    if (!part.deleteReader(reader)) {
+      return false;
+    }
+    // Capture the dedicated port BEFORE reset() wipes the attributes, but
+    // release it AFTER reset(): a still-running HEARTBEAT/GAP handler may
+    // sendPacket() from this source port - releasing first would let
+    // EsppTransport::sendPacket() recreate it as an ordinary untracked channel
+    // (default band/DSCP) and leak the fd. Mirrors the writer teardown below.
+    had_dedicated_port = reader->m_attributes.hasDedicatedPort;
+    dedicated_port = static_cast<Ip4Port_t>(reader->m_attributes.unicastLocator.port);
   }
-  if (!part.deleteReader(reader)) {
-    return false;
-  }
-
-  // Capture the dedicated port BEFORE reset() wipes the attributes, but
-  // release it AFTER reset(): reset() drains the in-flight guarded dispatches,
-  // and a still-running HEARTBEAT/GAP handler may sendPacket() from this
-  // source port - releasing first would let EsppTransport::sendPacket()
-  // recreate it as an ordinary untracked channel (default band/DSCP) and leak
-  // the fd. Mirrors the writer teardown below.
-  const bool had_dedicated_port = reader->m_attributes.hasDedicatedPort;
-  const auto dedicated_port = static_cast<Ip4Port_t>(reader->m_attributes.unicastLocator.port);
   reader->reset();
   if (had_dedicated_port) {
+    std::lock_guard<std::recursive_mutex> lock(m_mutex);
     releaseDedicatedEndpointPort(dedicated_port);
   }
   return true;
 }
 
 bool rtps::Domain::deleteWriter(Participant &part, Writer *writer) {
+  // Unlike deleteReader(), m_mutex may stay held across writer->reset(): a
+  // writer runs no user callbacks, so its reset() only waits for the writer's
+  // own mutex (an in-flight progress() send), which never takes m_mutex.
   std::lock_guard<std::recursive_mutex> lock(m_mutex);
   if (writer == nullptr || !writer->isInitialized()) {
     return false;

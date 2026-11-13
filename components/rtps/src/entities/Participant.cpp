@@ -98,7 +98,7 @@ bool Participant::registerOnNewSubscriberMatchedCallback(void (*callback)(void *
 rtps::Writer *Participant::addWriter(Writer *pWriter) {
   // Reserve the slot under m_mutex, but announce via the SEDP agent OUTSIDE
   // it: the agent locks SEDPAgent::m_mutex and then this mutex (its receive
-  // handlers and tryMatchUnmatchedEndpoints() call back into this
+  // handlers and matchKnownRemoteEndpoints() call back into this
   // participant), so nesting the agent call under m_mutex is a lock-order
   // inversion that deadlocks under concurrent discovery traffic. The global
   // order is SEDPAgent::m_mutex -> Participant::m_mutex, never the reverse.
@@ -201,7 +201,7 @@ bool Participant::deleteReader(Reader *reader) {
   // Participant::m_mutex, see addWriter()). Without this, a concurrent SEDP
   // receive handler could match a newly announced remote writer to this reader
   // in the window between its disposal and the slot-clear - consuming the
-  // remote from the unmatched registry just before the reader vanishes, losing
+  // remote from the known-endpoint registry just before the reader vanishes, losing
   // that match for any replacement reader. Both mutexes are recursive, so the
   // agent's own lock in deleteReader() nests harmlessly.
   std::lock_guard<std::recursive_mutex> sedp_lock(m_sedpAgent.getMutex());
@@ -334,6 +334,83 @@ rtps::Reader *Participant::getReaderByWriterId(const Guid_t &guid, uint32_t &gen
   return reader;
 }
 
+std::size_t Participant::getReadersByWriterId(const Guid_t &guid, ReaderRefs &out) {
+  std::lock_guard<std::recursive_mutex> lock(m_mutex);
+  std::size_t count = 0;
+  for (size_t i = 0; i < m_readers.size() && count < out.size(); ++i) {
+    if (m_readers[i] != nullptr && m_readers[i]->isProxy(guid)) {
+      out[count++] = ReaderRef{m_readers[i], m_readers[i]->generation()};
+    }
+  }
+  return count;
+}
+
+std::size_t Participant::getMatchingWriters(const TopicData &readerTopicData, Writers &out) {
+  std::lock_guard<std::recursive_mutex> lock(m_mutex);
+  std::size_t count = 0;
+  for (size_t i = 0; i < m_writers.size() && count < out.size(); ++i) {
+    if (m_writers[i] == nullptr) {
+      continue;
+    }
+    if (m_writers[i]->m_attributes.matchesTopicOf(readerTopicData) &&
+        (readerTopicData.reliabilityKind == ReliabilityKind_t::BEST_EFFORT ||
+         m_writers[i]->m_attributes.reliabilityKind == ReliabilityKind_t::RELIABLE)) {
+      out[count++] = m_writers[i];
+    }
+  }
+  return count;
+}
+
+std::size_t Participant::getMatchingWriters(const TopicDataCompressed &readerTopicData,
+                                            Writers &out) {
+  std::lock_guard<std::recursive_mutex> lock(m_mutex);
+  std::size_t count = 0;
+  for (size_t i = 0; i < m_writers.size() && count < out.size(); ++i) {
+    if (m_writers[i] == nullptr) {
+      continue;
+    }
+    if (readerTopicData.matchesTopicOf(m_writers[i]->m_attributes) &&
+        (readerTopicData.is_reliable == false ||
+         m_writers[i]->m_attributes.reliabilityKind == ReliabilityKind_t::RELIABLE)) {
+      out[count++] = m_writers[i];
+    }
+  }
+  return count;
+}
+
+std::size_t Participant::getMatchingReaders(const TopicData &writerTopicData, Readers &out) {
+  std::lock_guard<std::recursive_mutex> lock(m_mutex);
+  std::size_t count = 0;
+  for (size_t i = 0; i < m_readers.size() && count < out.size(); ++i) {
+    if (m_readers[i] == nullptr) {
+      continue;
+    }
+    if (m_readers[i]->m_attributes.matchesTopicOf(writerTopicData) &&
+        (writerTopicData.reliabilityKind == ReliabilityKind_t::RELIABLE ||
+         m_readers[i]->m_attributes.reliabilityKind == ReliabilityKind_t::BEST_EFFORT)) {
+      out[count++] = m_readers[i];
+    }
+  }
+  return count;
+}
+
+std::size_t Participant::getMatchingReaders(const TopicDataCompressed &writerTopicData,
+                                            Readers &out) {
+  std::lock_guard<std::recursive_mutex> lock(m_mutex);
+  std::size_t count = 0;
+  for (size_t i = 0; i < m_readers.size() && count < out.size(); ++i) {
+    if (m_readers[i] == nullptr) {
+      continue;
+    }
+    if (writerTopicData.matchesTopicOf(m_readers[i]->m_attributes) &&
+        (writerTopicData.is_reliable == true ||
+         m_readers[i]->m_attributes.reliabilityKind == ReliabilityKind_t::BEST_EFFORT)) {
+      out[count++] = m_readers[i];
+    }
+  }
+  return count;
+}
+
 rtps::Writer *Participant::getMatchingWriter(const TopicData &readerTopicData) {
   std::lock_guard<std::recursive_mutex> lock(m_mutex);
   for (size_t i = 0; i < m_writers.size(); ++i) {
@@ -402,7 +479,7 @@ bool Participant::addNewRemoteParticipant(const ParticipantProxyData &remotePart
 bool Participant::removeRemoteParticipant(const GuidPrefix_t &prefix) {
   // Documented global lock order: SEDPAgent::m_mutex BEFORE
   // Participant::m_mutex. The removal below calls into the SEDP agent
-  // (removeUnmatchedEntitiesOfParticipant takes its mutex), so acquire the
+  // (forgetRemoteEndpointsOfParticipant takes its mutex), so acquire the
   // agent mutex first - taking m_mutex alone here and letting the nested call
   // grab the agent mutex would be an ABBA inversion against the SEDP receive
   // handlers, which hold the agent mutex and call findRemoteParticipant()
@@ -416,8 +493,12 @@ bool Participant::removeRemoteParticipant(const GuidPrefix_t &prefix) {
     return (*static_cast<decltype(isElementToRemove) *>(arg))(value);
   };
   removeAllProxiesOfParticipant(prefix);
-  m_sedpAgent.removeUnmatchedEntitiesOfParticipant(prefix);
-  return m_remoteParticipants.remove(thunk, &isElementToRemove);
+  m_sedpAgent.forgetRemoteEndpointsOfParticipant(prefix);
+  const bool removed = m_remoteParticipants.remove(thunk, &isElementToRemove);
+  // Its proxies are gone: endpoints that found no room in a pool take the
+  // freed slots (after the registry no longer lists this participant's own).
+  m_sedpAgent.retryKnownRemoteEndpoints();
+  return removed;
 }
 
 void Participant::removeAllProxiesOfParticipant(const GuidPrefix_t &prefix) {
@@ -531,9 +612,9 @@ bool Participant::checkAndResetHeartbeats() {
       std::lock_guard<std::recursive_mutex> lock2(m_mutex);
       PARTICIPANT_LOG("Have {} remote participants",
                       (unsigned int)m_remoteParticipants.getNumElements());
-      PARTICIPANT_LOG("Unmatched remote writers/readers, {} / {}",
-                      static_cast<unsigned int>(m_sedpAgent.getNumRemoteUnmatchedWriters()),
-                      static_cast<unsigned int>(m_sedpAgent.getNumRemoteUnmatchedReaders()));
+      PARTICIPANT_LOG("Known remote writers/readers, {} / {}",
+                      static_cast<unsigned int>(m_sedpAgent.getNumKnownRemoteWriters()),
+                      static_cast<unsigned int>(m_sedpAgent.getNumKnownRemoteReaders()));
       for (auto &remote : m_remoteParticipants) {
         PARTICIPANT_LOG("Remote GUID = {} {} {} {} | Age = {} [ms]", remote.m_guid.prefix.id[4],
                         remote.m_guid.prefix.id[5], remote.m_guid.prefix.id[6],
@@ -745,10 +826,10 @@ void Participant::printInfo() {
 
   PARTICIPANT_LOG("Max Writer Proxies {}", max_writer_proxies);
   PARTICIPANT_LOG("Max Reader Proxies {}", max_reader_proxies);
-  PARTICIPANT_LOG("Unmatched Remote Readers = {}",
-                  static_cast<int>(m_sedpAgent.getNumRemoteUnmatchedReaders()));
-  PARTICIPANT_LOG("Unmatched Remote Writers = {}",
-                  static_cast<int>(m_sedpAgent.getNumRemoteUnmatchedWriters()));
+  PARTICIPANT_LOG("Known Remote Readers = {}",
+                  static_cast<int>(m_sedpAgent.getNumKnownRemoteReaders()));
+  PARTICIPANT_LOG("Known Remote Writers = {}",
+                  static_cast<int>(m_sedpAgent.getNumKnownRemoteWriters()));
   PARTICIPANT_LOG("Remote Participants = {}",
                   static_cast<int>(m_remoteParticipants.getNumElements()));
 }

@@ -30,6 +30,7 @@ Author: i11 - Embedded Software, RWTH Aachen University
 #include "rtps/common/types.hpp"
 #include "rtps/config.hpp"
 #include "rtps/discovery/BuiltInEndpoints.hpp"
+#include "rtps/entities/ReaderRef.hpp"
 #include <cstdint>
 
 namespace rtps {
@@ -77,6 +78,11 @@ private:
                                   const MessageSourceState &sourceState);
   bool processAckNackSubmessage(MessageProcessingInfo &msgInfo,
                                 const MessageSourceState &sourceState);
+  /// The local readers a DATA / DATA_FRAG / HEARTBEAT / GAP is for: the named
+  /// one, or - with readerId ENTITYID_UNKNOWN - every reader matched to the
+  /// writer (the SPDP reader for the SPDP writer). Fills `out`, returns the count.
+  std::size_t resolveReaders(const EntityId_t &readerId, const EntityId_t &writerId,
+                             const GuidPrefix_t &sourcePrefix, ReaderRefs &out);
 };
 } // namespace rtps
 

@@ -145,6 +145,16 @@ bool rtps::deserializeMessage(const MessageProcessingInfo &info, SubmessageHeart
   if (!deserializeMessage(info, msg.header)) {
     return false;
   }
+  if (msg.header.octetsToNextHeader <
+      SubmessageHeartbeat::getRawSize() - SubmessageHeader::getRawSize()) {
+    return false; // declared shorter than its fixed body
+  }
+  // The reads below are bounded by the fixed-size check above; a declared
+  // length past the datagram is still a malformed submessage (as for ACKNACK
+  // and GAP), not one to act on.
+  if (info.getRemainingSize() < SubmessageHeader::getRawSize() + msg.header.octetsToNextHeader) {
+    return false;
+  }
 
   const uint8_t *currentPos = info.getPointerToCurrentPos() + SubmessageHeader::getRawSize();
 
@@ -164,22 +174,34 @@ bool rtps::deserializeMessage(const MessageProcessingInfo &info, SubmessageHeart
   return true;
 }
 
-void rtps::deserializeSNS(const uint8_t *&position, SequenceNumberSet &set,
+bool rtps::deserializeSNS(const uint8_t *&position, SequenceNumberSet &set,
                           std::size_t num_bitfields) {
-
+  // `num_bitfields` is what the submessage length leaves for the bitmap after
+  // the base and numBits; the caller has checked that many bytes exist. The
+  // bitmap holds ceil(numBits / 32) words (RTPS 2.5 9.4.2.6), so a numBits that
+  // needs more bytes than are there is malformed - the old code read the
+  // declared count regardless and advanced past the submessage.
   doCopyAndMoveOn(reinterpret_cast<uint8_t *>(&set.base.high), position,
                   sizeof(SequenceNumber_t::high));
   doCopyAndMoveOn(reinterpret_cast<uint8_t *>(&set.base.low), position,
                   sizeof(SequenceNumber_t::low));
   doCopyAndMoveOn(reinterpret_cast<uint8_t *>(&set.numBits), position, sizeof(uint32_t));
 
-  // Ensure that we copy not more bits than our sequence number set can hold
-  if (set.numBits != 0) {
-    // equal to size = std::min(SNS_NUM_BYTES, num_bitfields)
-    std::size_t size = num_bitfields > SNS_NUM_BYTES ? SNS_NUM_BYTES : num_bitfields;
-    doCopyAndMoveOn(reinterpret_cast<uint8_t *>(set.bitMap.data()), position, size);
-    position += (num_bitfields - size);
+  if (set.numBits > SNS_MAX_NUM_BITS) {
+    // More than the set can represent: a peer may legitimately announce up to
+    // 256 (the spec's maximum); anything above is bogus. Clamp, so the words
+    // that are there are used and nothing beyond the set is ever addressed.
+    set.numBits = SNS_MAX_NUM_BITS;
   }
+  const std::size_t declared = 4 * ((set.numBits + 31) / 32); // bytes the bitmap needs
+  if (declared > num_bitfields) {
+    return false;
+  }
+  if (declared > 0) {
+    doCopyAndMoveOn(reinterpret_cast<uint8_t *>(set.bitMap.data()), position, declared);
+  }
+  position += (num_bitfields - declared); // trailing bytes the peer appended
+  return true;
 }
 
 bool rtps::deserializeMessage(const MessageProcessingInfo &info, SubmessageAckNack &msg) {
@@ -191,6 +213,16 @@ bool rtps::deserializeMessage(const MessageProcessingInfo &info, SubmessageAckNa
   if (!deserializeMessage(info, msg.header)) {
     return false;
   }
+  // The declared length must hold the fixed fields (two entity ids, the set's
+  // base and numBits, the count) and must not run past the datagram: the
+  // bitmap length below is derived from it, and without these checks a short
+  // ACKNACK underflowed that length (size_t) and the parser read far beyond
+  // the buffer. Regression test: pc/tests/rtps_receiver_malformed.cpp.
+  constexpr uint16_t kFixedBody = 4 + 4 + 8 + 4 + 4;
+  if (msg.header.octetsToNextHeader < kFixedBody ||
+      info.getRemainingSize() < SubmessageHeader::getRawSize() + msg.header.octetsToNextHeader) {
+    return false;
+  }
 
   const uint8_t *currentPos = info.getPointerToCurrentPos() + SubmessageHeader::getRawSize();
 
@@ -199,8 +231,10 @@ bool rtps::deserializeMessage(const MessageProcessingInfo &info, SubmessageAckNa
   doCopyAndMoveOn(msg.writerId.entityKey.data(), currentPos, msg.writerId.entityKey.size());
   msg.writerId.entityKind = static_cast<EntityKind_t>(*currentPos++);
 
-  std::size_t num_bitfields = msg.header.octetsToNextHeader - 4 - 4 - 8 - 4 - 4;
-  deserializeSNS(currentPos, msg.readerSNState, num_bitfields);
+  const std::size_t num_bitfields = msg.header.octetsToNextHeader - kFixedBody;
+  if (!deserializeSNS(currentPos, msg.readerSNState, num_bitfields)) {
+    return false;
+  }
 
   doCopyAndMoveOn(reinterpret_cast<uint8_t *>(&msg.count.value), currentPos,
                   sizeof(msg.count.value));
@@ -222,6 +256,9 @@ bool rtps::deserializeMessage(const MessageProcessingInfo &info, SubmessageGap &
       (SubmessageGap::getRawSizeWithSingleElementSNSet() - SubmessageHeader::getRawSize())) {
     return false;
   }
+  if (info.getRemainingSize() < SubmessageHeader::getRawSize() + msg.header.octetsToNextHeader) {
+    return false; // declared longer than the datagram (see the ACKNACK check)
+  }
   const uint8_t *currentPos = info.getPointerToCurrentPos() + SubmessageHeader::getRawSize();
 
   doCopyAndMoveOn(msg.readerId.entityKey.data(), currentPos, msg.readerId.entityKey.size());
@@ -234,8 +271,6 @@ bool rtps::deserializeMessage(const MessageProcessingInfo &info, SubmessageGap &
   doCopyAndMoveOn(reinterpret_cast<uint8_t *>(&msg.gapStart.low), currentPos,
                   sizeof(msg.gapStart.low));
 
-  std::size_t num_bitfields = msg.header.octetsToNextHeader - 4 - 4 - 8 - 8 - 4;
-  deserializeSNS(currentPos, msg.gapList, num_bitfields);
-
-  return true;
+  const std::size_t num_bitfields = msg.header.octetsToNextHeader - 4 - 4 - 8 - 8 - 4;
+  return deserializeSNS(currentPos, msg.gapList, num_bitfields);
 }

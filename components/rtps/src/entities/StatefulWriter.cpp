@@ -245,12 +245,25 @@ void StatefulWriter::progress() {
     if (next->disposeAfterWrite) {
       SFW_LOG("Dispose after write msg sent to {} proxies", (int)i);
       next->sentTime = std::chrono::steady_clock::now();
-      if (!m_disposeWithDelay.copyElementIntoBuffer(next->sequenceNumber)) {
-        SFW_LOG("Failed to enqueue dispose after write!");
-        m_history.dropChange(next->sequenceNumber);
+      // `next` is not touched past a dropChange() below: dropping moves the
+      // ring's elements around.
+      const SequenceNumber_t sent = next->sequenceNumber;
+      if (!m_disposeWithDelay.copyElementIntoBuffer(sent)) {
+        // No room to retain another dispose: give up the OLDEST retained one
+        // (sent earliest, closest to the end of its retention) rather than
+        // the change just sent, which has had no chance of a retransmission
+        // yet. The queue is sized like the history (and grows on a host), so
+        // this is only reached when the history outgrew the queue.
+        SequenceNumber_t oldest;
+        if (m_disposeWithDelay.moveFirstInto(oldest)) {
+          m_history.dropChange(oldest);
+        }
+        if (!m_disposeWithDelay.copyElementIntoBuffer(sent)) {
+          SFW_LOG("Failed to enqueue dispose after write!");
+          m_history.dropChange(sent);
+        }
       } else {
-        SFW_LOG("Delayed dispose scheduled for sn {} {}", (int)next->sequenceNumber.high,
-                (int)next->sequenceNumber.low);
+        SFW_LOG("Delayed dispose scheduled for sn {} {}", (int)sent.high, (int)sent.low);
       }
     }
 
@@ -421,6 +434,11 @@ void StatefulWriter::onNewAckNack(const SubmessageAckNack &msg,
       }
     }
   }
+}
+
+bool rtps::StatefulWriter::isInHistory(const SequenceNumber_t &s) {
+  std::lock_guard<std::recursive_mutex> lock(m_mutex);
+  return m_history.getChangeBySN(s) != nullptr;
 }
 
 bool rtps::StatefulWriter::removeFromHistory(const SequenceNumber_t &s) {

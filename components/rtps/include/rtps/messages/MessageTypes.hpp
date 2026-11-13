@@ -532,7 +532,9 @@ bool deserializeMessage(const MessageProcessingInfo &info, SubmessageAckNack &ms
 
 bool deserializeMessage(const MessageProcessingInfo &info, SubmessageGap &msg);
 
-void deserializeSNS(const uint8_t *&position, SequenceNumberSet &set, std::size_t num_bitfields);
+/// Reads a SequenceNumberSet whose bitmap has `num_bitfields` bytes available;
+/// false when the declared numBits needs more than that (malformed).
+bool deserializeSNS(const uint8_t *&position, SequenceNumberSet &set, std::size_t num_bitfields);
 
 } // namespace rtps
 

@@ -58,6 +58,10 @@ public:
                                const rpc::SampleIdentity &relatedSampleIdentity = {}) override;
 
   bool removeFromHistory(const SequenceNumber_t &s);
+  /// Whether the change with this sequence number is still in the history
+  /// (sent or not; a dispose-after-write change stays until its retention
+  /// runs out). For tests and diagnostics.
+  bool isInHistory(const SequenceNumber_t &s);
 
   /// Run one heartbeat evaluation, preserving the historical cadence: sends a
   /// HEARTBEAT when due (period/4 while any proxy has unacknowledged changes,
@@ -87,8 +91,13 @@ private:
    * exists to allow for repeated creation and deletion of endpoints during
    * operation. Otherwise the history will quickly reach its limits. Will be
    * replaced with something more elegant in the future.
+   *
+   * Sized like the history: every queued number is a change the history
+   * holds, so with static storage the queue can never be the smaller of the
+   * two (it used to hold 10 regardless, and a burst of endpoint deletions
+   * dropped the eleventh dispose from history right after its first send).
    */
-  ThreadSafeCircularBuffer<SequenceNumber_t, 10> m_disposeWithDelay;
+  ThreadSafeCircularBuffer<SequenceNumber_t, Config::HISTORY_SIZE_STATEFUL> m_disposeWithDelay;
   void dropDisposeAfterWriteChanges();
 
   Count_t m_hbCount{1};

@@ -37,6 +37,7 @@ Author: i11 - Embedded Software, RWTH Aachen University
 #include <cstring>
 #include <mutex>
 #ifdef RTPS_ENABLE_FRAGMENTATION
+#include <functional>
 #include <vector>
 #endif
 
@@ -258,6 +259,16 @@ protected:
   };
   Reassembly m_reassembly;
   std::mutex m_reassembly_mutex;
+  /// Abandons the sample under reassembly when its writer satisfies the
+  /// predicate (that writer was unmatched: it can never complete).
+  void dropReassemblyIf(const std::function<bool(const Guid_t &)> &writer_matches);
+
+public:
+  /// Whether a fragmented sample is being reassembled right now (diagnostics
+  /// and tests).
+  bool hasSampleUnderReassembly();
+
+private:
 #endif
 };
 } // namespace rtps

@@ -217,20 +217,37 @@ class ServiceClient:
         reply = self._client.call(request.serialize(), timeout)
         return None if reply is None else self._response_type.deserialize(reply)
 
-    def call_async(self, request, on_response) -> bool:
+    def call_async(self, request, on_response, on_abandon=None) -> bool:
         """Async call: ``on_response(response_msg)`` when the reply arrives."""
         rt = self._response_type
-        return self._client.call_async(request.serialize(), lambda b: on_response(rt.deserialize(b)))
+        if on_abandon is None:
+            return self._client.call_async(
+                request.serialize(), lambda b: on_response(rt.deserialize(b))
+            )
+        return self._client.call_async(
+            request.serialize(), lambda b: on_response(rt.deserialize(b)), on_abandon
+        )
 
     def call_future(self, request):
         """Async call returning a :class:`concurrent.futures.Future` of the
-        response object (result is ``None`` if the request could not be queued).
-        Use ``fut.result(timeout=...)``. Works for both protocols."""
+        response object. The result is ``None`` if the request could not be
+        queued, or was given up on without a reply (``request_timeout``,
+        ``stop()``). Use ``fut.result(timeout=...)``. Works for both protocols."""
         import concurrent.futures
 
         fut: concurrent.futures.Future = concurrent.futures.Future()
-        if not self.call_async(request, fut.set_result):
-            fut.set_result(None)
+
+        def resolve(value):
+            # Exactly one of reply / abandon / refusal completes the future; a
+            # request given up on just before its publication was refused would
+            # otherwise complete it twice (InvalidStateError).
+            try:
+                fut.set_result(value)
+            except concurrent.futures.InvalidStateError:
+                pass  # already completed by the other path: the first value stands
+
+        if not self.call_async(request, resolve, lambda: resolve(None)):
+            resolve(None)
         return fut
 
 
@@ -346,10 +363,15 @@ class ActionClient:
             self._last_goal = gid
         return gid is not None
 
-    def cancel_goal(self) -> bool:
+    def cancel_goal(self, on_response=None) -> bool:
         """Request cancellation of the most recently accepted goal (ROS 2 or
         native). The server observes it via GoalHandle.is_canceling(). Returns
-        True if the cancel request was queued."""
+        True if the cancel request was queued. ROS 2 protocol only:
+        on_response(return_code, goals_canceling) receives the server's verdict
+        (action_msgs/srv/CancelGoal: 0 NONE, 1 REJECTED, 2 UNKNOWN_GOAL_ID,
+        3 GOAL_TERMINATED); the native protocol has none."""
         if self._last_goal is None:
             return False
-        return self._client.cancel_goal(self._last_goal)
+        if self._native or on_response is None:
+            return self._client.cancel_goal(self._last_goal)
+        return self._client.cancel_goal(self._last_goal, on_response)

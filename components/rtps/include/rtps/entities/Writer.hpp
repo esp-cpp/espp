@@ -59,6 +59,8 @@ public:
   TopicData m_attributes;
   virtual bool addNewMatchedReader(const ReaderProxy &newProxy);
   virtual bool removeProxy(const Guid_t &guid);
+  /// Whether the remote reader `guid` is matched to this writer.
+  bool isProxy(const Guid_t &guid);
   virtual void removeAllProxiesOfParticipant(const GuidPrefix_t &guidPrefix);
   /// Whether a matched remote reader belongs to the participant with this prefix.
   bool hasProxyOfParticipant(const GuidPrefix_t &guidPrefix);

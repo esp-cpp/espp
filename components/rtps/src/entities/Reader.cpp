@@ -77,11 +77,28 @@ void Reader::newFragment(const Guid_t &writerGuid, const SequenceNumber_t &sn,
                  static_cast<unsigned>(sampleSize), static_cast<unsigned>(Config::MAX_SAMPLE_SIZE));
     return;
   }
-
+  // A user reader takes fragments from matched writers only, as newChange()
+  // takes whole samples: the one reassembly slot below is evicted by any
+  // sample that differs from the one in progress, so a stray DATA_FRAG naming
+  // this reader (a writer it never matched) could evict a legitimate sample
+  // mid-way and allocate sampleSize for nothing. The check holds the proxies
+  // mutex across the reassembly below (lock order proxies -> reassembly, the
+  // only nesting of the two; dropReassemblyIf() takes the reassembly mutex
+  // alone, after removeProxy() has released the proxies mutex), so a removal
+  // cannot slip between the check and the slot: it either runs first, and the
+  // fragment is refused, or after, and drops the slot this call filled. The
+  // builtin readers are exempt as in StatelessReader::newChange(). Two
+  // MATCHED fragmenting writers on one reader still share the slot and evict
+  // each other - a per-writer slot is out of scope here (see the interop
+  // README). Regression test: pc/tests/rtps_frag_slot_isolation.cpp.
   std::vector<uint8_t> completedBuffer; // moved out on completion; owns the bytes
   bool haveCompleted = false;
 
   {
+    std::lock_guard<std::recursive_mutex> proxies_lock(m_proxies_mutex);
+    if (!isBuiltinEndpoint() && !isProxy(writerGuid)) {
+      return;
+    }
     std::lock_guard<std::mutex> lock(m_reassembly_mutex);
 
     // Start a fresh reassembly if this is a different sample (best-effort
@@ -381,15 +398,20 @@ bool Reader::removeCallback(Reader::callbackIdentifier_t identifier) {
 uint8_t Reader::getNumCallbacks() { return m_callback_count; }
 
 void Reader::removeAllProxiesOfParticipant(const GuidPrefix_t &guidPrefix) {
-  std::lock_guard<std::recursive_mutex> lock(m_proxies_mutex);
-  auto isElementToRemove = [&](const WriterProxy &proxy) {
-    return proxy.remoteWriterGuid.prefix == guidPrefix;
-  };
-  auto thunk = [](void *arg, const WriterProxy &value) {
-    return (*static_cast<decltype(isElementToRemove) *>(arg))(value);
-  };
+  {
+    std::lock_guard<std::recursive_mutex> lock(m_proxies_mutex);
+    auto isElementToRemove = [&](const WriterProxy &proxy) {
+      return proxy.remoteWriterGuid.prefix == guidPrefix;
+    };
+    auto thunk = [](void *arg, const WriterProxy &value) {
+      return (*static_cast<decltype(isElementToRemove) *>(arg))(value);
+    };
 
-  m_proxies.remove(thunk, &isElementToRemove);
+    m_proxies.remove(thunk, &isElementToRemove);
+  }
+#ifdef RTPS_ENABLE_FRAGMENTATION
+  dropReassemblyIf([&](const Guid_t &writer) { return writer.prefix == guidPrefix; });
+#endif
 }
 
 bool Reader::isBuiltinEndpoint() const {
@@ -410,14 +432,47 @@ bool Reader::hasProxyOfParticipant(const GuidPrefix_t &guidPrefix) {
 }
 
 bool Reader::removeProxy(const Guid_t &guid) {
-  std::lock_guard<std::recursive_mutex> lock(m_proxies_mutex);
-  auto isElementToRemove = [&](const WriterProxy &proxy) { return proxy.remoteWriterGuid == guid; };
-  auto thunk = [](void *arg, const WriterProxy &value) {
-    return (*static_cast<decltype(isElementToRemove) *>(arg))(value);
-  };
-
-  return m_proxies.remove(thunk, &isElementToRemove);
+  bool removed = false;
+  {
+    std::lock_guard<std::recursive_mutex> lock(m_proxies_mutex);
+    auto isElementToRemove = [&](const WriterProxy &proxy) {
+      return proxy.remoteWriterGuid == guid;
+    };
+    auto thunk = [](void *arg, const WriterProxy &value) {
+      return (*static_cast<decltype(isElementToRemove) *>(arg))(value);
+    };
+    removed = m_proxies.remove(thunk, &isElementToRemove);
+  }
+#ifdef RTPS_ENABLE_FRAGMENTATION
+  if (removed) {
+    dropReassemblyIf([&](const Guid_t &writer) { return writer == guid; });
+  }
+#endif
+  return removed;
 }
+
+#ifdef RTPS_ENABLE_FRAGMENTATION
+// A sample under reassembly from a writer that is no longer matched can never
+// complete (a user reader takes fragments from matched writers only, and the
+// writer is gone): give its buffer back now rather than when the next
+// fragmented sample evicts it - which, for the last publisher of a departing
+// peer, is never. The proxies mutex is NOT held here: the callers release it
+// first, and newFragment() is the one place that nests the two (proxies ->
+// reassembly), so nothing ever takes them reversed.
+void Reader::dropReassemblyIf(const std::function<bool(const Guid_t &)> &writer_matches) {
+  std::lock_guard<std::mutex> lock(m_reassembly_mutex);
+  if (m_reassembly.active && writer_matches(m_reassembly.writerGuid)) {
+    m_reassembly.active = false;
+    std::vector<uint8_t>().swap(m_reassembly.buffer);
+    std::vector<bool>().swap(m_reassembly.received);
+  }
+}
+
+bool Reader::hasSampleUnderReassembly() {
+  std::lock_guard<std::mutex> lock(m_reassembly_mutex);
+  return m_reassembly.active;
+}
+#endif
 
 bool Reader::addNewMatchedWriter(const WriterProxy &newProxy) {
   std::lock_guard<std::recursive_mutex> lock(m_proxies_mutex);

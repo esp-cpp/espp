@@ -4,6 +4,7 @@
 #include <atomic>
 #include <condition_variable>
 #include <cstdio>
+#include <iterator>
 #include <limits>
 #include <map>
 #include <memory>
@@ -870,6 +871,23 @@ namespace {
 uint64_t seq_key(const rtps::SequenceNumber_t &sn) {
   return (static_cast<uint64_t>(static_cast<uint32_t>(sn.high)) << 32) | sn.low;
 }
+
+// The promise behind call_future(), completed exactly once. Three parties may
+// try: the reply, the abandonment (request_timeout or stop(), through the
+// pending entry's on_abandon) and the send-failure fallback in call_future()
+// itself - and the last two can meet: the native client inserts its entry
+// before publishing, so a stop() in between abandons the entry (fulfilling
+// the promise) and then the failed publish makes send() return nullopt. A
+// second set_value would throw std::future_error; the flag makes it a no-op.
+struct FutureReply {
+  std::promise<std::optional<std::vector<uint8_t>>> promise;
+  std::atomic<bool> done{false};
+  void complete(std::optional<std::vector<uint8_t>> value) {
+    if (!done.exchange(true)) {
+      promise.set_value(std::move(value));
+    }
+  }
+};
 } // namespace
 
 // Per-server bridge: engine request-reader callback -> user handler -> reply.
@@ -914,16 +932,17 @@ struct RtpsParticipant::ServiceServerContext
   }
 
   // The engine write of a reply, in the requester's form. The caller holds the
-  // liveness locks that keep `writer` valid.
-  static void write(rtps::Writer &writer, const HeldReply &reply) {
+  // liveness locks that keep `writer` valid. False when the writer's history
+  // is full (more replies in flight than its depth): the client never hears
+  // back, and the caller says so, as publish() does.
+  static bool write(rtps::Writer &writer, const HeldReply &reply) {
     if (reply.cyclonedds) {
-      writer.newChange(rtps::ChangeKind_t::ALIVE, reply.payload.data(),
-                       static_cast<rtps::DataSize_t>(reply.payload.size()));
-      return;
+      return writer.newChange(rtps::ChangeKind_t::ALIVE, reply.payload.data(),
+                              static_cast<rtps::DataSize_t>(reply.payload.size())) != nullptr;
     }
-    writer.newChangeWithRelatedSampleIdentity(rtps::ChangeKind_t::ALIVE, reply.payload.data(),
-                                              static_cast<rtps::DataSize_t>(reply.payload.size()),
-                                              reply.related);
+    return writer.newChangeWithRelatedSampleIdentity(
+               rtps::ChangeKind_t::ALIVE, reply.payload.data(),
+               static_cast<rtps::DataSize_t>(reply.payload.size()), reply.related) != nullptr;
   }
 };
 
@@ -968,7 +987,13 @@ void RtpsParticipant::ServiceResponder::reply(std::span<const uint8_t> response)
       response.size() +
       (state_->cyclonedds ? rtps::rpc::CYCLONEDDS_REQUEST_HEADER_SIZE : std::size_t{0});
   const char *dropped = nullptr;
-  if (wire_size > rtps::MAX_UNFRAGMENTED_RPC_PAYLOAD) {
+  if (response.empty()) {
+    // Nothing to send: a 0-byte DATA is a deserialization error on the peer,
+    // not a timeout, and nothing would say why. A handler that cannot answer
+    // should let the client time out; a ROS 2 reply is never empty (an empty
+    // message is one placeholder byte).
+    dropped = "it is empty (a reply must be a CDR-encapsulated message)";
+  } else if (wire_size > rtps::MAX_UNFRAGMENTED_RPC_PAYLOAD) {
     dropped = "it exceeds the single-DATA budget";
   } else if (state_->cyclonedds && !rtps::rpc::isCdrEncapsulation(response)) {
     dropped = "it does not start with a CDR encapsulation to splice the Cyclone header behind";
@@ -1031,7 +1056,10 @@ void RtpsParticipant::ServiceResponder::reply(std::span<const uint8_t> response)
   auto server = state_->server.lock();
   if (server == nullptr || timeout <= std::chrono::milliseconds{0} ||
       ServiceServerContext::reader_matched(*state_->reply_writer, wire)) {
-    ServiceServerContext::write(*state_->reply_writer, wire);
+    if (!ServiceServerContext::write(*state_->reply_writer, wire)) {
+      state_->self->logger_.warn("Service '{}': reply dropped, the reply writer's history is full",
+                                 state_->service);
+    }
     return;
   }
   wire.deadline = std::chrono::steady_clock::now() + timeout;
@@ -1066,7 +1094,10 @@ void RtpsParticipant::ServiceResponder::reply(std::span<const uint8_t> response)
     state_->self->logger_.warn(
         "Service '{}': reply written without waiting for its reply reader ({})", state_->service,
         token == 0 ? "the held-reply table is full" : "no deadline timer could be created");
-    ServiceServerContext::write(*state_->reply_writer, wire);
+    if (!ServiceServerContext::write(*state_->reply_writer, wire)) {
+      state_->self->logger_.warn("Service '{}': reply dropped, the reply writer's history is full",
+                                 state_->service);
+    }
   }
 }
 
@@ -1168,7 +1199,10 @@ bool RtpsParticipant::sweep_held_replies() {
         });
       }
       for (const auto &reply : due) {
-        ServiceServerContext::write(*server->reply_writer, reply);
+        if (!ServiceServerContext::write(*server->reply_writer, reply)) {
+          logger_.warn("Service '{}': reply dropped, the reply writer's history is full",
+                       server->service);
+        }
       }
     }
     // Forget a server with nothing left - under BOTH locks, so a reply held
@@ -1197,17 +1231,88 @@ struct RtpsParticipant::ServiceClient::Impl
     std::mutex m;
     std::condition_variable cv;
     bool done{false};
+    bool failed{false}; // abandoned (timed out, or the participant stopped)
     std::vector<uint8_t> reply;
   };
   struct Pending {
     reply_callback_t on_reply{nullptr};      // set for call_async
     std::shared_ptr<SyncSlot> sync{nullptr}; // set for call
+    // When the request is given up on (ServiceConfig::request_timeout; max()
+    // = never) and what to tell then (call_future's promise). A reply that
+    // lands after that is a late reply, ignored like any unknown key.
+    std::chrono::steady_clock::time_point deadline{std::chrono::steady_clock::time_point::max()};
+    std::function<void()> on_abandon{nullptr};
   };
 
   RtpsParticipant *self{nullptr};
   rtps::Writer *request_writer{nullptr};
   rtps::Reader *reply_reader{nullptr}; ///< retained for composite (action) rollback
   rtps::Guid_t reply_reader_guid{};
+  std::chrono::milliseconds request_timeout{0}; ///< ServiceConfig::request_timeout
+  std::size_t max_pending{0};                   ///< ServiceConfig::max_pending_requests
+  // The participant run this client was created in (RtpsParticipant::live_ at
+  // that time). stop() flips it before the engine - and with it request_writer
+  // / reply_reader - goes away, and a later start() mints a new token, so a
+  // handle kept across a stop() can never dereference the stale endpoints.
+  std::shared_ptr<Liveness> live;
+
+  // Engine access from a client handle: the user may call server_count() /
+  // call_async() / wait_for_server() from any thread at any time, including
+  // while another thread stop()s the participant, or on a handle retained past
+  // a stop(). Every engine touch (proxy walks, newChange) is pinned as an
+  // engine operation so stop() waits at its phase 1.5, and then checked
+  // against the run's liveness token: with the op pinned stop() cannot have
+  // passed phase 2 (where the token flips), so a still-alive token means the
+  // endpoints are this run's and valid.
+  struct Pin {
+    RtpsParticipant *participant{nullptr};
+    Pin() = default;
+    explicit Pin(RtpsParticipant *p)
+        : participant(p) {}
+    Pin(const Pin &) = delete;
+    Pin &operator=(const Pin &) = delete;
+    Pin(Pin &&other) noexcept
+        : participant(other.participant) {
+      other.participant = nullptr;
+    }
+    ~Pin() {
+      if (participant != nullptr) {
+        participant->end_engine_op();
+      }
+    }
+    explicit operator bool() const { return participant != nullptr; }
+  };
+  Pin pin() const {
+    if (self == nullptr || !live) {
+      return {};
+    }
+    // The token first, and held while the op is registered: a handle may
+    // outlive its participant (the user keeps the shared_ptr), and then `self`
+    // dangles. stop() - which the destructor runs - flips the token under its
+    // mutex (phase 2) before anything is torn down, so while the token is
+    // held alive here the participant exists and `self` may be touched; the
+    // registered op then keeps it from passing phase 1.5. Lock order
+    // Liveness::m -> mutex_ (begin_engine_op): nothing takes them reversed.
+    std::lock_guard<std::mutex> lock(live->m);
+    if (!live->alive || !self->begin_engine_op()) {
+      return {};
+    }
+    return Pin{self};
+  }
+  /// True while the participant run this client belongs to is up.
+  bool running() const { return static_cast<bool>(pin()); }
+  /// Diagnostics for a refused request (see send()): logged through the
+  /// participant while it is alive (the token, as in pin(): a handle that
+  /// outlived its participant refuses silently).
+  void refuse(const char *what, const char *why) const {
+    if (self == nullptr || !live) {
+      return;
+    }
+    std::lock_guard<std::mutex> lock(live->m);
+    if (live->alive) {
+      self->logger_.warn("Service client: {} refused, {}", what, why);
+    }
+  }
   // Cyclone form: a packed RTPS sequence number never has bit 63 set (its high
   // word is a non-negative int32), so tagging the header seq with it keeps the
   // two key spaces of `pending` apart.
@@ -1220,6 +1325,60 @@ struct RtpsParticipant::ServiceClient::Impl
   std::mutex mutex;
   std::unordered_map<uint64_t, Pending> pending;
   DeferredDispatch deferred; // banded reply reader without a dedicated port
+
+  // Giving up on requests. The table is bounded two ways: entries past their
+  // deadline are dropped whenever the table is touched (a send, a count), and
+  // stop() drops every entry before the engine goes down. An abandoned call()
+  // wakes with `failed`, an abandoned call_future() resolves to nullopt
+  // through on_abandon; a call_async() callback is simply never run. Always
+  // finish the gone entries OUTSIDE `mutex`: on_abandon may run user code.
+  static void finish_abandoned(std::vector<Pending> &gone) {
+    for (auto &p : gone) {
+      if (p.sync) {
+        std::lock_guard<std::mutex> lock(p.sync->m);
+        p.sync->failed = true;
+        p.sync->done = true;
+        p.sync->cv.notify_all();
+      }
+      if (p.on_abandon) {
+        p.on_abandon();
+      }
+    }
+    gone.clear();
+  }
+  void prune_expired_locked(std::vector<Pending> &gone) {
+    const auto now = std::chrono::steady_clock::now();
+    for (auto it = pending.begin(); it != pending.end();) {
+      if (it->second.deadline <= now) {
+        gone.push_back(std::move(it->second));
+        it = pending.erase(it);
+      } else {
+        ++it;
+      }
+    }
+  }
+  void abandon_all() {
+    std::vector<Pending> gone;
+    {
+      std::lock_guard<std::mutex> lock(mutex);
+      gone.reserve(pending.size());
+      std::transform(pending.begin(), pending.end(), std::back_inserter(gone),
+                     [](auto &kv) { return std::move(kv.second); });
+      pending.clear();
+    }
+    finish_abandoned(gone);
+  }
+  std::size_t pending_count() {
+    std::vector<Pending> gone;
+    std::size_t count = 0;
+    {
+      std::lock_guard<std::mutex> lock(mutex);
+      prune_expired_locked(gone);
+      count = pending.size();
+    }
+    finish_abandoned(gone);
+    return count;
+  }
 
   // What is on the other end of the request writer right now.
   struct PeerForm {
@@ -1259,6 +1418,10 @@ struct RtpsParticipant::ServiceClient::Impl
   // Servers matched right now, both legs (see peer_form()), without the
   // per-participant vendor lookups: what wait_for_server() polls.
   std::size_t matched_servers() const {
+    const Pin pinned = pin();
+    if (!pinned) {
+      return 0; // not started, stopping, or a handle from an earlier run
+    }
     Prefixes prefixes;
     request_writer->dumpAllProxies(&collect_prefix, &prefixes);
     const std::size_t reply_writers = reply_reader != nullptr ? reply_reader->getProxiesCount() : 0;
@@ -1273,6 +1436,7 @@ struct RtpsParticipant::ServiceClient::Impl
   // participant up (participant lock): never nested, and never under `mutex`,
   // so a reply landing meanwhile does not wait for the walk.
   PeerForm peer_form() const {
+    // Called under send()'s pin; the walk below needs the engine.
     Prefixes prefixes;
     request_writer->dumpAllProxies(&collect_prefix, &prefixes);
     // A server counts only when both legs are matched: its request reader
@@ -1309,11 +1473,46 @@ struct RtpsParticipant::ServiceClient::Impl
   // Cyclone form: {client id, next seq} spliced into the payload, keyed by
   // CYCLONEDDS_KEY_BIT | seq.
   std::optional<uint64_t> send(std::span<const uint8_t> request, reply_callback_t on_reply,
-                               std::shared_ptr<SyncSlot> sync) {
+                               std::shared_ptr<SyncSlot> sync,
+                               std::function<void()> on_abandon = nullptr) {
+    // Room in the pending table: drop what has expired first, then refuse at
+    // the cap (a server that stopped answering must not take the client down
+    // with it, see max_pending_requests). Done BEFORE the engine pin below:
+    // an expired entry's on_abandon is user code and may stop() the
+    // participant, and stop() waits for every registered engine operation -
+    // held across this send, that wait would never end. The table needs only
+    // its own mutex.
+    bool full = false;
+    {
+      std::vector<Pending> gone;
+      {
+        std::lock_guard<std::mutex> lock(mutex);
+        prune_expired_locked(gone);
+        full = max_pending != 0 && pending.size() >= max_pending;
+      }
+      finish_abandoned(gone);
+    }
+    // The engine stays up for the rest of the send (see Pin): the proxy walk,
+    // the vendor lookups and the newChange all dereference this run's endpoints.
+    const Pin pinned = pin();
+    if (!pinned) {
+      refuse("request", "the participant is not running (stopped, or stopping)");
+      return std::nullopt;
+    }
+    if (full) {
+      refuse("request", "the pending table is full (max_pending_requests); no server answers");
+      return std::nullopt;
+    }
+    Pending entry{std::move(on_reply), std::move(sync)};
+    entry.on_abandon = std::move(on_abandon);
+    if (request_timeout.count() > 0) {
+      entry.deadline = std::chrono::steady_clock::now() + request_timeout;
+    }
     // A request must fit a single DATA submessage: inline QoS does not survive
     // fragmentation, and the Cyclone header counts against the same budget (see
     // MAX_UNFRAGMENTED_RPC_PAYLOAD).
     if (request.size() > rtps::MAX_UNFRAGMENTED_RPC_PAYLOAD) {
+      refuse("request", "it exceeds the single-DATA budget");
       return std::nullopt;
     }
     // The form is chosen from the servers matched now, outside `mutex`. With
@@ -1323,16 +1522,24 @@ struct RtpsParticipant::ServiceClient::Impl
     // ServiceClient::call_async / wait_for_server).
     const PeerForm peer = peer_form();
     if (peer.matched == 0) {
+      refuse("request", "no server is matched (use wait_for_server())");
       return std::nullopt;
     }
     if (peer.cyclonedds && (request.size() < rtps::rpc::CDR_ENCAPSULATION_SIZE ||
                             request.size() + rtps::rpc::CYCLONEDDS_REQUEST_HEADER_SIZE >
                                 rtps::MAX_UNFRAGMENTED_RPC_PAYLOAD)) {
+      refuse("request", "it is not CDR-encapsulated or leaves no room for the Cyclone header");
       return std::nullopt;
     }
     std::lock_guard<std::mutex> lock(mutex);
     // The lock covers only newChange + insert, so a reply can never look up the
-    // key before it is registered (the send itself is async).
+    // key before it is registered (the send itself is async). The cap is
+    // checked again here: the check above ran under an earlier hold of this
+    // lock, and concurrent senders could all have seen room for one.
+    if (max_pending != 0 && pending.size() >= max_pending) {
+      refuse("request", "the pending table is full (max_pending_requests); no server answers");
+      return std::nullopt;
+    }
     if (peer.cyclonedds) {
       if (cyclonedds_next_seq == std::numeric_limits<int64_t>::max()) {
         cyclonedds_next_seq = 0;
@@ -1340,15 +1547,17 @@ struct RtpsParticipant::ServiceClient::Impl
       const rtps::rpc::CycloneDdsRequestHeader header{cyclonedds_client_id, ++cyclonedds_next_seq};
       const auto payload = rtps::rpc::prependCycloneDdsRequestHeader(header, request);
       if (payload.empty()) {
-        return std::nullopt; // not a CDR-encapsulated request
+        refuse("request", "it is not CDR-encapsulated");
+        return std::nullopt;
       }
       const auto *change = request_writer->newChange(rtps::ChangeKind_t::ALIVE, payload.data(),
                                                      static_cast<rtps::DataSize_t>(payload.size()));
       if (change == nullptr) {
+        refuse("request", "the request writer's history is full");
         return std::nullopt;
       }
       const uint64_t key = CYCLONEDDS_KEY_BIT | static_cast<uint64_t>(header.seq);
-      pending[key] = Pending{std::move(on_reply), std::move(sync)};
+      pending[key] = std::move(entry);
       return key;
     }
     const rtps::rpc::SampleIdentity related{reply_reader_guid, rtps::SequenceNumber_t{-1, 0}};
@@ -1356,10 +1565,11 @@ struct RtpsParticipant::ServiceClient::Impl
         rtps::ChangeKind_t::ALIVE, request.data(), static_cast<rtps::DataSize_t>(request.size()),
         related);
     if (change == nullptr) {
+      refuse("request", "the request writer's history is full");
       return std::nullopt;
     }
     const uint64_t key = seq_key(change->sequenceNumber);
-    pending[key] = Pending{std::move(on_reply), std::move(sync)};
+    pending[key] = std::move(entry);
     return key;
   }
 };
@@ -1509,6 +1719,8 @@ std::size_t RtpsParticipant::ServiceClient::server_count() const {
   return impl_->matched_servers();
 }
 
+std::size_t RtpsParticipant::ServiceClient::pending_count() const { return impl_->pending_count(); }
+
 // Polled, like rclpy's wait_for_service: a match is confirmed by an ACKNACK
 // that lands on an engine worker with no hook out to the facade, and the poll
 // is one walk of a handful of proxies under the writer's lock every 10 ms for
@@ -1516,7 +1728,9 @@ std::size_t RtpsParticipant::ServiceClient::server_count() const {
 bool RtpsParticipant::ServiceClient::wait_for_server(std::chrono::milliseconds timeout) const {
   const auto deadline = std::chrono::steady_clock::now() + timeout;
   while (impl_->matched_servers() == 0) {
-    if (std::chrono::steady_clock::now() >= deadline) {
+    // A participant that is stopping (or stopped under us) matches nothing
+    // again this run: give up at once rather than wait out the timeout.
+    if (!impl_->running() || std::chrono::steady_clock::now() >= deadline) {
       return false;
     }
     std::this_thread::sleep_for(std::chrono::milliseconds(10));
@@ -1527,6 +1741,15 @@ bool RtpsParticipant::ServiceClient::wait_for_server(std::chrono::milliseconds t
 bool RtpsParticipant::ServiceClient::call_async(std::span<const uint8_t> request,
                                                 reply_callback_t on_reply) {
   return impl_->send(request, std::move(on_reply), nullptr).has_value();
+}
+
+bool RtpsParticipant::ServiceClient::call_async(std::span<const uint8_t> request,
+                                                reply_callback_t on_reply,
+                                                abandon_callback_t on_abandon) {
+  // The pending entry owns on_abandon and runs it exactly once when the entry
+  // is pruned or abandoned; a reply erases the entry first (the callbacks are
+  // moved out under the client mutex), so the two never both run.
+  return impl_->send(request, std::move(on_reply), nullptr, std::move(on_abandon)).has_value();
 }
 
 std::optional<std::vector<uint8_t>>
@@ -1544,20 +1767,28 @@ RtpsParticipant::ServiceClient::call(std::span<const uint8_t> request,
     impl_->pending.erase(*key);
     return std::nullopt;
   }
+  if (slot->failed) {
+    return std::nullopt; // abandoned: the participant stopped, or request_timeout
+  }
   return std::move(slot->reply);
 }
 
 std::future<std::optional<std::vector<uint8_t>>>
 RtpsParticipant::ServiceClient::call_future(std::span<const uint8_t> request) {
   // Promise fulfilled from the async reply callback (shared_ptr so it outlives
-  // this call and is owned by the pending entry until the reply arrives).
-  auto promise = std::make_shared<std::promise<std::optional<std::vector<uint8_t>>>>();
-  auto future = promise->get_future();
-  const bool queued = call_async(request, [promise](std::span<const uint8_t> reply) {
-    promise->set_value(std::vector<uint8_t>(reply.begin(), reply.end()));
-  });
-  if (!queued) {
-    promise->set_value(std::nullopt);
+  // this call and is owned by the pending entry until the reply arrives), or
+  // with nullopt when the request is abandoned (request_timeout, stop()) - a
+  // promise destroyed unfulfilled would throw broken_promise at the waiter.
+  auto reply = std::make_shared<FutureReply>(); // completed once, see FutureReply
+  auto future = reply->promise.get_future();
+  const auto key = impl_->send(
+      request,
+      [reply](std::span<const uint8_t> bytes) {
+        reply->complete(std::vector<uint8_t>(bytes.begin(), bytes.end()));
+      },
+      nullptr, [reply]() { reply->complete(std::nullopt); });
+  if (!key.has_value()) {
+    reply->complete(std::nullopt);
   }
   return future;
 }
@@ -1762,10 +1993,14 @@ struct RtpsParticipant::ActionGoalHandle::State {
   std::string status_topic;   // server lock and survives server teardown.
   std::mutex mutex;
   ract::GoalStatus status{ract::GoalStatus::ACCEPTED};
-  bool done{false};                  // terminate() has run
-  bool result_delivered{false};      // get_result answered -> goal may be retired
-  std::vector<uint8_t> result;       // set on terminate
-  ServiceResponder result_responder; // pending get_result (if any)
+  // When the goal was accepted, on the wall clock: the stamp of the
+  // SendGoal_Response, and what a CancelGoal request's stamp is compared with.
+  std::chrono::system_clock::time_point accepted_at{};
+  bool done{false};             // terminate() has run
+  bool result_delivered{false}; // get_result answered -> goal may be retired
+  std::chrono::steady_clock::time_point terminated_at{}; // for result_timeout
+  std::vector<uint8_t> response;                         // the GetResult_Response, set on terminate
+  ServiceResponder result_responder;                     // pending get_result (if any)
   std::atomic<bool> cancel_requested{false};
 };
 
@@ -1773,9 +2008,42 @@ struct RtpsParticipant::ActionServerContext {
   RtpsParticipant *self{nullptr};
   std::string feedback_topic;
   std::string status_topic;
+  std::vector<uint8_t> unknown_goal_response;  // ActionConfig::unknown_goal_response
+  std::size_t max_goals_in_flight{0};          // ActionConfig::max_goals_in_flight
+  std::chrono::milliseconds result_timeout{0}; // ActionConfig::result_timeout
   action_execute_callback_t execute{nullptr};
   std::mutex goals_mutex;
   std::map<ract::GoalUuid, std::shared_ptr<ActionGoalHandle::State>> goals;
+
+  // Retire finished goals: past their retention (result_timeout, counted from
+  // termination, whether or not the result was fetched), or - with no
+  // retention - as soon as their result was delivered. Run whenever a goal
+  // request comes in, so the map stays bounded without a timer. Call with
+  // goals_mutex held; the per-goal mutex nests inside it (nowhere is the
+  // reverse order taken).
+  void prune_finished_locked() {
+    const auto now = std::chrono::steady_clock::now();
+    for (auto it = goals.begin(); it != goals.end();) {
+      bool drop = false;
+      {
+        std::lock_guard<std::mutex> lock(it->second->mutex);
+        if (it->second->done) {
+          drop = result_timeout.count() == 0 ? it->second->result_delivered
+                                             : now - it->second->terminated_at >= result_timeout;
+        }
+      }
+      it = drop ? goals.erase(it) : std::next(it);
+    }
+  }
+  // Goals being executed right now (accepted, not terminated). goals_mutex held.
+  std::size_t active_locked() {
+    std::size_t n = 0;
+    for (auto &kv : goals) {
+      std::lock_guard<std::mutex> lock(kv.second->mutex);
+      n += kv.second->done ? 0 : 1;
+    }
+    return n;
+  }
   // Owned execute workers (not detached): joined in stop() before the domain is
   // torn down, reaped as they finish. See ActionExecThread / reap_and_store.
   std::mutex threads_mutex;
@@ -1812,6 +2080,13 @@ static void publish_goal_status(RtpsParticipant *self, const std::string &status
 void RtpsParticipant::ActionGoalHandle::terminate(int status_value,
                                                   std::span<const uint8_t> result) const {
   const auto status = static_cast<ract::GoalStatus>(static_cast<int8_t>(status_value));
+  const auto response = ract::wrap_get_result_response(status, result);
+  terminate_with_response(static_cast<int8_t>(status_value), response);
+}
+
+void RtpsParticipant::ActionGoalHandle::terminate_with_response(
+    int8_t status_value, std::span<const uint8_t> get_result_response) const {
+  const auto status = static_cast<ract::GoalStatus>(status_value);
   ServiceResponder responder;
   bool retire = false;
   {
@@ -1821,7 +2096,8 @@ void RtpsParticipant::ActionGoalHandle::terminate(int status_value,
     }
     state_->done = true;
     state_->status = status;
-    state_->result.assign(result.begin(), result.end());
+    state_->terminated_at = std::chrono::steady_clock::now();
+    state_->response.assign(get_result_response.begin(), get_result_response.end());
     if (state_->result_responder.valid()) {
       responder = state_->result_responder; // get_result already waiting
       state_->result_delivered = true;
@@ -1830,16 +2106,21 @@ void RtpsParticipant::ActionGoalHandle::terminate(int status_value,
   }
   publish_goal_status(state_->self, state_->status_topic, state_->goal_id, status);
   if (responder.valid()) {
-    responder.reply(
-        ract::wrap_get_result_response(status, {state_->result.data(), state_->result.size()}));
+    responder.reply({state_->response.data(), state_->response.size()});
   }
   if (retire) {
     // Terminated with the client's get_result already waiting: it now has the
     // result, so drop the goal from the server map (a still-running worker keeps
     // the State alive via its own reference).
+    // Without a retention time the goal leaves the server map now (a running
+    // worker keeps the State alive via its own reference); with one it stays
+    // known - for a cancel (ERROR_GOAL_TERMINATED) or a repeated get_result -
+    // until prune_finished_locked() retires it.
     if (auto server = state_->server.lock()) {
       std::lock_guard<std::mutex> lock(server->goals_mutex);
-      server->goals.erase(state_->goal_id);
+      if (server->result_timeout.count() == 0) {
+        server->goals.erase(state_->goal_id);
+      }
     }
   }
 }
@@ -1966,6 +2247,9 @@ bool RtpsParticipant::add_action_server(const ActionConfig &config, action_goal_
   ctx->self = this;
   ctx->feedback_topic = rtps::rpc::action_feedback_topic(config.action);
   ctx->status_topic = rtps::rpc::action_status_topic(config.action);
+  ctx->unknown_goal_response = config.unknown_goal_response;
+  ctx->max_goals_in_flight = config.max_goals_in_flight;
+  ctx->result_timeout = config.result_timeout;
   ctx->execute = std::move(execute);
 
   // Feedback + status publishers (plain reliable topics). The action's
@@ -2033,6 +2317,25 @@ bool RtpsParticipant::add_action_server(const ActionConfig &config, action_goal_
         if (server == nullptr || !ract::unwrap_send_goal_request(req, id, goal)) {
           return ract::make_send_goal_response(false);
         }
+        // Bounded: a goal beyond max_goals_in_flight (each runs on its own
+        // thread) or a goal id the server already has is rejected before the
+        // user's on_goal sees it. A duplicate would replace an in-flight goal
+        // and orphan its pending get_result; rcl rejects them too.
+        {
+          std::lock_guard<std::mutex> lock(server->goals_mutex);
+          server->prune_finished_locked();
+          if (server->goals.count(id) != 0) {
+            this->logger_.warn("Action server: goal rejected, its id is already in use");
+            return ract::make_send_goal_response(false);
+          }
+          if (server->max_goals_in_flight != 0 &&
+              server->active_locked() >= server->max_goals_in_flight) {
+            this->logger_.warn("Action server: goal rejected, {} goals already in flight "
+                               "(max_goals_in_flight)",
+                               static_cast<int>(server->max_goals_in_flight));
+            return ract::make_send_goal_response(false);
+          }
+        }
         const bool accept = !on_goal || on_goal(id, {goal.data(), goal.size()});
         if (!accept) {
           return ract::make_send_goal_response(false);
@@ -2044,6 +2347,7 @@ bool RtpsParticipant::add_action_server(const ActionConfig &config, action_goal_
         gstate->server = server; // weak back-reference (see State)
         gstate->feedback_topic = server->feedback_topic;
         gstate->status_topic = server->status_topic;
+        gstate->accepted_at = std::chrono::system_clock::now();
         {
           std::lock_guard<std::mutex> lock(server->goals_mutex);
           server->goals[id] = gstate;
@@ -2063,79 +2367,156 @@ bool RtpsParticipant::add_action_server(const ActionConfig &config, action_goal_
           });
           reap_and_store(server->threads_mutex, server->exec_threads, std::move(worker), finished);
         }
-        return ract::make_send_goal_response(true);
+        // The acceptance stamp (builtin_interfaces/Time, wall clock), as rcl
+        // reports it; a client may hand it back in a CancelGoal request.
+        const auto since_epoch = gstate->accepted_at.time_since_epoch();
+        const auto sec = std::chrono::duration_cast<std::chrono::seconds>(since_epoch);
+        const auto nsec = std::chrono::duration_cast<std::chrono::nanoseconds>(since_epoch - sec);
+        return ract::make_send_goal_response(true, static_cast<int32_t>(sec.count()),
+                                             static_cast<uint32_t>(nsec.count()));
       });
 
   // get_result service (DEFERRED): reply now if done, else hold the responder.
   const ServiceConfig get_result_cfg{rtps::rpc::action_get_result_service(config.action),
                                      rtps::rpc::action_get_result_type(config.type_name),
                                      config.band, config.dscp};
-  ok = ok && add_deferred_tracked(
-                 get_result_cfg, [weak](std::span<const uint8_t> req, ServiceResponder responder) {
-                   auto server = weak.lock();
-                   ract::GoalUuid id{};
-                   if (server == nullptr || !ract::parse_get_result_request(req, id)) {
-                     return;
-                   }
-                   std::shared_ptr<ActionGoalHandle::State> gstate;
-                   {
-                     std::lock_guard<std::mutex> lock(server->goals_mutex);
-                     auto it = server->goals.find(id);
-                     if (it != server->goals.end()) {
-                       gstate = it->second;
-                     }
-                   }
-                   if (gstate == nullptr) {
-                     responder.reply(ract::wrap_get_result_response(ract::GoalStatus::UNKNOWN, {}));
-                     return;
-                   }
-                   bool retire = false;
-                   {
-                     std::lock_guard<std::mutex> lock(gstate->mutex);
-                     if (gstate->done) {
-                       responder.reply(ract::wrap_get_result_response(
-                           gstate->status, {gstate->result.data(), gstate->result.size()}));
-                       gstate->result_delivered = true;
-                       retire = true;
-                     } else {
-                       gstate->result_responder = responder; // fulfilled on terminate()
-                     }
-                   }
-                   if (retire) {
-                     // Client has its result: drop the goal from the server map.
-                     std::lock_guard<std::mutex> glock(server->goals_mutex);
-                     server->goals.erase(id);
-                   }
-                 });
+  ok = ok && add_deferred_tracked(get_result_cfg, [weak](std::span<const uint8_t> req,
+                                                         ServiceResponder responder) {
+         auto server = weak.lock();
+         ract::GoalUuid id{};
+         if (server == nullptr || !ract::parse_get_result_request(req, id)) {
+           return;
+         }
+         std::shared_ptr<ActionGoalHandle::State> gstate;
+         {
+           std::lock_guard<std::mutex> lock(server->goals_mutex);
+           server->prune_finished_locked();
+           auto it = server->goals.find(id);
+           if (it != server->goals.end()) {
+             gstate = it->second;
+           }
+         }
+         if (gstate == nullptr) {
+           // Unknown goal: the configured well-formed response, else
+           // the bare status (parses only for an empty Result).
+           if (!server->unknown_goal_response.empty()) {
+             responder.reply(
+                 {server->unknown_goal_response.data(), server->unknown_goal_response.size()});
+           } else {
+             responder.reply(ract::wrap_get_result_response(ract::GoalStatus::UNKNOWN, {}));
+           }
+           return;
+         }
+         bool retire = false;
+         {
+           std::lock_guard<std::mutex> lock(gstate->mutex);
+           if (gstate->done) {
+             responder.reply({gstate->response.data(), gstate->response.size()});
+             gstate->result_delivered = true;
+             retire = true;
+           } else {
+             gstate->result_responder = responder; // fulfilled on terminate()
+           }
+         }
+         if (retire) {
+           // Client has its result: without a retention time, drop the goal
+           // from the server map now (see ActionGoalHandle::terminate).
+           std::lock_guard<std::mutex> glock(server->goals_mutex);
+           if (server->result_timeout.count() == 0) {
+             server->goals.erase(id);
+           }
+         }
+       });
 
-  // cancel_goal service: mark the goal canceling; the execute callback observes
-  // is_canceling(). Minimal CancelGoal_Response (return_code=0, empty list).
+  // cancel_goal service (action_msgs/srv/CancelGoal), the selection rules of
+  // rcl_action_server_process_cancel_request: a zero goal id and a zero stamp
+  // address every active goal; a zero id with a stamp every active goal
+  // accepted at or before the stamp; an id with a zero stamp that goal; an id
+  // with a stamp that goal AND every active goal accepted at or before the
+  // stamp. The named goal must be known (else ERROR_UNKNOWN_GOAL_ID, 2) and
+  // still active (else ERROR_GOAL_TERMINATED, 3). The goals that can be
+  // cancelled are marked canceling (the execute callback observes
+  // is_canceling()) and reported CANCELING on the status topic; the reply
+  // lists them, with ERROR_REJECTED (1) when on_cancel refused every
+  // candidate (rclcpp's rule) and ERROR_NONE (0) otherwise, also for a stamp
+  // that selects nothing. rclpy's client checks goals_canceling, rclcpp's
+  // the code. Stamps are wall-clock (builtin_interfaces/Time) and compared
+  // with the acceptance time the SendGoal_Response reported.
   const ServiceConfig cancel_cfg{rtps::rpc::action_cancel_goal_service(config.action),
                                  rtps::rpc::action_cancel_goal_type(), config.band, config.dscp};
   ok = ok &&
-       add_sync_tracked(cancel_cfg,
-                        [weak, on_cancel](std::span<const uint8_t> req) -> std::vector<uint8_t> {
-                          auto server = weak.lock();
-                          // CancelGoal_Request: goal_info{ goal_id: UUID(16), stamp }.
-                          if (server != nullptr && req.size() >= 4 + 16) {
-                            ract::GoalUuid id{};
-                            std::memcpy(id.data(), req.data() + 4, 16);
-                            std::shared_ptr<ActionGoalHandle::State> gstate;
-                            {
-                              std::lock_guard<std::mutex> lock(server->goals_mutex);
-                              auto it = server->goals.find(id);
-                              if (it != server->goals.end()) {
-                                gstate = it->second;
-                              }
-                            }
-                            if (gstate && (!on_cancel || on_cancel(id))) {
-                              gstate->cancel_requested.store(true);
-                            }
-                          }
-                          // CancelGoal_Response: return_code:int8 + pad(3) + goals[]=0.
-                          std::vector<uint8_t> resp{0x00, 0x01, 0x00, 0x00, 0, 0, 0, 0, 0, 0, 0, 0};
-                          return resp;
-                        });
+       add_sync_tracked(
+           cancel_cfg, [weak, on_cancel](std::span<const uint8_t> req) -> std::vector<uint8_t> {
+             auto server = weak.lock();
+             ract::GoalUuid id{};
+             int32_t sec = 0;
+             uint32_t nsec = 0;
+             if (server == nullptr || !ract::parse_cancel_goal_request(req, id, sec, nsec)) {
+               return ract::make_cancel_goal_response(ract::CANCEL_ERROR_REJECTED, {});
+             }
+             const bool by_id =
+                 !std::all_of(id.begin(), id.end(), [](uint8_t b) { return b == 0; });
+             const bool by_stamp = sec != 0 || nsec != 0;
+             const std::chrono::system_clock::time_point stamp{
+                 std::chrono::duration_cast<std::chrono::system_clock::duration>(
+                     std::chrono::seconds{sec} + std::chrono::nanoseconds{nsec})};
+             std::vector<std::pair<ract::GoalUuid, std::shared_ptr<ActionGoalHandle::State>>>
+                 candidates;
+             {
+               std::lock_guard<std::mutex> lock(server->goals_mutex);
+               server->prune_finished_locked();
+               if (by_id) {
+                 auto it = server->goals.find(id);
+                 if (it == server->goals.end()) {
+                   return ract::make_cancel_goal_response(ract::CANCEL_ERROR_UNKNOWN_GOAL_ID, {});
+                 }
+                 bool done = false;
+                 {
+                   std::lock_guard<std::mutex> glock(it->second->mutex);
+                   done = it->second->done;
+                 }
+                 if (done) {
+                   return ract::make_cancel_goal_response(ract::CANCEL_ERROR_GOAL_TERMINATED, {});
+                 }
+                 candidates.emplace_back(it->first, it->second);
+               }
+               if (!by_id || by_stamp) {
+                 for (auto &kv : server->goals) {
+                   if (by_id && kv.first == id) {
+                     continue; // already the first candidate
+                   }
+                   if (by_stamp && kv.second->accepted_at > stamp) {
+                     continue; // accepted after the stamp
+                   }
+                   candidates.emplace_back(kv.first, kv.second);
+                 }
+               }
+             }
+             std::size_t refused = 0;
+             std::vector<ract::GoalUuid> canceling;
+             for (auto &[goal_id, gstate] : candidates) {
+               bool done = false;
+               {
+                 std::lock_guard<std::mutex> lock(gstate->mutex);
+                 done = gstate->done;
+               }
+               if (done) {
+                 continue; // a finished goal selected by the stamp: nothing to cancel
+               }
+               if (on_cancel && !on_cancel(goal_id)) {
+                 ++refused;
+                 continue;
+               }
+               if (!gstate->cancel_requested.exchange(true)) {
+                 publish_goal_status(server->self, server->status_topic, goal_id,
+                                     ract::GoalStatus::CANCELING);
+               }
+               canceling.push_back(goal_id);
+             }
+             const int8_t code = (canceling.empty() && refused > 0) ? ract::CANCEL_ERROR_REJECTED
+                                                                    : ract::CANCEL_ERROR_NONE;
+             return ract::make_cancel_goal_response(code, canceling);
+           });
 
   if (!ok) {
     // Transactional: unwind EXACTLY the endpoints this invocation created -
@@ -2190,6 +2571,7 @@ struct RtpsParticipant::ActionClient::Impl {
   struct Goal {
     feedback_callback_t on_feedback{nullptr};
     result_callback_t on_result{nullptr};
+    result_response_callback_t on_response{nullptr}; // send_goal_raw: the raw response
   };
   RtpsParticipant *self{nullptr};
   std::shared_ptr<ServiceClient> send_goal_client;
@@ -2212,7 +2594,9 @@ std::size_t RtpsParticipant::ActionClient::server_count() const {
 bool RtpsParticipant::ActionClient::wait_for_server(std::chrono::milliseconds timeout) const {
   const auto deadline = std::chrono::steady_clock::now() + timeout;
   while (server_count() == 0) {
-    if (std::chrono::steady_clock::now() >= deadline) {
+    // see ServiceClient::wait_for_server(): a stopping participant matches nothing
+    if (!impl_->send_goal_client->impl_->running() ||
+        std::chrono::steady_clock::now() >= deadline) {
       return false;
     }
     std::this_thread::sleep_for(std::chrono::milliseconds(10));
@@ -2222,68 +2606,101 @@ bool RtpsParticipant::ActionClient::wait_for_server(std::chrono::milliseconds ti
 
 std::optional<RtpsParticipant::GoalId> RtpsParticipant::ActionClient::send_goal(
     std::span<const uint8_t> goal, feedback_callback_t on_feedback, result_callback_t on_result) {
+  return send_goal_impl(goal, std::move(on_feedback), std::move(on_result), nullptr);
+}
+
+std::optional<RtpsParticipant::GoalId>
+RtpsParticipant::ActionClient::send_goal_raw(std::span<const uint8_t> goal,
+                                             feedback_callback_t on_feedback,
+                                             result_response_callback_t on_response) {
+  return send_goal_impl(goal, std::move(on_feedback), nullptr, std::move(on_response));
+}
+
+std::optional<RtpsParticipant::GoalId> RtpsParticipant::ActionClient::send_goal_impl(
+    std::span<const uint8_t> goal, feedback_callback_t on_feedback, result_callback_t on_result,
+    result_response_callback_t on_response) {
   const ract::GoalUuid id = generate_goal_id();
   {
     std::lock_guard<std::mutex> lock(impl_->mutex);
-    impl_->goals[id] = Impl::Goal{std::move(on_feedback), std::move(on_result)};
+    impl_->goals[id] =
+        Impl::Goal{std::move(on_feedback), std::move(on_result), std::move(on_response)};
   }
   auto *impl = impl_.get();
-  const bool queued = impl->send_goal_client->call_async(
-      ract::wrap_send_goal_request(id, goal), [impl, id](std::span<const uint8_t> reply) {
+  // The goal ends in exactly one of: a rejection, the GetResult_Response, or an
+  // abandoned request (see ServiceConfig::request_timeout / stop()). The last
+  // two report ABORTED with no result rather than leaving the goal's callbacks
+  // in the map forever.
+  const auto finish = [impl, id](ract::GoalStatus status, std::span<const uint8_t> result,
+                                 std::span<const uint8_t> response) {
+    Impl::Goal g;
+    {
+      std::lock_guard<std::mutex> lock(impl->mutex);
+      auto it = impl->goals.find(id);
+      if (it == impl->goals.end()) {
+        return;
+      }
+      g = std::move(it->second);
+      impl->goals.erase(it);
+    }
+    if (g.on_response) {
+      g.on_response(response);
+    } else if (g.on_result) {
+      g.on_result(static_cast<int8_t>(status), result);
+    }
+  };
+  const auto abandoned = [finish]() { finish(ract::GoalStatus::ABORTED, {}, {}); };
+  const auto queued = impl->send_goal_client->impl_->send(
+      ract::wrap_send_goal_request(id, goal),
+      [impl, id, finish, abandoned](std::span<const uint8_t> reply) {
         bool accepted = false;
         if (!ract::parse_send_goal_response(reply, accepted) || !accepted) {
-          Impl::Goal g;
-          {
-            std::lock_guard<std::mutex> lock(impl->mutex);
-            auto it = impl->goals.find(id);
-            if (it == impl->goals.end()) {
-              return;
-            }
-            g = std::move(it->second);
-            impl->goals.erase(it);
-          }
-          if (g.on_result) {
-            g.on_result(static_cast<int8_t>(ract::GoalStatus::ABORTED), {});
-          }
+          finish(ract::GoalStatus::ABORTED, {}, {});
           return;
         }
         // Accepted: request the result (completes when the goal finishes).
-        impl->get_result_client->call_async(
-            ract::make_get_result_request(id), [impl, id](std::span<const uint8_t> res) {
+        const auto requested = impl->get_result_client->impl_->send(
+            ract::make_get_result_request(id),
+            [finish](std::span<const uint8_t> res) {
               ract::GoalStatus status{};
               std::vector<uint8_t> result;
-              ract::unwrap_get_result_response(res, status, result);
-              Impl::Goal g;
-              {
-                std::lock_guard<std::mutex> lock(impl->mutex);
-                auto it = impl->goals.find(id);
-                if (it == impl->goals.end()) {
-                  return;
-                }
-                g = std::move(it->second);
-                impl->goals.erase(it);
+              if (!ract::unwrap_get_result_response(res, status, result)) {
+                finish(ract::GoalStatus::ABORTED, {}, {}); // too short to be a response
+                return;
               }
-              if (g.on_result) {
-                g.on_result(static_cast<int8_t>(status), {result.data(), result.size()});
-              }
-            });
-      });
-  if (!queued) {
+              finish(status, {result.data(), result.size()}, res);
+            },
+            nullptr, abandoned);
+        if (!requested.has_value()) {
+          abandoned();
+        }
+      },
+      nullptr, abandoned);
+  if (!queued.has_value()) {
     std::lock_guard<std::mutex> lock(impl_->mutex);
     impl_->goals.erase(id);
+    impl_->self->logger_.warn("Action client '{}': goal refused (see the service client's reason)",
+                              impl_->action);
     return std::nullopt;
   }
   return id;
 }
 
-bool RtpsParticipant::ActionClient::cancel_goal(const GoalId &goal_id) {
-  // CancelGoal_Request: goal_info{ goal_id: UUID(16), stamp{sec,nsec} }.
-  std::vector<uint8_t> req{0x00, 0x01, 0x00, 0x00};
-  req.insert(req.end(), goal_id.begin(), goal_id.end());
-  for (int i = 0; i < 8; ++i) {
-    req.push_back(0); // stamp
-  }
-  return impl_->cancel_client->call_async(req, [](std::span<const uint8_t>) {});
+bool RtpsParticipant::ActionClient::cancel_goal(const GoalId &goal_id,
+                                                cancel_callback_t on_response) {
+  return impl_->cancel_client->call_async(
+      ract::make_cancel_goal_request(goal_id),
+      [on_response = std::move(on_response)](std::span<const uint8_t> reply) {
+        if (!on_response) {
+          return;
+        }
+        int8_t code = ract::CANCEL_ERROR_REJECTED;
+        std::vector<ract::GoalUuid> canceling;
+        if (!ract::parse_cancel_goal_response(reply, code, canceling)) {
+          code = ract::CANCEL_ERROR_REJECTED; // unreadable: treat as refused
+          canceling.clear();
+        }
+        on_response(code, canceling.size());
+      });
 }
 
 std::shared_ptr<RtpsParticipant::ActionClient>
@@ -2308,15 +2725,29 @@ RtpsParticipant::add_action_client(const ActionConfig &config) {
   // The action's band/dscp are inherited by every underlying endpoint. On a
   // later failure exactly the handles created HERE are removed (precise
   // rollback - never a concurrently added endpoint).
-  impl->send_goal_client = add_service_client({rtps::rpc::action_send_goal_service(config.action),
-                                               rtps::rpc::action_send_goal_type(config.type_name),
-                                               config.band, config.dscp});
-  impl->get_result_client = add_service_client({rtps::rpc::action_get_result_service(config.action),
-                                                rtps::rpc::action_get_result_type(config.type_name),
-                                                config.band, config.dscp});
+  // The get_result request waits for the whole goal: it must never be timed
+  // out by the service client (a goal running longer than the request timeout
+  // would be reported ABORTED while still executing); the server's result,
+  // its result_timeout retirement, or stop() release it. send_goal and
+  // cancel_goal are answered at once and keep the configured timeout.
+  impl->send_goal_client =
+      add_service_client({.service = rtps::rpc::action_send_goal_service(config.action),
+                          .type_name = rtps::rpc::action_send_goal_type(config.type_name),
+                          .band = config.band,
+                          .dscp = config.dscp,
+                          .request_timeout = config.request_timeout});
+  impl->get_result_client =
+      add_service_client({.service = rtps::rpc::action_get_result_service(config.action),
+                          .type_name = rtps::rpc::action_get_result_type(config.type_name),
+                          .band = config.band,
+                          .dscp = config.dscp,
+                          .request_timeout = std::chrono::milliseconds{0}});
   impl->cancel_client =
-      add_service_client({rtps::rpc::action_cancel_goal_service(config.action),
-                          rtps::rpc::action_cancel_goal_type(), config.band, config.dscp});
+      add_service_client({.service = rtps::rpc::action_cancel_goal_service(config.action),
+                          .type_name = rtps::rpc::action_cancel_goal_type(),
+                          .band = config.band,
+                          .dscp = config.dscp,
+                          .request_timeout = config.request_timeout});
   if (!impl->send_goal_client || !impl->get_result_client || !impl->cancel_client) {
     // Transactional: unwind exactly the service clients that DID build.
     remove_service_client(impl->send_goal_client);
@@ -2396,6 +2827,9 @@ RtpsParticipant::add_service_client(const ServiceConfig &config) {
   }
   auto impl = std::make_shared<ServiceClient::Impl>();
   impl->self = this;
+  impl->live = live_;
+  impl->request_timeout = config.request_timeout;
+  impl->max_pending = config.max_pending_requests;
   impl->request_writer = request_writer;
   impl->reply_reader = reply_reader;
   impl->reply_reader_guid = reply_reader->m_attributes.endpointGuid;
@@ -2443,11 +2877,14 @@ struct RtpsParticipant::NativeServiceClient::Impl {
     std::mutex m;
     std::condition_variable cv;
     bool done{false};
+    bool failed{false}; // abandoned (see ServiceClient::Impl)
     std::vector<uint8_t> reply;
   };
   struct Pending {
     reply_callback_t on_reply{nullptr};
     std::shared_ptr<SyncSlot> sync{nullptr};
+    std::chrono::steady_clock::time_point deadline{std::chrono::steady_clock::time_point::max()};
+    std::function<void()> on_abandon{nullptr};
   };
   RtpsParticipant *self{nullptr};
   std::string request_topic;
@@ -2459,9 +2896,100 @@ struct RtpsParticipant::NativeServiceClient::Impl {
   std::atomic<uint32_t> next_id{1};
   std::mutex mutex;
   std::unordered_map<uint32_t, Pending> pending;
+  std::chrono::milliseconds request_timeout{0}; ///< ServiceConfig::request_timeout
+  std::size_t max_pending{0};                   ///< ServiceConfig::max_pending_requests
+  // The run's liveness token and the engine pin, as for the ROS client (see
+  // ServiceClient::Impl::pin): a handle kept past stop() or destruction
+  // refuses instead of publishing through a dangling participant.
+  std::shared_ptr<Liveness> live;
+  using Pin = ServiceClient::Impl::Pin;
+  Pin pin() const {
+    if (self == nullptr || !live) {
+      return {};
+    }
+    std::lock_guard<std::mutex> lock(live->m);
+    if (!live->alive || !self->begin_engine_op()) {
+      return {};
+    }
+    return Pin{self};
+  }
+
+  // The same bounded table as ServiceClient::Impl: expired entries are dropped
+  // on every send / count, every entry at stop(); gone entries are finished
+  // outside `mutex`.
+  static void finish_abandoned(std::vector<Pending> &gone) {
+    for (auto &p : gone) {
+      if (p.sync) {
+        std::lock_guard<std::mutex> lock(p.sync->m);
+        p.sync->failed = true;
+        p.sync->done = true;
+        p.sync->cv.notify_all();
+      }
+      if (p.on_abandon) {
+        p.on_abandon();
+      }
+    }
+    gone.clear();
+  }
+  void prune_expired_locked(std::vector<Pending> &gone) {
+    const auto now = std::chrono::steady_clock::now();
+    for (auto it = pending.begin(); it != pending.end();) {
+      if (it->second.deadline <= now) {
+        gone.push_back(std::move(it->second));
+        it = pending.erase(it);
+      } else {
+        ++it;
+      }
+    }
+  }
+  void abandon_all() {
+    std::vector<Pending> gone;
+    {
+      std::lock_guard<std::mutex> lock(mutex);
+      gone.reserve(pending.size());
+      std::transform(pending.begin(), pending.end(), std::back_inserter(gone),
+                     [](auto &kv) { return std::move(kv.second); });
+      pending.clear();
+    }
+    finish_abandoned(gone);
+  }
+  std::size_t pending_count() {
+    std::vector<Pending> gone;
+    std::size_t count = 0;
+    {
+      std::lock_guard<std::mutex> lock(mutex);
+      prune_expired_locked(gone);
+      count = pending.size();
+    }
+    finish_abandoned(gone);
+    return count;
+  }
 
   std::optional<uint32_t> send(std::span<const uint8_t> request, reply_callback_t on_reply,
-                               std::shared_ptr<SyncSlot> sync) {
+                               std::shared_ptr<SyncSlot> sync,
+                               std::function<void()> on_abandon = nullptr) {
+    // Expired entries first and OUTSIDE the engine pin, as in
+    // ServiceClient::Impl::send(): their on_abandon may stop() the participant.
+    bool full = false;
+    {
+      std::vector<Pending> gone;
+      {
+        std::lock_guard<std::mutex> lock(mutex);
+        prune_expired_locked(gone);
+        full = max_pending != 0 && pending.size() >= max_pending;
+      }
+      finish_abandoned(gone);
+    }
+    const Pin pinned = pin();
+    if (!pinned) {
+      return std::nullopt; // not running, or a handle from an earlier run: silent
+    }
+    if (full) {
+      self->logger_.warn("Native service client '{}': request refused, the pending table is "
+                         "full (max_pending_requests); no server answers",
+                         request_topic);
+      return std::nullopt;
+    }
     rtps::rpc::NativeHeader h;
     h.client_prefix = my_prefix;
     h.op = rtps::rpc::NativeOp::REQUEST;
@@ -2470,7 +2998,21 @@ struct RtpsParticipant::NativeServiceClient::Impl {
     auto frame = rtps::rpc::native_encode(h, request);
     {
       std::lock_guard<std::mutex> lock(mutex);
-      pending[id] = Pending{std::move(on_reply), std::move(sync)};
+      // Re-checked under the lock of the insert (see ServiceClient::Impl::send).
+      if (max_pending != 0 && pending.size() >= max_pending) {
+        if (self != nullptr) {
+          self->logger_.warn("Native service client '{}': request refused, the pending table is "
+                             "full (max_pending_requests); no server answers",
+                             request_topic);
+        }
+        return std::nullopt;
+      }
+      Pending entry{std::move(on_reply), std::move(sync)};
+      entry.on_abandon = std::move(on_abandon);
+      if (request_timeout.count() > 0) {
+        entry.deadline = std::chrono::steady_clock::now() + request_timeout;
+      }
+      pending[id] = std::move(entry);
     }
     if (!self->publish(request_topic, {frame.data(), frame.size()})) {
       std::lock_guard<std::mutex> lock(mutex);
@@ -2490,6 +3032,16 @@ bool RtpsParticipant::NativeServiceClient::call_async(std::span<const uint8_t> r
   return impl_->send(request, std::move(on_reply), nullptr).has_value();
 }
 
+bool RtpsParticipant::NativeServiceClient::call_async(std::span<const uint8_t> request,
+                                                      reply_callback_t on_reply,
+                                                      abandon_callback_t on_abandon) {
+  return impl_->send(request, std::move(on_reply), nullptr, std::move(on_abandon)).has_value();
+}
+
+std::size_t RtpsParticipant::NativeServiceClient::pending_count() const {
+  return impl_->pending_count();
+}
+
 std::optional<std::vector<uint8_t>>
 RtpsParticipant::NativeServiceClient::call(std::span<const uint8_t> request,
                                            std::chrono::milliseconds timeout) {
@@ -2504,18 +3056,28 @@ RtpsParticipant::NativeServiceClient::call(std::span<const uint8_t> request,
     impl_->pending.erase(*id);
     return std::nullopt;
   }
+  if (slot->failed) {
+    return std::nullopt; // abandoned: the participant stopped, or request_timeout
+  }
   return std::move(slot->reply);
 }
 
 std::future<std::optional<std::vector<uint8_t>>>
 RtpsParticipant::NativeServiceClient::call_future(std::span<const uint8_t> request) {
-  auto promise = std::make_shared<std::promise<std::optional<std::vector<uint8_t>>>>();
-  auto future = promise->get_future();
-  const bool queued = call_async(request, [promise](std::span<const uint8_t> reply) {
-    promise->set_value(std::vector<uint8_t>(reply.begin(), reply.end()));
-  });
-  if (!queued) {
-    promise->set_value(std::nullopt);
+  // See ServiceClient::call_future(): an abandoned request resolves nullopt,
+  // and the completion is single-shot (FutureReply) - this client inserts its
+  // pending entry before publishing, so a stop() in between abandons it and
+  // the failed publish then makes send() return nullopt as well.
+  auto reply = std::make_shared<FutureReply>();
+  auto future = reply->promise.get_future();
+  const auto id = impl_->send(
+      request,
+      [reply](std::span<const uint8_t> bytes) {
+        reply->complete(std::vector<uint8_t>(bytes.begin(), bytes.end()));
+      },
+      nullptr, [reply]() { reply->complete(std::nullopt); });
+  if (!id.has_value()) {
+    reply->complete(std::nullopt);
   }
   return future;
 }
@@ -2676,6 +3238,9 @@ RtpsParticipant::add_native_service_client(const ServiceConfig &config) {
   EngineOpGuard op_guard(*this);
   auto impl = std::make_unique<NativeServiceClient::Impl>();
   impl->self = this;
+  impl->live = live_;
+  impl->request_timeout = config.request_timeout;
+  impl->max_pending = config.max_pending_requests;
   impl->request_topic = rtps::rpc::native_request_topic(config.service);
   impl->reply_topic = rtps::rpc::native_reply_topic(config.service);
   impl->my_prefix = participant_->m_guidPrefix.id;
@@ -3137,7 +3702,33 @@ void RtpsParticipant::stop() {
     }
     timer.reset();
   }
-#endif
+  // Phase 2.5: give up on every pending request. A blocked call() wakes with
+  // nullopt, a call_future() resolves to nullopt (not broken_promise), and no
+  // reply callback runs after this. The registries are stable (no add past
+  // phase 1); mutex_ only orders the snapshot against a concurrent remove, and
+  // is NOT held across abandon_all(): that takes the client's own mutex, which
+  // a sending thread holds while it logs a refusal through the liveness lock,
+  // under which pin() takes mutex_ - the three in a cycle were a potential
+  // deadlock (TSan: lock-order inversion). The snapshot's shared_ptrs keep the
+  // clients alive for the walk.
+  std::vector<std::shared_ptr<ServiceClient>> service_clients;
+  std::vector<std::shared_ptr<NativeServiceClient>> native_service_clients;
+  {
+    std::lock_guard<std::mutex> lock(mutex_);
+    service_clients = service_clients_;
+    native_service_clients = native_service_clients_;
+  }
+  for (const auto &cli : service_clients) {
+    if (cli && cli->impl_) {
+      cli->impl_->abandon_all();
+    }
+  }
+  for (const auto &cli : native_service_clients) {
+    if (cli && cli->impl_) {
+      cli->impl_->abandon_all();
+    }
+  }
+#endif // RTPS_WITH_RPC
   // Phase 3: retry any endpoint deletions that a creation-time rollback could
   // not complete (the SEDP dispose failed then, so the endpoint stayed
   // registered with its dedicated port). Do it while the domain is still live so

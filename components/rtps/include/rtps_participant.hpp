@@ -327,6 +327,17 @@ public:
     /// Optional DSCP code point applied to both endpoints' dedicated sockets
     /// (marks the requests/replies this side SENDS).
     std::optional<espp::Dscp> dscp{};
+    /// Client only: how long a request may wait for its reply before it is
+    /// abandoned - its pending entry is dropped, a call_future() resolves to
+    /// std::nullopt, a call_async() callback never runs - so a server that
+    /// took the request and died, or a lost reply, cannot grow the pending
+    /// table without bound. Checked when the client sends its next request
+    /// or counts its pending ones, and at stop(). 0 = never.
+    std::chrono::milliseconds request_timeout{std::chrono::seconds { 30 }};
+    /// Client only: requests that may be pending at once; one more is refused
+    /// (call_async() false, call()/call_future() std::nullopt, logged).
+    /// 0 = unlimited.
+    std::size_t max_pending_requests{64};
   };
 
   /// Handle to reply to a service request later (deferred reply). Copyable and
@@ -378,6 +389,12 @@ public:
     /// while the server is away.
     std::size_t server_count() const;
 
+    /// Requests sent and not yet answered. Entries older than
+    /// ServiceConfig::request_timeout are dropped first (see there), so this
+    /// is bounded by max_pending_requests and returns to 0 after a server
+    /// stops answering.
+    std::size_t pending_count() const;
+
     /// Block until at least one server is matched, like rclcpp's
     /// wait_for_service(). \return True once a server is matched, false on
     /// timeout. Do not call from within an engine callback.
@@ -393,6 +410,18 @@ public:
     ///         the request could not be queued. The callback runs on an engine
     ///         worker thread.
     bool call_async(std::span<const uint8_t> request, reply_callback_t on_reply);
+    /// Invoked when a request is given up on without a reply: pruned past
+    /// ServiceConfig::request_timeout, or abandoned by stop(). Exactly once per
+    /// request, never after (or instead of) on_reply, and never when
+    /// call_async() returned false (the caller knows then). Runs on the thread
+    /// that gave the request up: an engine worker, a later caller of this
+    /// client, or stop().
+    using abandon_callback_t = std::function<void()>;
+    /// call_async() that also learns when the request is given up on, so a
+    /// waiter built on it (a future, an event) can be released instead of
+    /// pending forever. The two-argument form never calls back for that.
+    bool call_async(std::span<const uint8_t> request, reply_callback_t on_reply,
+                    abandon_callback_t on_abandon);
 
     /// Send a request and block until the correlated reply arrives or timeout.
     /// \return The CDR-encapsulated reply, or std::nullopt on timeout/failure.
@@ -460,6 +489,30 @@ public:
     espp::QosBand band{espp::QosBand::Normal};
     /// Optional DSCP code point for the endpoints' dedicated sockets.
     std::optional<espp::Dscp> dscp{};
+    /// Client only (ROS 2 protocol): how long the send_goal and cancel_goal
+    /// requests may wait for their reply (see ServiceConfig::request_timeout;
+    /// 0 = never). The get_result request is never timed out this way: it
+    /// waits for the whole goal, however long that runs, and is released by
+    /// the server's result (or its result_timeout retirement) and by stop().
+    std::chrono::milliseconds request_timeout{std::chrono::seconds { 30 }};
+    /// Server only: goals that may execute at once (each accepted goal runs on
+    /// its own thread); one more is rejected before on_goal, with a warning.
+    /// A goal id the server already holds is rejected too. 0 = unlimited.
+    std::size_t max_goals_in_flight{8};
+    /// Server only: how long a finished goal stays known after it terminated
+    /// - for its get_result (also a late or repeated one) and for a cancel to
+    /// be answered ERROR_GOAL_TERMINATED - before it is retired; retirement
+    /// happens when the next goal request comes in. 0 = retire a goal as soon
+    /// as its result has been delivered (a result nobody fetches then stays).
+    std::chrono::milliseconds result_timeout{std::chrono::seconds { 60 }};
+    /// Server only (ROS 2 protocol): the complete CDR-encapsulated
+    /// GetResult_Response ({status: UNKNOWN, result: a default Result}) sent to
+    /// a client asking for the result of a goal this server does not know -
+    /// never accepted, or already retired. A ROS 2 client expects a
+    /// well-formed Result there; the typed espp::ActionServer fills this in.
+    /// Empty (the byte-level default) sends status UNKNOWN with no result
+    /// body, which only parses for an empty Result type.
+    std::vector<uint8_t> unknown_goal_response{};
   };
 
   /// Server-side handle to a running goal, passed to the execute callback (which
@@ -472,9 +525,20 @@ public:
     /// Publish a CDR-encapsulated feedback message for this goal.
     void publish_feedback(std::span<const uint8_t> feedback) const;
     /// Terminate the goal SUCCEEDED/ABORTED/CANCELED with a CDR result payload.
+    /// The result body is spliced behind the response's status field at CDR
+    /// offset 4, which is byte-exact only for a Result whose fields are at most
+    /// 4-byte aligned (see rtps/rpc/action_types.hpp); a Result with int64 /
+    /// float64 fields must go through terminate_with_response() (what the typed
+    /// espp::ActionServer does).
     void succeed(std::span<const uint8_t> result) const;
     void abort(std::span<const uint8_t> result) const;
     void canceled(std::span<const uint8_t> result) const;
+    /// Terminate the goal with a pre-built, CDR-encapsulated GetResult_Response
+    /// ({status, result} serialized as ONE message, so every field of the
+    /// result is aligned relative to the response). `status` (a GoalStatus
+    /// value: SUCCEEDED 4, CANCELED 5, ABORTED 6) drives the status topic; the
+    /// response is sent verbatim to get_result.
+    void terminate_with_response(int8_t status, std::span<const uint8_t> get_result_response) const;
     /// True if a cancel has been requested for this goal.
     bool is_canceling() const;
 
@@ -531,13 +595,35 @@ public:
     /// \return The generated goal id, or std::nullopt on failure.
     std::optional<GoalId> send_goal(std::span<const uint8_t> goal, feedback_callback_t on_feedback,
                                     result_callback_t on_result);
-    /// Request cancellation of a previously sent goal.
-    bool cancel_goal(const GoalId &goal_id);
+    /// The complete CDR-encapsulated GetResult_Response ({status, result} as
+    /// one message), or an empty span when the goal was rejected / the
+    /// response could not be read.
+    using result_response_callback_t =
+        std::function<void(std::span<const uint8_t> get_result_response)>;
+    /// send_goal() delivering the raw GetResult_Response instead of a spliced
+    /// result: the way to read a Result with int64 / float64 fields correctly
+    /// (see ActionGoalHandle::terminate_with_response()); the typed
+    /// espp::ActionClient uses it.
+    std::optional<GoalId> send_goal_raw(std::span<const uint8_t> goal,
+                                        feedback_callback_t on_feedback,
+                                        result_response_callback_t on_response);
+    /// The server's answer to a cancel request (action_msgs/srv/CancelGoal):
+    /// return_code 0 ERROR_NONE, 1 ERROR_REJECTED, 2 ERROR_UNKNOWN_GOAL_ID,
+    /// 3 ERROR_GOAL_TERMINATED, and how many goals are now canceling.
+    using cancel_callback_t = std::function<void(int8_t return_code, std::size_t goals_canceling)>;
+    /// Request cancellation of a previously sent goal; on_response (optional)
+    /// receives the server's verdict. A zero goal id asks for every goal.
+    /// \return True if the request was queued.
+    bool cancel_goal(const GoalId &goal_id, cancel_callback_t on_response = nullptr);
 
   private:
     friend class RtpsParticipant;
     struct Impl;
     explicit ActionClient(std::unique_ptr<Impl> impl);
+    std::optional<GoalId> send_goal_impl(std::span<const uint8_t> goal,
+                                         feedback_callback_t on_feedback,
+                                         result_callback_t on_result,
+                                         result_response_callback_t on_response);
     std::unique_ptr<Impl> impl_;
   };
 
@@ -562,6 +648,13 @@ public:
 
     /// Send a request; invoke on_reply when the correlated reply arrives.
     bool call_async(std::span<const uint8_t> request, reply_callback_t on_reply);
+    /// As above, also told when the request is given up on (see
+    /// ServiceClient::abandon_callback_t).
+    using abandon_callback_t = std::function<void()>;
+    bool call_async(std::span<const uint8_t> request, reply_callback_t on_reply,
+                    abandon_callback_t on_abandon);
+    /// Requests sent and not yet answered (see ServiceClient::pending_count()).
+    std::size_t pending_count() const;
     /// Send a request and block for the reply (std::nullopt on timeout/failure).
     std::optional<std::vector<uint8_t>> call(std::span<const uint8_t> request,
                                              std::chrono::milliseconds timeout);

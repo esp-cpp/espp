@@ -137,7 +137,11 @@ cmake -S lib -B lib/build -DCMAKE_BUILD_TYPE=Release -DESPP_INSTALL=ON -DCMAKE_I
        rtps_interop_pub rtps_interop_sub rtps_interop_churn rtps_sedp_inline_qos_dispose \
        rtps_sedp_history_overflow rtps_sedp_history_ring rtps_facade_matched_counts \
        rtps_gap_before_data rtps_acknack_heartbeat_reply \
-       rtps_service_reply_waits_for_reader rtps_acknack_coalescing rtps_nack_frag > /tmp/build.log 2>&1
+       rtps_service_reply_waits_for_reader rtps_acknack_coalescing rtps_nack_frag rtps_receiver_malformed \
+       rtps_unknown_reader_fanout rtps_delete_reader_callback_domain_api \
+       rtps_proxy_pool_full_match rtps_frag_slot_isolation rtps_dispose_retention \
+       rtps_rpc_stop_race rtps_rpc_pending_eviction rtps_typed_action_alignment rtps_action_long_goal \
+       rtps_action_cancel_codes rtps_action_goal_flood rtps_rpc_empty_reply > /tmp/build.log 2>&1
 build_rc=$?
 result "build" $build_rc
 if [ $build_rc -ne 0 ]; then tail -30 /tmp/cmake_lib.log /tmp/build_lib.log /tmp/build.log; exit 1; fi
@@ -162,6 +166,25 @@ note "SEDP writer history never drops a live announcement; a deleted endpoint's 
 
 note "matched_writers()/matched_readers() over a loopback; a removed writer's dispose unmatches it at once (host)"
 "$BIN"/rtps_facade_matched_counts; result "facade_matched_counts" $?
+note "Malformed ACKNACK / GAP / HEARTBEAT / DATA / DATA_FRAG submessages are rejected, valid ones still work (host)"
+"$BIN"/rtps_receiver_malformed; result "receiver_malformed" $?
+
+note "Two local readers on one topic: both matched, both get a DATA / HEARTBEAT / GAP addressed to ENTITYID_UNKNOWN (host)"
+"$BIN"/rtps_unknown_reader_fanout; result "unknown_reader_fanout" $?
+
+note "remove_reader while the reader's callback creates a writer: no Domain-mutex deadlock (host)"
+# Bounded like rtps_remove_reader_deadlock: a regression of the deadlock would
+# otherwise stall the harness in the participant teardown.
+timeout 60 "$BIN"/rtps_delete_reader_callback_domain_api; result "delete_reader_callback_domain_api" $?
+
+note "A remote endpoint that found no room in a proxy pool waits unmatched and takes a freed slot (host)"
+"$BIN"/rtps_proxy_pool_full_match; result "proxy_pool_full_match" $?
+
+note "A stray DATA_FRAG from an unmatched writer cannot evict a reassembly in progress (host)"
+"$BIN"/rtps_frag_slot_isolation; result "frag_slot_isolation" $?
+
+note "Every dispose-after-write change stays in the writer's history for its retention (host, ~14 s)"
+"$BIN"/rtps_dispose_retention; result "dispose_retention" $?
 
 note "A GAP beyond the writer's announced range is not applied; a GAP within it is (host)"
 "$BIN"/rtps_gap_before_data; result "gap_before_data" $?
@@ -288,6 +311,15 @@ note "native (espp<->espp) action loopback (lean AMI: goal + feedback + result)"
 # reflectable structs - the RMI/AMI analogue of Publisher<T>/Subscriber<T>.
 note "typed RMI/AMI wrappers loopback (ServiceServer/Client + ActionServer/Client)"
 "$BIN"/rtps_typed_rpc_loopback; result "typed_rpc_loopback" $?
+
+note "RPC facade hardening (host): client handles vs stop(), bounded pending tables, typed action result alignment, cancel verdicts, goal limits, empty replies"
+"$BIN"/rtps_rpc_stop_race; result "rpc_stop_race" $?
+"$BIN"/rtps_rpc_pending_eviction; result "rpc_pending_eviction" $?
+"$BIN"/rtps_typed_action_alignment; result "typed_action_alignment" $?
+"$BIN"/rtps_action_long_goal; result "action_long_goal" $?
+"$BIN"/rtps_action_cancel_codes; result "action_cancel_codes" $?
+"$BIN"/rtps_action_goal_flood; result "action_goal_flood" $?
+"$BIN"/rtps_rpc_empty_reply; result "rpc_empty_reply" $?
 
 # NOTE: the in-process fragmented loopbacks (rtps_facade_frag, rtps_facade_frag_sizes)
 # are BUILT above (compile guard) but run as standalone host gates (docker-free),
@@ -545,13 +577,25 @@ rpc_cases() { # prefix log-tag
   local cancel_rc=$?; grep -q "^CANCELED" "/tmp/${tag}actcancel.log" || cancel_rc=1
   timeout 35 python3 /work/components/rtps/interop/ros2_fibonacci_client.py reject 0 > "/tmp/${tag}actreject.log" 2>&1
   local reject_rc=$?; grep -q "^REJECTED" "/tmp/${tag}actreject.log" || reject_rc=1
+  # The CancelGoal verdicts (action_msgs/srv/CancelGoal) a ROS 2 client reads:
+  # an unknown goal id is ERROR_UNKNOWN_GOAL_ID, a goal that already finished
+  # (fetched, still retained by the server) ERROR_GOAL_TERMINATED. The cancel
+  # case above also checks ERROR_NONE + the goal listed in goals_canceling.
+  timeout 35 python3 /work/components/rtps/interop/ros2_fibonacci_client.py cancel-unknown > "/tmp/${tag}actcancelunk.log" 2>&1
+  local cancelunk_rc=$?; grep -q "^CANCEL_UNKNOWN" "/tmp/${tag}actcancelunk.log" || cancelunk_rc=1
+  timeout 35 python3 /work/components/rtps/interop/ros2_fibonacci_client.py cancel-finished 5 > "/tmp/${tag}actcancelfin.log" 2>&1
+  local cancelfin_rc=$?; grep -q "^CANCEL_FINISHED" "/tmp/${tag}actcancelfin.log" || cancelfin_rc=1
   sleep 1
   kill $actsrv2 2>/dev/null; wait $actsrv2 2>/dev/null
   echo "--- cancel ---"; tail -1 "/tmp/${tag}actcancel.log"
   echo "--- reject ---"; tail -1 "/tmp/${tag}actreject.log"
+  echo "--- cancel-unknown ---"; tail -1 "/tmp/${tag}actcancelunk.log"
+  echo "--- cancel-finished ---"; tail -1 "/tmp/${tag}actcancelfin.log"
   echo "--- espp action server ---"; grep "server:" "/tmp/${tag}actsrv2.log" | tail -3
   result "${prefix}espp_action_server<-ros2_cancel" $cancel_rc
   result "${prefix}espp_action_server<-ros2_reject" $reject_rc
+  result "${prefix}espp_action_server<-ros2_cancel_unknown" $cancelunk_rc
+  result "${prefix}espp_action_server<-ros2_cancel_finished" $cancelfin_rc
 }
 rpc_cases "" ""
 
