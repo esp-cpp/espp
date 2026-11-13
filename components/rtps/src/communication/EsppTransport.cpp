@@ -83,7 +83,8 @@ EsppTransport::EsppTransport(RxCallback callback, void *args, const TaskConfig &
     , m_callbackArgs(args)
     , m_tasks(tasks) {
   espp::ThreadPool::Config pool_config;
-  pool_config.worker_count = m_tasks.worker_count > 0 ? m_tasks.worker_count : 1;
+  pool_config.worker_count =
+      m_tasks.worker_count > 0 ? m_tasks.worker_count : TaskConfig{}.worker_count; // 0 = default
   // Bounded queue: rejected submissions are real backpressure signals (the
   // reactor re-arms the socket and the deferred dispatchers retry via their
   // timer), instead of an unbounded heap-backed backlog under overload.

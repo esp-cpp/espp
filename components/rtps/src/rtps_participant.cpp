@@ -253,6 +253,7 @@ bool RtpsParticipant::start() {
   // Channel/endpoint scheduling: metatraffic (SPDP/SEDP) dispatches at
   // metatraffic_band (High by default), user traffic at user_traffic_band;
   // banded endpoints may get dedicated ports, rationed by the configured cap.
+  const rtps::DomainConfig engine_defaults{}; // the engine's own task defaults
   const rtps::DomainConfig domain_config{
       .metatraffic_band = config_.metatraffic_band,
       .user_traffic_band = config_.user_traffic_band,
@@ -260,7 +261,7 @@ bool RtpsParticipant::start() {
       .max_prioritized_endpoint_ports = config_.max_prioritized_endpoint_ports,
       .local_prefix_length = prefix_length,
       .transport = transport_config(config_),
-      .protocol_task = config_.tasks.protocol.value_or(rtps::DomainConfig{}.protocol_task),
+      .protocol_task = config_.tasks.protocol.value_or(engine_defaults.protocol_task),
   };
   domain_ = std::make_unique<rtps::Domain>(ip_bytes, domain_config);
   // Fresh liveness token for this run (a prior stop() left the old one flipped).
@@ -690,9 +691,14 @@ void RtpsParticipant::DeferredDispatch::close() {
   }
   // Withdraw a parked drain job (it holds the owner): after this the
   // transport's retry task cannot resubmit it. A job it already handed to the
-  // pool runs drain(), which sees `closed` and returns.
+  // pool runs drain(), which sees `closed` and returns. Either way no drain
+  // is queued or parked for this dispatcher any more: say so in its state.
   if (transport != nullptr) {
     transport->cancelGuaranteed(this);
+  }
+  {
+    std::lock_guard<std::mutex> lock(mutex);
+    in_flight = false;
   }
   // Wait for any in-flight delivery to finish. A delivery runs a user handler
   // that may still be using endpoints the caller is about to delete (e.g. a

@@ -67,7 +67,7 @@ public:
   /// (menuconfig RTPS -> Tasks); a core id or a bigger stack is set here.
   struct TaskConfig {
     /// Receive worker tasks: every received datagram and every writer's send
-    /// is dispatched on one of them.
+    /// is dispatched on one of them. 0 keeps this default.
     std::size_t worker_count{2};
     // The compile-time constants in the members' own types, so a change of
     // either type cannot become a narrowing error in these initializers.
