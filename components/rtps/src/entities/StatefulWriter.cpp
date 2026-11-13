@@ -313,6 +313,7 @@ void StatefulWriter::setAllChangesToUnsent() {
 }
 
 bool StatefulWriter::addNewMatchedReader(const ReaderProxy &newProxy) {
+  std::function<void()> nudge;
   {
     std::lock_guard<std::recursive_mutex> lock(m_mutex);
     if (!Writer::addNewMatchedReader(newProxy)) {
@@ -321,11 +322,12 @@ bool StatefulWriter::addNewMatchedReader(const ReaderProxy &newProxy) {
     // The heartbeat (an empty one, first 1 / last 0, when nothing was written
     // yet) is what the reader answers with the ACKNACK that acknowledges us.
     m_nextHeartbeat = std::chrono::steady_clock::now();
+    nudge = m_protocolNudge; // copied under the lock (setProtocolNudge writes it)
   }
   // The nudge is a callback into the Domain's scheduler: invoked outside
   // m_mutex so it cannot take part in a lock-order cycle with it.
-  if (m_protocolNudge) {
-    m_protocolNudge();
+  if (nudge) {
+    nudge();
   }
   return true;
 }
@@ -375,10 +377,13 @@ void StatefulWriter::onNewAckNack(const SubmessageAckNack &msg,
   // requests samples has a heartbeat behind it whatever its count or base (a
   // count that wrapped, a vendor counting from 0): it acknowledges, and it is
   // processed below like any other. Pre-emptive, then, is an EMPTY set at
-  // base 0 (Fast DDS, the older form of this engine) or numbered 0 (Cyclone).
+  // base 0 (Fast DDS, the older form of this engine) or numbered 0 from a
+  // reader that has not acknowledged us yet (Cyclone); an empty set numbered
+  // 0 from a reader that has (a counter that wrapped) is an ordinary empty
+  // ACKNACK and takes the ordinary path below.
   const bool requests_nothing = msg.readerSNState.numBits == 0;
-  const bool preemptive =
-      requests_nothing && ((nextSN.low == 0 && nextSN.high == 0) || msg.count.value == 0);
+  const bool preemptive = requests_nothing && ((nextSN.low == 0 && nextSN.high == 0) ||
+                                               (msg.count.value == 0 && !reader->acknowledged));
   if (!requests_nothing || msg.count.value != 0) {
     reader->acknowledged = true;
   }
