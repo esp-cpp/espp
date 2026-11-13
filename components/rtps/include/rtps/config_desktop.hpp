@@ -184,8 +184,17 @@ const uint8_t MAX_TOPICNAME_LENGTH = RTPS_CFG_MAX_TOPICNAME_LENGTH;
 // which run every reader and matched callback. Applied on ESP only (espp::Task
 // sets stacks through esp_pthread; a host std::thread uses the platform
 // default). menuconfig RTPS -> Tasks.
+// The 1600 is a host figure that nothing applies; selected ON the target (the
+// Kconfig limits-profile choice puts this header on an ESP32 too) this IS the
+// FreeRTOS stack of every receive worker, and 1600 overflows on the first
+// datagram - so on ESP it is the embedded profile's 6144, as the capacity
+// profiles are about pool sizes, not task stacks.
 #ifndef RTPS_CFG_THREAD_POOL_READER_STACKSIZE
+#if defined(ESP_PLATFORM)
+#define RTPS_CFG_THREAD_POOL_READER_STACKSIZE 6144
+#else
 #define RTPS_CFG_THREAD_POOL_READER_STACKSIZE 1600
+#endif
 #endif
 const int THREAD_POOL_READER_STACKSIZE = RTPS_CFG_THREAD_POOL_READER_STACKSIZE; // byte
 // Stack requested for the protocol task (SPDP announcements, heartbeats,
@@ -195,7 +204,11 @@ const int THREAD_POOL_READER_STACKSIZE = RTPS_CFG_THREAD_POOL_READER_STACKSIZE; 
 // host build std::thread uses the platform default stack and this value (like
 // THREAD_POOL_READER_STACKSIZE) has no effect. menuconfig RTPS -> Tasks.
 #ifndef RTPS_CFG_SPDP_WRITER_STACKSIZE
+#if defined(ESP_PLATFORM)
+#define RTPS_CFG_SPDP_WRITER_STACKSIZE 4096 // see THREAD_POOL_READER_STACKSIZE above
+#else
 #define RTPS_CFG_SPDP_WRITER_STACKSIZE 550
+#endif
 #endif
 const uint16_t SPDP_WRITER_STACKSIZE = RTPS_CFG_SPDP_WRITER_STACKSIZE; // byte
 

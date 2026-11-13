@@ -1,0 +1,4 @@
+# The memory suite's second firmware: the host limits profile on the target
+# (rtps/config_desktop.hpp), to put a number on what the relaxed caps cost.
+# Layered over sdkconfig.defaults;sdkconfig.ci.defaults by rtps_qemu.yml.
+CONFIG_RTPS_LIMITS_PROFILE_HOST=y

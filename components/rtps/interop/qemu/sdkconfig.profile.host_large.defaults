@@ -1,0 +1,4 @@
+# The memory suite's third firmware: the host_large limits profile on the
+# target (rtps/config_host_large.hpp). It may not fit the ESP32's internal RAM;
+# the suite reports whether the participant started.
+CONFIG_RTPS_LIMITS_PROFILE_HOST_LARGE=y

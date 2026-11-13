@@ -14,7 +14,13 @@
 //   RTPSTEST big_rx len=<n>          fragmented-sample subscriber received n bytes
 //   RTPSTEST srv <a>+<b>=<sum>       service request served
 //   RTPSTEST status up=<s> tx= rx= be_rx= big_rx= heap=<free> min_heap=<low water>
-//                                    every 2 s, for the soak checks
+//                                    int=<internal free> int_min= int_largest= psram=<free>
+//                                    every 2 s, for the soak and memory checks
+//   RTPSTEST mem sizeof domain=<B> participant= stateful_writer= stateless_writer=
+//                                    stateful_reader= stateless_reader= facade=
+//                                    the engine's compile-time-sized objects (bytes)
+//   RTPSTEST mem heap <stage> internal=<free> internal_min= internal_largest= psram= psram_largest=
+//                                    at boot, started, endpoints: the memory suite's deltas
 //
 // Topics (ROS 2 names: "rt/" prefix stripped, std_msgs/msg/String):
 //   rt/qemu_tx     reliable, device publishes "qemu <n>" every 200 ms
@@ -36,10 +42,37 @@
 #include "qemu.hpp"
 
 #include "logger.hpp"
+#include "rtps/entities/Domain.hpp"
 #include "rtps_participant.hpp"
 #include "rtps_pubsub.hpp"
 #include "rtps_service.hpp"
 #include "timer.hpp"
+
+namespace {
+// The memory suite (../run_qemu_interop.sh memory) reads these. The engine's
+// objects are compile-time sized (the limits profile and the capacity knobs)
+// but the Domain that holds them is allocated from the heap at start(), so
+// their sizeof is the footprint a configuration commits to. The heap is split
+// the way the ESP32 is: internal RAM, where every task stack and lwIP buffer
+// must live and which runs out first, against PSRAM.
+void log_mem_sizes(espp::Logger &logger) {
+  logger.info("RTPSTEST mem sizeof domain={} participant={} stateful_writer={} "
+              "stateless_writer={} stateful_reader={} stateless_reader={} facade={}",
+              sizeof(rtps::Domain), sizeof(rtps::Participant), sizeof(rtps::StatefulWriter),
+              sizeof(rtps::StatelessWriter), sizeof(rtps::StatefulReader),
+              sizeof(rtps::StatelessReader), sizeof(espp::RtpsParticipant));
+}
+
+void log_mem_heap(espp::Logger &logger, const char *stage) {
+  logger.info("RTPSTEST mem heap {} internal={} internal_min={} internal_largest={} psram={} "
+              "psram_largest={}",
+              stage, heap_caps_get_free_size(MALLOC_CAP_INTERNAL),
+              heap_caps_get_minimum_free_size(MALLOC_CAP_INTERNAL),
+              heap_caps_get_largest_free_block(MALLOC_CAP_INTERNAL),
+              heap_caps_get_free_size(MALLOC_CAP_SPIRAM),
+              heap_caps_get_largest_free_block(MALLOC_CAP_SPIRAM));
+}
+} // namespace
 
 using namespace std::chrono_literals;
 
@@ -114,6 +147,8 @@ extern "C" void app_main(void) {
   std::atomic<uint32_t> pub_matches{0};
   std::atomic<uint32_t> sub_matches{0};
 
+  log_mem_sizes(logger);
+  log_mem_heap(logger, "boot");
   espp::RtpsParticipant participant({
       .interface_address = interface_address,
       .interface_netmask = interface_netmask,
@@ -133,6 +168,7 @@ extern "C" void app_main(void) {
     logger.error("RTPSTEST fatal participant");
     return;
   }
+  log_mem_heap(logger, "started");
 
   using Reliability = espp::RtpsParticipant::Reliability;
   constexpr const char *type_name = "std_msgs::msg::dds_::String_";
@@ -205,6 +241,8 @@ extern "C" void app_main(void) {
   }
 #endif
 
+  log_mem_heap(logger, "endpoints");
+
   // Periodic publishers: one reliable, one best-effort
   uint32_t counter = 0;
   espp::Timer publish_timer({
@@ -233,9 +271,13 @@ extern "C" void app_main(void) {
         std::chrono::duration_cast<std::chrono::seconds>(std::chrono::steady_clock::now() - t0)
             .count();
     logger.info("RTPSTEST status up={} tx={} rx={} be_rx={} big_rx={} pub_matches={} "
-                "sub_matches={} heap={} min_heap={}",
+                "sub_matches={} heap={} min_heap={} int={} int_min={} int_largest={} psram={}",
                 up, tx_count.load(), rx_count.load(), be_rx_count.load(), big_rx_count.load(),
                 pub_matches.load(), sub_matches.load(), heap_caps_get_free_size(MALLOC_CAP_DEFAULT),
-                heap_caps_get_minimum_free_size(MALLOC_CAP_DEFAULT));
+                heap_caps_get_minimum_free_size(MALLOC_CAP_DEFAULT),
+                heap_caps_get_free_size(MALLOC_CAP_INTERNAL),
+                heap_caps_get_minimum_free_size(MALLOC_CAP_INTERNAL),
+                heap_caps_get_largest_free_block(MALLOC_CAP_INTERNAL),
+                heap_caps_get_free_size(MALLOC_CAP_SPIRAM));
   }
 }
