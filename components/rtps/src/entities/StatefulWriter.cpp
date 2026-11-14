@@ -325,7 +325,11 @@ bool StatefulWriter::addNewMatchedReader(const ReaderProxy &newProxy) {
     nudge = m_protocolNudge; // copied under the lock (setProtocolNudge writes it)
   }
   // The nudge is a callback into the Domain's scheduler: invoked outside
-  // m_mutex so it cannot take part in a lock-order cycle with it.
+  // m_mutex so it cannot take part in a lock-order cycle with it. It is
+  // always there when a match can happen: Domain::completeInit() installs it
+  // on every stateful writer before it starts discovery, and a match comes
+  // from discovery. (A writer driven by hand, as in the engine tests, has
+  // none and is ticked by its test.)
   if (nudge) {
     nudge();
   }

@@ -339,12 +339,22 @@ bool user_writer(uint8_t kind) {
          kind == static_cast<uint8_t>(rtps::EntityKind_t::USER_DEFINED_WRITER_WITH_KEY);
 }
 
-// Scan one datagram for the first DATA or HEARTBEAT submessage of a
-// user-defined writer.
-Kind parse(const uint8_t *buf, std::size_t n, Seen &seen) {
+// Scan one whole datagram for a submessage of kind `want` from a user-defined
+// writer (a reliable writer's DATA and HEARTBEAT often share a datagram, so
+// the first submessage found is not the answer): `want` when one is there
+// (filled into `seen`), else the other kind when one of those is, else None.
+Kind parse(const uint8_t *buf, std::size_t n, Seen &seen, Kind want) {
   if (n < 20 || std::memcmp(buf, "RTPS", 4) != 0) {
     return Kind::None;
   }
+  Kind other_seen = Kind::None;
+  const auto found = [&](Kind kind) {
+    if (kind == want) {
+      return true;
+    }
+    other_seen = kind;
+    return false;
+  };
   std::size_t pos = 20;
   while (pos + 4 <= n) {
     const uint8_t id = buf[pos];
@@ -360,17 +370,18 @@ Kind parse(const uint8_t *buf, std::size_t n, Seen &seen) {
     const std::size_t end = o2n == 0 ? n : std::min(n, body + o2n);
     if (id == static_cast<uint8_t>(rtps::SubmessageKind::HEARTBEAT) && body + 28 <= end &&
         user_writer(buf[body + 7])) {
-      seen = Seen{};
-      seen.kind = Kind::Heartbeat;
-      std::memcpy(seen.prefix.id.data(), buf + 8, seen.prefix.id.size());
-      std::memcpy(seen.writer.entityKey.data(), buf + body + 4, 3);
-      seen.writer.entityKind = static_cast<rtps::EntityKind_t>(buf[body + 7]);
-      seen.first = read_u32_le(buf + body + 12);
-      seen.last = read_u32_le(buf + body + 20);
-      return seen.kind;
-    }
-    if (id == static_cast<uint8_t>(rtps::SubmessageKind::DATA) && body + 20 <= end &&
-        user_writer(buf[body + 11])) {
+      if (found(Kind::Heartbeat)) {
+        seen = Seen{};
+        seen.kind = Kind::Heartbeat;
+        std::memcpy(seen.prefix.id.data(), buf + 8, seen.prefix.id.size());
+        std::memcpy(seen.writer.entityKey.data(), buf + body + 4, 3);
+        seen.writer.entityKind = static_cast<rtps::EntityKind_t>(buf[body + 7]);
+        seen.first = read_u32_le(buf + body + 12);
+        seen.last = read_u32_le(buf + body + 20);
+        return seen.kind;
+      }
+    } else if (id == static_cast<uint8_t>(rtps::SubmessageKind::DATA) && body + 20 <= end &&
+               user_writer(buf[body + 11]) && found(Kind::Data)) {
       const uint16_t o2iq = read_u16_le(buf + body + 2);
       std::size_t cursor = body + 4 + o2iq;
       seen = Seen{};
@@ -404,7 +415,7 @@ Kind parse(const uint8_t *buf, std::size_t n, Seen &seen) {
     }
     pos = body + o2n;
   }
-  return Kind::None;
+  return other_seen;
 }
 
 // Drain the socket for up to `wait_ms`: true when a submessage of kind `want`
@@ -419,13 +430,13 @@ bool arrived(int sock, int wait_ms, Kind want, Seen &seen, int *others = nullptr
       continue; // timeout tick
     }
     Seen parsed;
-    const Kind kind = parse(buf, static_cast<std::size_t>(n), parsed);
+    const Kind kind = parse(buf, static_cast<std::size_t>(n), parsed, want);
     if (kind == want) {
       seen = std::move(parsed);
       return true;
     }
     if (kind != Kind::None && others != nullptr) {
-      ++*others;
+      ++*others; // a datagram with the other kind and none of the wanted one
     }
   }
   return false;
