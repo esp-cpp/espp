@@ -51,9 +51,8 @@ kwargs = {
     "add_native_action_server": ["max_goals_in_flight", "execute_workers", "execute_task"],
 }
 for name, args in kwargs.items():
-    doc = (getattr(getattr(p, name, None), "__init__", None) or getattr(p, name, None)).__doc__ or ""
-    if name == "Config":
-        doc = p.Config.__init__.__doc__ or ""
+    target = p.Config.__init__ if name == "Config" else getattr(p, name, None)
+    doc = (target.__doc__ if target is not None else None) or ""
     missing += [f"{name}({a}=)" for a in args if a not in doc]
 
 if missing:
