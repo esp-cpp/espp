@@ -29,11 +29,13 @@ Author: i11 - Embedded Software, RWTH Aachen University
 #include "base_component.hpp"
 #include "rtps/common/types.hpp"
 #include "rtps/config.hpp"
+#include "rtps/discovery/RecentEvictions.hpp"
 #include "rtps/discovery/SEDPAgent.hpp"
 #include "rtps/discovery/SPDPAgent.hpp"
 #include "rtps/entities/ReaderRef.hpp"
 #include "rtps/messages/MessageReceiver.hpp"
 
+#include <algorithm>
 #include <array>
 #include <chrono>
 #include <cstdint>
@@ -143,13 +145,19 @@ public:
   //! the participant we have the least use for so another can be added
   //! (Config::SPDP_EVICT_UNUSED_PARTICIPANTS):
   //! an expired one first, else the oldest-discovered one none of our user
-  //! endpoints match, provided it is older than Config::SPDP_EVICT_MIN_AGE_MS;
-  //! at most one eviction per SPDP_RESEND_PERIOD_MS (counted from a successful
-  //! removal). Returns true and sets `evicted` when a participant was removed;
-  //! `reason` names the trigger in the warning. Callers hold the SPDP agent
-  //! mutex (the documented order: SPDP agent -> SEDP agent -> Participant) and
-  //! must not hold m_mutex.
-  bool evictUnusedRemoteParticipant(GuidPrefix_t &evicted, const char *reason);
+  //! endpoints match, provided it is older than Config::SPDP_EVICT_MIN_AGE_MS.
+  //! `newcomer` is the announcing participant the room is made for: one
+  //! evicted less than Config::SPDP_EVICT_READMIT_HOLDOFF_MS ago gets nothing
+  //! evicted for it; otherwise one eviction per SPDP_RESEND_PERIOD_MS (counted
+  //! from a successful removal) from the budget of its kind - former evictees
+  //! and never-evicted participants each have their own, so the churn is at
+  //! most two per period and neither kind starves the other (see
+  //! RecentEvictions). Returns
+  //! true and sets `evicted` when a participant was removed; `reason` names the
+  //! trigger in the warning. Callers hold the SPDP agent mutex (the documented
+  //! order: SPDP agent -> SEDP agent -> Participant) and must not hold m_mutex.
+  bool evictUnusedRemoteParticipant(const GuidPrefix_t &newcomer, GuidPrefix_t &evicted,
+                                    const char *reason);
 
   bool hasReaderWithMulticastLocator(const std::array<uint8_t, 4> &address);
 
@@ -169,7 +177,17 @@ private:
 
   std::recursive_mutex m_mutex;
   MemoryPool<ParticipantProxyData, Config::SPDP_MAX_NUMBER_FOUND_PARTICIPANTS> m_remoteParticipants;
+  //! When the two eviction budgets were last spent (under m_mutex): for a
+  //! participant this one remembers evicting, and for one never evicted.
   std::chrono::steady_clock::time_point m_lastEvictionTimestamp{};
+  std::chrono::steady_clock::time_point m_lastFreshEvictionTimestamp{};
+  //! The participants evicted lately (under m_mutex). Two evictions per period
+  //! at most, so one hold-off holds at most 2 * HOLDOFF / PERIOD of them: that
+  //! many slots (+2) and none still held off is ever forgotten - a forgotten one
+  //! would pass as a first-timer. Capped at 64 for an extreme hold-off.
+  static constexpr std::size_t kRecentEvictions = std::min<std::size_t>(
+      2 * (Config::SPDP_EVICT_READMIT_HOLDOFF_MS / Config::SPDP_RESEND_PERIOD_MS) + 2, 64);
+  RecentEvictions<kRecentEvictions> m_recentEvictions{};
   //! Whether any user (non-builtin) endpoint of ours has a proxy of this
   //! participant, i.e. we exchange data with it. Takes m_mutex (recursive:
   //! callable from the eviction path that already holds it).

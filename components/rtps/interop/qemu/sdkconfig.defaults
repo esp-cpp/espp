@@ -58,3 +58,5 @@ CONFIG_RTPS_ENABLE_RPC=y
 # against the rest; it costs a software checksum per received datagram.
 CONFIG_LWIP_CHECKSUM_CHECK_IP=y
 CONFIG_LWIP_CHECKSUM_CHECK_UDP=y
+# uxTaskGetSystemState for the engine tasks' stack margin in the status line
+CONFIG_FREERTOS_USE_TRACE_FACILITY=y

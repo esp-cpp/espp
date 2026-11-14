@@ -187,11 +187,11 @@ const uint8_t MAX_TOPICNAME_LENGTH = RTPS_CFG_MAX_TOPICNAME_LENGTH;
 // The 1600 is a host figure that nothing applies; selected ON the target (the
 // Kconfig limits-profile choice puts this header on an ESP32 too) this IS the
 // FreeRTOS stack of every receive worker, and 1600 overflows on the first
-// datagram - so on ESP it is the embedded profile's 6144, as the capacity
+// datagram - so on ESP it is the embedded profile's 8192, as the capacity
 // profiles are about pool sizes, not task stacks.
 #ifndef RTPS_CFG_THREAD_POOL_READER_STACKSIZE
 #if defined(ESP_PLATFORM)
-#define RTPS_CFG_THREAD_POOL_READER_STACKSIZE 6144
+#define RTPS_CFG_THREAD_POOL_READER_STACKSIZE 8192
 #else
 #define RTPS_CFG_THREAD_POOL_READER_STACKSIZE 1600
 #endif
@@ -284,9 +284,10 @@ const Duration_t SPDP_MAX_REMOTE_LEASE_DURATION = {RTPS_CFG_SPDP_MAX_REMOTE_LEAS
 // endpoints matched by any user endpoint of ours) so the newcomer gets the
 // slot: oldest discovered first, never one discovered less than
 // SPDP_EVICT_MIN_AGE_MS ago (its endpoint discovery may still be in flight),
-// at most one per SPDP_RESEND_PERIOD_MS, and an expired participant before any
-// live one. Each eviction is logged: a domain that keeps evicting wants a bigger
-// SPDP_MAX_NUMBER_FOUND_PARTICIPANTS. menuconfig RTPS -> Discovery timing.
+// at most one per SPDP_RESEND_PERIOD_MS for a peer evicted before and one for a
+// peer never evicted (two budgets, see SPDP_EVICT_READMIT_HOLDOFF_MS), and an
+// expired participant before any live one. Each eviction is logged: a domain that keeps evicting
+// wants a bigger SPDP_MAX_NUMBER_FOUND_PARTICIPANTS. menuconfig RTPS -> Discovery timing.
 #ifndef RTPS_CFG_SPDP_EVICT_UNUSED_PARTICIPANTS
 #define RTPS_CFG_SPDP_EVICT_UNUSED_PARTICIPANTS 1
 #endif
@@ -295,6 +296,21 @@ const bool SPDP_EVICT_UNUSED_PARTICIPANTS = RTPS_CFG_SPDP_EVICT_UNUSED_PARTICIPA
 #define RTPS_CFG_SPDP_EVICT_MIN_AGE_MS (3 * RTPS_CFG_SPDP_RESEND_PERIOD_MS)
 #endif
 const uint32_t SPDP_EVICT_MIN_AGE_MS = RTPS_CFG_SPDP_EVICT_MIN_AGE_MS;
+// A participant this one evicted is not let back in by evicting another one
+// for this long after (it still takes a free slot at once). Without it, on a
+// domain that stays bigger than the pool, the rejected peers re-announce every
+// period and take turns displacing each other at the eviction rate, and a peer
+// never seen before - the one this participant may actually need - competes
+// with all of them for the one slot per period and can lose every round. Held
+// off, the just-evicted go to the back of the queue, and the one eviction per
+// period is budgeted per kind - former evictees and never-evicted peers each
+// have their own - so a stream of fresh GUIDs cannot starve a peer evicted
+// earlier that is needed now, nor the other way round; the churn is at most
+// two per period. menuconfig RTPS -> Discovery timing.
+#ifndef RTPS_CFG_SPDP_EVICT_READMIT_HOLDOFF_MS
+#define RTPS_CFG_SPDP_EVICT_READMIT_HOLDOFF_MS (5 * RTPS_CFG_SPDP_RESEND_PERIOD_MS)
+#endif
+const uint32_t SPDP_EVICT_READMIT_HOLDOFF_MS = RTPS_CFG_SPDP_EVICT_READMIT_HOLDOFF_MS;
 
 // Transport channel pool: 2 shared multicast channels (SPDP metatraffic +
 // user multicast) + 2 unicast channels per participant (builtin + user), plus

@@ -308,18 +308,35 @@ for i in $(seq 1 28); do
   crowd+=("$!")
 done
 m0=$(mark)
+# The case must meet a domain that STAYS bigger than the pool - the crowd's
+# rejected members re-announce every period and would take turns displacing
+# each other - not a pool that merely filled. A run in which the publisher
+# started while the crowd was still coming up passed trivially; one in which
+# the crowd was complete starved the publisher for 90 s (31 evictions) before
+# the hold-off for re-announcing evictees existed. The first eviction alone
+# does not prove the crowd is up (leftovers of the previous cases can fill the
+# pool): 28 against 20 usable slots means at least 8 of the crowd had to be
+# let in by an eviction, so wait for 8 evictions since the crowd was launched,
+# then a few seconds more, and record whether that was reached as its own
+# result - a run that could not exercise the scenario must not pass silently.
 for i in $(seq 1 120); do
-  [ "$(count_since "$m0" "forgot an unused participant")" -ge 1 ] && break
+  [ "$(count_since "$m0" "forgot an unused participant")" -ge 8 ] && break
   sleep 1
 done
-echo "  crowd up after ${i} s (first eviction seen: $([ "$i" -lt 120 ] && echo yes || echo no))"
-sleep 10
+e0=$(count_since "$m0" "forgot an unused participant")
+echo "  crowd complete after ${i} s: $e0 evictions since its launch"
+[ "$e0" -ge 8 ]; result "pool_full_crowd_complete" $?
+sleep 5
 echo "  device: $(grep -o 'RTPSTEST status.*' "$LOG" | tail -1)"
 m=$(mark)
 timeout 100 ros2 topic pub -r 5 /qemu_rx std_msgs/msg/String "data: 'made room for me'" > /dev/null 2>&1 &
 pub=$!
 n=0
-for i in $(seq 1 45); do
+# Within 40 s: the publisher is a first-timer and has its own eviction budget
+# (one per announcement period), so it is let in on its first announcement
+# after that and its samples follow in seconds (CI: 6 s). A conveyor that
+# admitted it only after a minute would be a regression, not a pass.
+for i in $(seq 1 20); do
   n=$(count_since "$m" "RTPSTEST rx made room for me")
   [ "$n" -ge 5 ] && break
   sleep 2
@@ -474,6 +491,18 @@ echo "free heap first=$FIRST_HEAP last=$LAST_HEAP"
 if [ "$DEVICE_STARTED" = 1 ]; then
   [ -n "$FIRST_HEAP" ] && [ -n "$LAST_HEAP" ] && [ "$LAST_HEAP" -ge $((FIRST_HEAP - 98304)) ]; result "device_heap_stable" $?
   ! grep -qE "Guru Meditation|abort\(\)|assert failed|RTPSTEST fatal" "$LOG"; result "device_no_crash" $?
+  # The engine tasks' stack margin (stack_min= in the status line: the smallest
+  # high-water mark over the rtps_* / exec_* tasks since boot, and the task;
+  # stack_min_worker= the same over the receive workers alone). 1024 bytes is
+  # the floor: one formatted log costs about 500 bytes of buffer plus its
+  # frames, and rtps_worker_0 overflowed once on the eviction path from one
+  # more of those with a few hundred bytes of margin. (First measured run:
+  # 1748 bytes, rtps_reply_hold; the workers were above 2108 at 8192.)
+  STACK_MIN=$(grep -o " stack_min=[0-9]*" "$LOG" | tail -1 | cut -d= -f2)
+  STACK_MIN_TASK=$(grep -o " stack_min_task=[A-Za-z0-9_]*" "$LOG" | tail -1 | cut -d= -f2)
+  STACK_MIN_WORKER=$(grep -o " stack_min_worker=[0-9]*" "$LOG" | tail -1 | cut -d= -f2)
+  echo "engine tasks' smallest stack margin: ${STACK_MIN:-?} bytes (${STACK_MIN_TASK:-?}); receive workers: ${STACK_MIN_WORKER:-?} bytes"
+  [ -n "$STACK_MIN" ] && [ "$STACK_MIN" -ge 1024 ]; result "device_stack_margin" $?
 else
   # the memory suite on a profile that does not fit: the fatal IS the finding,
   # and so is a panic while the engine was being built (recorded at boot).

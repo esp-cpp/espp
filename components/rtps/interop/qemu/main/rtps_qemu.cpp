@@ -15,6 +15,15 @@
 //   RTPSTEST srv <a>+<b>=<sum>       service request served
 //   RTPSTEST status up=<s> tx= rx= be_rx= big_rx= heap=<free> min_heap=<low water>
 //                                    int=<internal free> int_min= int_largest= psram=<free>
+//                                    stack_min=<bytes> stack_min_task=<name>
+//                                    stack_min_worker=<bytes>
+//     stack_min: the smallest stack high-water mark (bytes never used) over the
+//     engine's tasks (rtps_* and the action servers' exec_* workers) since boot,
+//     and the task; stack_min_worker: the same over the receive workers alone
+//     (rtps_worker_*: they run every reader and matched callback on top of the
+//     engine's deepest path, and rtps_worker_0 overflowed once on the eviction
+//     path with a few hundred bytes of margin). The harness fails
+//     device_stack_margin below 1024 bytes.
 //                                    every 2 s, for the soak and memory checks
 //   RTPSTEST mem sizeof domain=<B> participant= stateful_writer= stateless_writer=
 //                                    stateful_reader= stateless_reader= facade=
@@ -36,11 +45,14 @@
 #include <chrono>
 #include <cstdint>
 #include <string>
+#include <string_view>
 #include <thread>
 #include <vector>
 
 #include <esp_heap_caps.h>
 #include <esp_netif.h>
+#include <freertos/FreeRTOS.h>
+#include <freertos/task.h>
 
 #include "qemu.hpp"
 
@@ -298,7 +310,7 @@ extern "C" void app_main(void) {
   // Periodic publishers: one reliable, one best-effort
   uint32_t counter = 0;
   espp::Timer publish_timer({
-      .name = "rtps_pub",
+      .name = "qemu_pub", // not rtps_*: the stack margin below is the engine's, not this test's
       .period = 200ms,
       .callback =
           [&]() {
@@ -315,6 +327,35 @@ extern "C" void app_main(void) {
 
   logger.info("RTPSTEST ready ip={}", interface_address);
 
+  // The engine's tasks' stack margin: the smallest high-water mark (bytes of
+  // stack never touched since the task started) over the rtps_* tasks (receive
+  // workers, reactor, job retry, protocol, reply hold) and the action servers'
+  // exec_* workers. Read every status period, the minimum so far is reported:
+  // a thin margin is a crash waiting for a slightly deeper call.
+  std::vector<TaskStatus_t> tasks;
+  uint32_t stack_min = UINT32_MAX;
+  uint32_t stack_min_worker = UINT32_MAX;
+  std::string stack_min_task = "none";
+  const auto sample_stacks = [&]() {
+    const auto count = uxTaskGetNumberOfTasks();
+    tasks.resize(count + 4);
+    const auto n = uxTaskGetSystemState(tasks.data(), tasks.size(), nullptr);
+    for (UBaseType_t i = 0; i < n; ++i) {
+      const std::string_view name{tasks[i].pcTaskName};
+      if (!name.starts_with("rtps_") && !name.starts_with("exec_")) {
+        continue;
+      }
+      const uint32_t margin = tasks[i].usStackHighWaterMark * sizeof(StackType_t);
+      if (margin < stack_min) {
+        stack_min = margin;
+        stack_min_task = std::string{name};
+      }
+      if (name.starts_with("rtps_worker") && margin < stack_min_worker) {
+        stack_min_worker = margin;
+      }
+    }
+  };
+
   // Status line every 2 s: the soak and leak checks read heap and min_heap
   const auto t0 = std::chrono::steady_clock::now();
   while (true) {
@@ -322,14 +363,17 @@ extern "C" void app_main(void) {
     const auto up =
         std::chrono::duration_cast<std::chrono::seconds>(std::chrono::steady_clock::now() - t0)
             .count();
+    sample_stacks();
     logger.info("RTPSTEST status up={} tx={} rx={} be_rx={} big_rx={} pub_matches={} "
-                "sub_matches={} heap={} min_heap={} int={} int_min={} int_largest={} psram={}",
+                "sub_matches={} heap={} min_heap={} int={} int_min={} int_largest={} psram={} "
+                "stack_min={} stack_min_task={} stack_min_worker={}",
                 up, tx_count.load(), rx_count.load(), be_rx_count.load(), big_rx_count.load(),
                 pub_matches.load(), sub_matches.load(), heap_caps_get_free_size(MALLOC_CAP_DEFAULT),
                 heap_caps_get_minimum_free_size(MALLOC_CAP_DEFAULT),
                 heap_caps_get_free_size(MALLOC_CAP_INTERNAL),
                 heap_caps_get_minimum_free_size(MALLOC_CAP_INTERNAL),
                 heap_caps_get_largest_free_block(MALLOC_CAP_INTERNAL),
-                heap_caps_get_free_size(MALLOC_CAP_SPIRAM));
+                heap_caps_get_free_size(MALLOC_CAP_SPIRAM), stack_min == UINT32_MAX ? 0 : stack_min,
+                stack_min_task, stack_min_worker == UINT32_MAX ? 0 : stack_min_worker);
   }
 }

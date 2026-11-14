@@ -663,7 +663,8 @@ bool Participant::hasUserEndpointProxyOf(const GuidPrefix_t &prefix) {
   return false;
 }
 
-bool Participant::evictUnusedRemoteParticipant(GuidPrefix_t &evicted, const char *reason) {
+bool Participant::evictUnusedRemoteParticipant(const GuidPrefix_t &newcomer, GuidPrefix_t &evicted,
+                                               const char *reason) {
   if (!Config::SPDP_EVICT_UNUSED_PARTICIPANTS) {
     return false;
   }
@@ -679,19 +680,43 @@ bool Participant::evictUnusedRemoteParticipant(GuidPrefix_t &evicted, const char
   // Phase 1 - SELECT under m_mutex.
   GuidPrefix_t victim{};
   bool victimExpired = false;
+  bool known = false; // the newcomer is a former evictee (its budget)
   uint32_t victimAge = 0;
   {
     std::lock_guard<std::recursive_mutex> lock(m_mutex);
     bool have = false;
     const auto now = std::chrono::steady_clock::now();
-    if (m_lastEvictionTimestamp != std::chrono::steady_clock::time_point{} &&
-        now - m_lastEvictionTimestamp < std::chrono::milliseconds(Config::SPDP_RESEND_PERIOD_MS)) {
-      // One eviction per announcement period: on a domain that stays bigger
-      // than the pool, the rejected peers re-announce every period, and this
-      // bounds how often an unused one is swapped for another unused one.
+    // Who is asking: a participant evicted lately is held off (it is unused,
+    // and letting it displace another unused one at once is how the rejected
+    // peers of a too-big domain took turns ahead of a newcomer); otherwise one
+    // eviction per announcement period from the budget of its kind - former
+    // evictees and never-evicted participants each have their own - which
+    // bounds how often an unused one is swapped for another unused one without
+    // letting either kind starve the other (see RecentEvictions).
+    known = m_recentEvictions.lastEviction(newcomer).has_value();
+    using Gate = decltype(m_recentEvictions)::Gate;
+    switch (
+        m_recentEvictions.gate(newcomer, now, m_lastEvictionTimestamp, m_lastFreshEvictionTimestamp,
+                               std::chrono::milliseconds(Config::SPDP_RESEND_PERIOD_MS),
+                               std::chrono::milliseconds(Config::SPDP_EVICT_READMIT_HOLDOFF_MS))) {
+    case Gate::HeldOff:
+      // Compiled out unless PARTICIPANT_VERBOSE: this runs on a receive worker
+      // whose stack is sized for the engine, not for a second formatted log
+      // beside the eviction warning (the first build with one here overflowed
+      // rtps_worker_0 in the QEMU suite).
+      PARTICIPANT_LOG("{}: not evicting for a participant itself evicted less than {} ms ago",
+                      reason != nullptr ? reason : "no room for a new remote participant",
+                      static_cast<unsigned int>(Config::SPDP_EVICT_READMIT_HOLDOFF_MS));
       return false;
+    case Gate::Cooldown:
+      return false;
+    case Gate::Proceed:
+      break;
     }
     for (auto &remote : m_remoteParticipants) {
+      if (remote.m_guid.prefix == newcomer) {
+        continue; // already in the pool (its builtin proxies did not fit): never its own victim
+      }
       if (!remote.isAlive()) {
         // past its lease already: the liveliness sweep would forget it soon
         const uint32_t age = remote.getAliveSignalAgeInMilliseconds();
@@ -732,7 +757,9 @@ bool Participant::evictUnusedRemoteParticipant(GuidPrefix_t &evicted, const char
   unsigned int inPool = 0;
   {
     std::lock_guard<std::recursive_mutex> lock(m_mutex);
-    m_lastEvictionTimestamp = std::chrono::steady_clock::now();
+    const auto now = std::chrono::steady_clock::now();
+    (known ? m_lastEvictionTimestamp : m_lastFreshEvictionTimestamp) = now;
+    m_recentEvictions.note(victim, now);
     inPool = static_cast<unsigned int>(m_remoteParticipants.getNumElements());
   }
   // The logger formats at run time (fmt::vformat): keep the placeholder count
