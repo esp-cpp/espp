@@ -133,13 +133,13 @@ others for their `sizeof` and stage markers (`MEMORY_STAGES_ONLY=1`) - and
 with `idf.py size-components --format json2` (the rtps library's flash, IRAM
 and DRAM) into the job's step summary, the `rtps-memory` artifact and, on a
 pull request from this repository, one comment on the pull request that every
-run updates in place. Every number is also compared against the latest
-successful run of the workflow on `main` (its `rtps-memory` artifact, fetched
-by the job; the workflow runs on pushes to `main` for that), so a pull
-request's cost reads as a delta in the "vs baseline" columns and in
-parentheses, not as another absolute figure; without a baseline (the first
-run, an expired artifact) the report says so and prints the absolute numbers.
-Costs are negative deltas of free heap; fragmentation adds noise of a few hundred bytes,
+run updates in place. Every number is also compared against the latest run of
+the workflow on `main` whose memory job passed (its `rtps-memory` artifact,
+fetched by the job; the workflow runs on pushes to `main` for that), so a pull
+request's cost reads as the delta in parentheses after each number, not as
+another absolute figure; without a baseline (the first run, expired artifacts)
+the report says why and prints the absolute numbers. Costs are negative deltas
+of free heap; fragmentation adds noise of a few hundred bytes,
 and the largest free internal block is reported alongside the free total
 because that is what a task stack or a 30 KB buffer actually needs. Read it
 knowing that the engine preallocates: a remote participant or a match costs
