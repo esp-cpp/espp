@@ -295,7 +295,7 @@ bool RtpsParticipant::start() {
   // traffic is served (see the member's comment). A failure is logged and
   // leaves the fallback in note_held_reply().
   {
-    std::lock_guard<std::mutex> lock(held_replies_mutex_);
+    std::lock_guard<std::mutex> held_lock(held_replies_mutex_);
     (void)start_held_reply_timer_locked();
   }
 #endif
