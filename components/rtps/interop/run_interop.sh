@@ -715,6 +715,14 @@ else
   grep -E "PASS|FAIL" /tmp/pytasks.log | tail -3
   [ $pytasks_rc -eq 0 ] || { echo "  --- python_task_configs log tail (exit $pytasks_rc; 124 = timed out) ---"; tail -20 /tmp/pytasks.log; }
   result "python_task_configs" $pytasks_rc
+
+  echo ""
+  echo "===== python: RPC timeouts (request_timeout / max_pending_requests / result_timeout) ====="
+  timeout 120 /opt/espp-venv/bin/python python/rtps_rpc_timeouts_test.py > /tmp/pytimeouts.log 2>&1
+  pytimeouts_rc=$?
+  grep -E "PASS|FAIL" /tmp/pytimeouts.log | tail -3
+  [ $pytimeouts_rc -eq 0 ] || { echo "  --- python_rpc_timeouts log tail (exit $pytimeouts_rc; 124 = timed out) ---"; tail -20 /tmp/pytimeouts.log; }
+  result "python_rpc_timeouts" $pytimeouts_rc
 fi
 
 echo ""

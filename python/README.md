@@ -69,7 +69,11 @@ This section gives a brief overview of what the scripts in this folder do.
   (`Config(receive_workers=..., reactor_task=espp.Task.BaseConfig(...), ...)`) and
   an action server's execute workers (`add_action_server(..., execute_workers=2,
   execute_task=...)`) through the binding; run by the interop harness after the
-  demo. `rtps_bindings_smoke.py` (the binding surface and its keyword arguments)
+  demo. `rtps_rpc_timeouts_test.py`: the RPC timeout knobs - a service or
+  action client's `request_timeout` / `max_pending_requests` (ROS 2 and native
+  service clients, the ROS 2 action client) abandon an unanswered request, an
+  action server's `result_timeout` / `unknown_goal_response` - also run by the
+  harness. `rtps_bindings_smoke.py` (the binding surface and its keyword arguments)
   and `rtps_bindings_misuse_test.py` (construction, validation and misuse of the
   RTPS binding without any network) are what every wheel build runs.
 - `rtps_pubsub.py`, `rtps_publisher.py`, `rtps_subscriber.py`: RTPS tests that

@@ -20,7 +20,16 @@ socket is opened and nothing depends on the machine's interfaces.
     crash), the client factories return None, stop() is harmless, and the
     participant destructs cleanly; start() after stop() on an unstarted
     participant is not required to work here (it needs an interface);
- 4. signatures: the keyword arguments of the extended methods stay in their
+ 4. the RPC timeout knobs (request_timeout / max_pending_requests on both
+    service clients and the ROS 2 action client, result_timeout /
+    unknown_goal_response on the ROS 2 action server): every one is accepted
+    (negative seconds clamp to 0 = never / retire at once, so they must not
+    raise), a str where bytes are due and a wrong type are TypeErrors, and the
+    knobs a protocol does not have (the native action server's result_timeout,
+    the native action client's request_timeout) are TypeErrors rather than
+    silently ignored. What they DO is python/rtps_rpc_timeouts_test.py's job
+    (it needs a network);
+ 5. signatures: the keyword arguments of the extended methods stay in their
     first-line signatures, with their documented defaults.
 
 Exits 0 on success, 1 on the first failed check.
@@ -142,21 +151,64 @@ def main():
     check(raises(TypeError, lambda: p.add_action_server("/a", "T", lambda g: True, lambda h: None,
                                                         execute_task=42)),
           "a non-BaseConfig execute_task is a TypeError")
+    # 4. the RPC timeout knobs, on the same unstarted participant
+    for kwargs in ({"request_timeout": 0.3, "max_pending_requests": 4}, {"request_timeout": -1.0},
+                   {"request_timeout": 0}, {"max_pending_requests": 0}):
+        check(p.add_service_client("/s", "T", **kwargs) is None,
+              f"add_service_client({kwargs}) is accepted (None before start)")
+        check(p.add_native_service_client("/s", "T", **kwargs) is None,
+              f"add_native_service_client({kwargs}) is accepted (None before start)")
+    for kwargs in ({"request_timeout": 0.3}, {"request_timeout": -5.0}, {"request_timeout": 0}):
+        check(p.add_action_client("/a", "T", **kwargs) is None,
+              f"add_action_client({kwargs}) is accepted (None before start)")
+    for kwargs in ({"result_timeout": 0.2}, {"result_timeout": 0}, {"result_timeout": -1.0},
+                   {"unknown_goal_response": b"\x00\x01\x00\x00\x00"}, {"unknown_goal_response": b""}):
+        check(not p.add_action_server("/a", "T", lambda g: True, lambda h: None, **kwargs),
+              f"add_action_server({kwargs}) is accepted (False before start)")
+    for bad in ("0.3", None, [1]):
+        check(raises(TypeError, lambda: p.add_native_service_client("/s", "T", request_timeout=bad)),
+              f"add_native_service_client(request_timeout={bad!r}) is a TypeError")
+        check(raises(TypeError, lambda: p.add_action_client("/a", "T", request_timeout=bad)),
+              f"add_action_client(request_timeout={bad!r}) is a TypeError")
+    check(raises(TypeError, lambda: p.add_native_service_client("/s", "T", max_pending_requests=-1)),
+          "a negative max_pending_requests is a TypeError")
+    check(raises(TypeError, lambda: p.add_action_server("/a", "T", lambda g: True, lambda h: None,
+                                                        unknown_goal_response="not bytes")),
+          "a str unknown_goal_response is a TypeError (bytes are due)")
+    check(raises(TypeError, lambda: p.add_action_server("/a", "T", lambda g: True, lambda h: None,
+                                                        result_timeout="60")),
+          "a str result_timeout is a TypeError")
+    # knobs a protocol does not have are refused, not silently ignored
+    check(raises(TypeError, lambda: p.add_native_action_server("/n", "T", lambda g: True, lambda h: None,
+                                                               result_timeout=1.0)),
+          "the native action server has no result_timeout (a goal is forgotten when it terminates)")
+    check(raises(TypeError, lambda: p.add_native_action_client("/n", "T", request_timeout=1.0)),
+          "the native action client has no request_timeout")
     p.stop()  # harmless on a participant that never started
     p.stop()
     del p
 
-    # 4. signatures and defaults
+    # 5. signatures and defaults
+    def has_default(sig, arg, default):
+        return re.search(rf"\b{arg}: [^,)]*= {re.escape(default)}(?=[,)])", sig) is not None
+
     sig = signature(Rtps.Config.__init__)
     for arg, default in (("receive_workers", "0"), ("receive_worker_task", "None"), ("reactor_task", "None"),
                          ("job_retry_task", "None"), ("protocol_task", "None"), ("reply_hold_task", "None")):
-        check(re.search(rf"\b{arg}: [^,)]*= {default}\b", sig) is not None,
-              f"Config({arg}=...) defaults to {default} in the signature")
+        check(has_default(sig, arg, default), f"Config({arg}=...) defaults to {default} in the signature")
     for method in ("add_action_server", "add_native_action_server"):
         sig = signature(getattr(Rtps, method))
         for arg, default in (("max_goals_in_flight", "8"), ("execute_workers", "1"), ("execute_task", "None")):
-            check(re.search(rf"\b{arg}: [^,)]*= {default}\b", sig) is not None,
-                  f"{method}({arg}=...) defaults to {default} in the signature")
+            check(has_default(sig, arg, default), f"{method}({arg}=...) defaults to {default} in the signature")
+    for method in ("add_service_client", "add_native_service_client"):
+        sig = signature(getattr(Rtps, method))
+        for arg, default in (("request_timeout", "30.0"), ("max_pending_requests", "64")):
+            check(has_default(sig, arg, default), f"{method}({arg}=...) defaults to {default} in the signature")
+    check(has_default(signature(Rtps.add_action_client), "request_timeout", "30.0"),
+          "add_action_client(request_timeout=...) defaults to 30.0 in the signature")
+    sig = signature(Rtps.add_action_server)
+    check(has_default(sig, "result_timeout", "60.0"), "add_action_server(result_timeout=...) defaults to 60.0")
+    check(has_default(sig, "unknown_goal_response", "b''"), "add_action_server(unknown_goal_response=...) defaults to b''")
 
     print("PASS")
     return 0

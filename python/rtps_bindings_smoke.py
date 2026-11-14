@@ -48,8 +48,12 @@ for cls, method_names in class_methods.items():
 kwargs = {
     "Config": ["receive_workers", "receive_worker_task", "reactor_task", "job_retry_task",
                "protocol_task", "reply_hold_task"],
-    "add_action_server": ["max_goals_in_flight", "execute_workers", "execute_task"],
+    "add_action_server": ["max_goals_in_flight", "execute_workers", "execute_task", "result_timeout",
+                          "unknown_goal_response"],
     "add_native_action_server": ["max_goals_in_flight", "execute_workers", "execute_task"],
+    "add_service_client": ["request_timeout", "max_pending_requests"],
+    "add_native_service_client": ["request_timeout", "max_pending_requests"],
+    "add_action_client": ["request_timeout"],
 }
 for name, args in kwargs.items():
     target = p.Config.__init__ if name == "Config" else getattr(p, name, None)
