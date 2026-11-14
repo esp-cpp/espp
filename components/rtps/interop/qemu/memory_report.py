@@ -16,6 +16,13 @@ and DRAM), and prints Markdown tables. Costs are negative deltas of FREE heap.
 
 A profile whose files are missing (a firmware that did not start, say) is
 reported as such rather than failing the report.
+
+    memory_report.py --baseline main.json --baseline-label "main @ abc1234" ...
+        every number is followed by its delta against the same number in the
+        baseline (the --json of an earlier run, main's latest one on CI), in
+        parentheses, so a pull request's cost shows as such, not as another
+        absolute figure; --baseline-label alone (no usable baseline) makes the
+        report say why there are no deltas
 """
 
 import argparse
@@ -74,13 +81,56 @@ def delta(now, before):
     return f"{d:+,}"
 
 
-def profile_tables(name, mem):
-    """The stage and step tables of one profile."""
+def is_count(x):
+    """An integer figure (bool is an int in Python, not a figure)."""
+    return isinstance(x, int) and not isinstance(x, bool)
+
+
+def cell(value, base_value, vs):
+    """A number and, with a baseline, its delta against the baseline's in
+    parentheses: for a size, bigger is a cost (positive); for a free-heap
+    figure, smaller is a cost (negative). (n/a) when the baseline lacks it or
+    holds something that is not a figure."""
+    if not vs or value is None:
+        return fmt(value)
+    if not is_count(base_value) or not is_count(value):
+        return f"{fmt(value)} (n/a)"
+    return f"{fmt(value)} ({delta(value, base_value)})"
+
+
+def heap_row(label, s, prev, base, vs):
+    """One row of a heap table: the free figures (each with its baseline
+    delta), the deltas against the previous row, the largest internal block."""
+    b = base or {}
+    return (
+        f"| {label} | {cell(s['internal'], b.get('internal'), vs)} "
+        f"| {delta(s['internal'], prev['internal']) if prev else ''} "
+        f"| {cell(s['internal_min'], b.get('internal_min'), vs)} | {fmt(s['internal_largest'])} "
+        f"| {cell(s['psram'], b.get('psram'), vs)} | {delta(s['psram'], prev['psram']) if prev else ''} |"
+    )
+
+
+def keyed(items, key):
+    """{item[key]: item} over the dicts of a list that carry `key`; tolerant
+    of a list that is not one, or items that are not dicts."""
+    if not isinstance(items, list):
+        return {}
+    return {it[key]: it for it in items if isinstance(it, dict) and isinstance(it.get(key), str)}
+
+
+def profile_tables(name, mem, base=None):
+    """The stage and step tables of one profile; with `base` (the same
+    profile's numbers from the baseline run) every free figure carries its
+    delta against the baseline in parentheses."""
     out = []
-    stages = {s["stage"]: s for s in (mem or {}).get("stages", [])}
+    vs = base is not None
+    base_stages = keyed((base or {}).get("stages"), "stage")
+    base_steps = keyed((base or {}).get("steps"), "step")
+    header = "| {} | internal | delta | internal low-water mark | largest internal block | PSRAM | delta |"
+    stages = keyed((mem or {}).get("stages") or [], "stage")
     if stages:
         out.append(f"#### {name}: heap by stage (free bytes; a cost is a negative delta)\n")
-        out.append("| stage | internal | delta | internal low-water mark | largest internal block | PSRAM | delta |")
+        out.append(header.format("stage"))
         out.append("|---|---:|---:|---:|---:|---:|---:|")
         prev = None
         for key in ("boot", "started", "endpoints"):
@@ -88,44 +138,64 @@ def profile_tables(name, mem):
             if s is None:
                 out.append(f"| {key} | n/a | | | | | |")
                 continue
-            out.append(
-                f"| {key} | {fmt(s['internal'])} | {delta(s['internal'], prev['internal']) if prev else ''} "
-                f"| {fmt(s['internal_min'])} | {fmt(s['internal_largest'])} | {fmt(s['psram'])} "
-                f"| {delta(s['psram'], prev['psram']) if prev else ''} |"
-            )
+            out.append(heap_row(key, s, prev, base_stages.get(key), vs))
             prev = s
         out.append("")
-    steps = (mem or {}).get("steps", [])
+    steps = [st for st in ((mem or {}).get("steps") or []) if isinstance(st, dict) and "step" in st]
     if steps:
         out.append(
             f"#### {name}: heap after each host-driven step (free bytes; deltas against the previous row; "
             "the pools are preallocated, so a peer costs little heap - the low-water mark shows the transients)\n"
         )
-        out.append("| step | internal | delta | internal low-water mark | largest internal block | PSRAM | delta |")
+        out.append(header.format("step"))
         out.append("|---|---:|---:|---:|---:|---:|---:|")
         prev = None
         for s in steps:
-            out.append(
-                f"| {s['step']} | {fmt(s['internal'])} | {delta(s['internal'], prev['internal']) if prev else ''} "
-                f"| {fmt(s['internal_min'])} | {fmt(s['internal_largest'])} | {fmt(s['psram'])} "
-                f"| {delta(s['psram'], prev['psram']) if prev else ''} |"
-            )
+            out.append(heap_row(s["step"], s, prev, base_steps.get(s["step"]), vs))
             prev = s
+        gone = [k for k in base_steps if k not in {s["step"] for s in steps}]
+        if gone:
+            out.append("")
+            out.append(f"Steps in the baseline this run did not have: {', '.join(gone)}.")
         out.append("")
     return out
 
 
-def report(profiles):
-    """profiles: list of (name, memory dict or None, library dict or None)."""
+def report(profiles, baseline=None, baseline_label=None):
+    """profiles: list of (name, memory dict or None, library dict or None).
+    baseline: the {"profiles": {...}} of an earlier run's --json, whose numbers
+    every table is compared against (deltas in parentheses); baseline_label
+    names it - or, without a baseline, says why there is none."""
     out = ["### rtps memory footprint (QEMU, esp32)\n"]
     names = [p[0] for p in profiles]
+    base_profiles = (baseline or {}).get("profiles") or {}
+    vs = baseline is not None
+    if vs:
+        out.append(
+            f"Deltas in parentheses are against {baseline_label or 'the baseline run'}: "
+            "a bigger size or a smaller free heap than the baseline's is a cost of this change.\n"
+        )
+    elif baseline_label:
+        out.append(f"No baseline to compare against ({baseline_label}): absolute numbers only.\n")
+
+    def base_of(name):
+        b = base_profiles.get(name)
+        return b if isinstance(b, dict) else {}
+
     # the rtps library in the image
     if any(p[2] for p in profiles):
         out.append("#### librtps.a in the image (bytes, `idf.py size-components`)\n")
         out.append("| | " + " | ".join(names) + " |")
         out.append("|---|" + "---:|" * len(names))
         for key, label in LIBRARY_ROWS:
-            out.append(f"| {label} | " + " | ".join(fmt(p[2].get(key)) if p[2] else "n/a" for p in profiles) + " |")
+            out.append(
+                f"| {label} | "
+                + " | ".join(
+                    cell(p[2].get(key), (base_of(p[0]).get("library") or {}).get(key), vs) if p[2] else "n/a"
+                    for p in profiles
+                )
+                + " |"
+            )
         out.append("")
     # sizeof
     if any(p[1] and p[1].get("sizeof") for p in profiles):
@@ -135,7 +205,14 @@ def report(profiles):
         for key, label in SIZEOF_ROWS:
             out.append(
                 f"| {label} | "
-                + " | ".join(fmt((p[1] or {}).get("sizeof", {}).get(key)) for p in profiles)
+                + " | ".join(
+                    cell(
+                        ((p[1] or {}).get("sizeof") or {}).get(key),
+                        (base_of(p[0]).get("sizeof") or {}).get(key),
+                        vs,
+                    )
+                    for p in profiles
+                )
                 + " |"
             )
         out.append("")
@@ -149,7 +226,7 @@ def report(profiles):
                 f"#### {name}: the participant did not start on this target - the profile does not fit "
                 f"(`{reason}`); its sizeof is in the table above, the boot heap below\n"
             )
-        out.extend(profile_tables(name, mem))
+        out.extend(profile_tables(name, mem, base_of(name) if vs else None))
     return "\n".join(out) + "\n"
 
 
@@ -158,7 +235,16 @@ def main():
     ap.add_argument("inputs", nargs="+", help="memory.json, or profile:memory.json:size-components.json")
     ap.add_argument("--summary", help="append the Markdown to this file as well")
     ap.add_argument("--json", help="write the merged numbers to this file")
+    ap.add_argument("--baseline", help="the --json of an earlier run to show deltas against")
+    ap.add_argument("--baseline-label", help="how to name the baseline in the report (a commit, a run); "
+                    "without --baseline: why there is none, printed in the report")
     args = ap.parse_args()
+    baseline = load_json(args.baseline) if args.baseline else None
+    if args.baseline and not (isinstance(baseline, dict) and isinstance(baseline.get("profiles"), dict)):
+        # not this script's --json (a per-profile memory.json, say): no comparison
+        print(f"memory_report: no usable baseline at {args.baseline} (not a --json of this script); "
+              "reporting without deltas", file=sys.stderr)
+        baseline = None
 
     profiles = []
     merged = {}
@@ -174,7 +260,15 @@ def main():
         merged[name] = {"sizeof": (mem or {}).get("sizeof"), "stages": (mem or {}).get("stages"),
                         "steps": (mem or {}).get("steps"), "library": lib}
 
-    text = report(profiles)
+    try:
+        text = report(profiles, baseline, args.baseline_label)
+    except Exception as e:  # noqa: BLE001 - a baseline of another shape must not cost the report
+        if baseline is None:
+            raise
+        # a --json of another version of this script, say: compare nothing, say so
+        print(f"memory_report: the baseline could not be compared ({e!r}); reporting without deltas",
+              file=sys.stderr)
+        text = report(profiles, None, f"the baseline could not be compared: {type(e).__name__}")
     print(text)
     if args.summary:
         with open(args.summary, "a") as f:
