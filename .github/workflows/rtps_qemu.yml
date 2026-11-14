@@ -86,6 +86,7 @@ jobs:
             && python -m esptool --chip esp32 merge-bin --fill-flash-size 4MB -o qemu_flash.bin @flash_args
       - uses: actions/upload-artifact@v4
         with:
+          overwrite: true # a re-run of a failed job replaces its artifact (v4 refuses otherwise)
           name: qemu-flash-${{ matrix.profile }}
           path: |
             components/rtps/interop/qemu/build/qemu_flash.bin
@@ -160,24 +161,38 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
         run: |
-          reason="no completed run of this workflow on main yet"
-          # the most recent completed runs on main: pushes, or a manual dispatch (what seeds the first one)
-          for run_id in $(gh run list --workflow "$GITHUB_WORKFLOW" --branch main --status completed \
-                            --limit 10 --json databaseId --jq '.[].databaseId'); do
-            memory=$(gh run view "$run_id" --json jobs --jq '[.jobs[] | select(.name == "memory") | .conclusion][0] // empty')
-            if [ "$memory" != success ]; then reason="the latest main runs' memory job did not pass (run $run_id: ${memory:-no memory job})"; continue; fi
+          # Whatever happens below, the report learns why there is no baseline:
+          # `reason` describes the NEWEST run that could not serve (the one a
+          # maintainer wants to know about), and is written on every exit path.
+          reason=""
+          miss() { [ -n "$reason" ] || reason="$1"; }
+          finish() { if [ -z "${RTPS_MEMORY_BASELINE:-}" ]; then echo "no baseline: ${reason:-no completed run of this workflow on main yet}"; echo "RTPS_MEMORY_BASELINE_LABEL=${reason:-no completed run of this workflow on main yet}" >> "$GITHUB_ENV"; fi; }
+          trap finish EXIT
+          # The most recent completed runs ON main - pushes, or the manual dispatch
+          # that seeds the first one. `--branch` matches a run's HEAD branch, which
+          # for a pull request from a fork is the fork's branch name: a fork PR from
+          # a branch called "main" must never become the baseline, hence the event
+          # filter. The workflow is named by its file, so a renamed `name:` on a
+          # pull request still finds main's runs. Cancelled runs are "completed" too
+          # (every push to main cancels the previous one), so the window is wide.
+          runs=$(gh run list --workflow rtps_qemu.yml --branch main --status completed --limit 30 \
+                   --json databaseId,event --jq '.[] | select(.event == "push" or .event == "workflow_dispatch") | .databaseId') \
+            || { miss "could not list the workflow's runs on main (gh run list failed)"; runs=""; }
+          for run_id in $runs; do
+            memory=$(gh run view "$run_id" --json jobs --jq '[.jobs[] | select(.name == "memory") | .conclusion][0] // empty') \
+              || { miss "could not read main run $run_id (gh run view failed)"; continue; }
+            if [ "$memory" != success ]; then miss "the latest main run's memory job did not pass (run $run_id: ${memory:-no memory job})"; continue; fi
             rm -rf baseline && mkdir -p baseline
             if gh run download "$run_id" -n rtps-memory -D baseline && [ -s baseline/rtps-memory.json ]; then
-              sha=$(gh run view "$run_id" --json headSha --jq '.headSha[0:9]')
+              sha=$(gh run view "$run_id" --json headSha --jq '.headSha[0:9]') || sha=unknown
               echo "baseline: main @ $sha, run $run_id"
               echo "RTPS_MEMORY_BASELINE=$PWD/baseline/rtps-memory.json" >> "$GITHUB_ENV"
               echo "RTPS_MEMORY_BASELINE_LABEL=main @ $sha ([run ${run_id}](${{ github.server_url }}/${{ github.repository }}/actions/runs/${run_id}))" >> "$GITHUB_ENV"
+              RTPS_MEMORY_BASELINE=set
               exit 0
             fi
-            reason="the rtps-memory artifact of main run $run_id is gone (expired?)"
+            miss "the rtps-memory artifact of main run $run_id is gone (expired?)"
           done
-          echo "no baseline: $reason"
-          echo "RTPS_MEMORY_BASELINE_LABEL=$reason" >> "$GITHUB_ENV"
       - name: Run the memory suite on every limits profile
         # The embedded firmware runs the host-driven steps as well; the other
         # profiles boot for their sizeof and stage markers only.
@@ -239,6 +254,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always()
         with:
+          overwrite: true # a re-run of a failed job replaces its artifact (v4 refuses otherwise)
           name: rtps-memory
           path: |
             components/rtps/interop/qemu/rtps-memory.json

@@ -81,13 +81,19 @@ def delta(now, before):
     return f"{d:+,}"
 
 
+def is_count(x):
+    """An integer figure (bool is an int in Python, not a figure)."""
+    return isinstance(x, int) and not isinstance(x, bool)
+
+
 def cell(value, base_value, vs):
     """A number and, with a baseline, its delta against the baseline's in
     parentheses: for a size, bigger is a cost (positive); for a free-heap
-    figure, smaller is a cost (negative). (n/a) when the baseline lacks it."""
+    figure, smaller is a cost (negative). (n/a) when the baseline lacks it or
+    holds something that is not a figure."""
     if not vs or value is None:
         return fmt(value)
-    if base_value is None:
+    if not is_count(base_value) or not is_count(value):
         return f"{fmt(value)} (n/a)"
     return f"{fmt(value)} ({delta(value, base_value)})"
 
@@ -109,7 +115,7 @@ def keyed(items, key):
     of a list that is not one, or items that are not dicts."""
     if not isinstance(items, list):
         return {}
-    return {it[key]: it for it in items if isinstance(it, dict) and key in it}
+    return {it[key]: it for it in items if isinstance(it, dict) and isinstance(it.get(key), str)}
 
 
 def profile_tables(name, mem, base=None):
@@ -167,7 +173,7 @@ def report(profiles, baseline=None, baseline_label=None):
     if vs:
         out.append(
             f"Deltas in parentheses are against {baseline_label or 'the baseline run'}: "
-            "a bigger size or a smaller free heap than there is a cost of this change.\n"
+            "a bigger size or a smaller free heap than the baseline's is a cost of this change.\n"
         )
     elif baseline_label:
         out.append(f"No baseline to compare against ({baseline_label}): absolute numbers only.\n")
@@ -254,7 +260,15 @@ def main():
         merged[name] = {"sizeof": (mem or {}).get("sizeof"), "stages": (mem or {}).get("stages"),
                         "steps": (mem or {}).get("steps"), "library": lib}
 
-    text = report(profiles, baseline, args.baseline_label)
+    try:
+        text = report(profiles, baseline, args.baseline_label)
+    except Exception as e:  # noqa: BLE001 - a baseline of another shape must not cost the report
+        if baseline is None:
+            raise
+        # a --json of another version of this script, say: compare nothing, say so
+        print(f"memory_report: the baseline could not be compared ({e!r}); reporting without deltas",
+              file=sys.stderr)
+        text = report(profiles, None, f"the baseline could not be compared: {type(e).__name__}")
     print(text)
     if args.summary:
         with open(args.summary, "a") as f:
