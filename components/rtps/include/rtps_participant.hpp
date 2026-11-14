@@ -223,6 +223,11 @@ public:
       std::optional<espp::Task::BaseConfig> job_retry{};
       /// The protocol task: SPDP announcements and the heartbeat cadence.
       std::optional<espp::Task::BaseConfig> protocol{};
+      /// The held-reply deadline timer's task (RPC builds): sweeps the
+      /// service replies waiting for their reader every 100 ms (see
+      /// service_reply_match_timeout). Created at start(), with the other
+      /// tasks, never while traffic is being served.
+      std::optional<espp::Task::BaseConfig> reply_hold{};
     };
     Tasks tasks{};
   };
@@ -970,14 +975,19 @@ protected:
   /// has acknowledged the reply writer (see Config::service_reply_match_timeout
   /// and ServiceResponder::reply()): the servers holding one. A match flushes
   /// the acknowledged ones at once (the engine's subscriber-matched callback);
-  /// a timer polls for the acknowledgement and enforces the deadline. The timer is
-  /// created by the first held reply and kept until stop(): creating one per
-  /// hold fragmented the ESP32's internal RAM (every task stack lives there)
-  /// until a creation failed and the thread constructor's exception took the
-  /// device down (the QEMU soak, after 13 cycles of service calls).
+  /// a timer polls for the acknowledgement and enforces the deadline. The timer
+  /// is created at start() with the participant's other tasks and kept until
+  /// stop(): a task created while traffic is served is the one whose creation
+  /// fails, and on ESP the thread constructor's exception then takes the device
+  /// down (the QEMU soak did that with one timer per hold, and again with one
+  /// created by the first hold once less internal RAM was free).
   std::mutex held_replies_mutex_;
   std::vector<std::weak_ptr<ServiceServerContext>> servers_with_held_replies_;
   std::unique_ptr<espp::Timer> held_replies_timer_;
+  /// Create held_replies_timer_ (RPC builds; from start(), or as the fallback
+  /// in note_held_reply() when that failed). held_replies_mutex_ held. False
+  /// when the timer could not be started: replies are then written at once.
+  bool start_held_reply_timer_locked();
   /// List the server and make sure the deadline timer runs. False when the
   /// timer could not be created (no memory for its task): the caller must
   /// not hold the reply, there would be nothing to write it at the deadline.

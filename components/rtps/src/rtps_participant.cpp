@@ -290,6 +290,16 @@ bool RtpsParticipant::start() {
     return false;
   }
 
+#ifdef RTPS_WITH_RPC
+  // The held-reply deadline timer, with the other tasks: never created while
+  // traffic is served (see the member's comment). A failure is logged and
+  // leaves the fallback in note_held_reply().
+  {
+    std::lock_guard<std::mutex> lock(held_replies_mutex_);
+    (void)start_held_reply_timer_locked();
+  }
+#endif
+
   started_ = true;
   logger_.info("Started (interface {}.{}.{}.{})", ip_bytes[0], ip_bytes[1], ip_bytes[2],
                ip_bytes[3]);
@@ -1104,16 +1114,27 @@ bool RtpsParticipant::note_held_reply(const std::shared_ptr<ServiceServerContext
   if (held_replies_timer_) {
     return true;
   }
-  // One deadline timer per participant, created by the first held reply and
-  // kept until stop() (see the member's comment). The match itself flushes a
-  // held reply (subscriber_matched_trampoline), so this only enforces the
-  // deadline and backs the match up: a tenth of the default timeout is plenty,
-  // and a tick with nothing held is a lock and an empty check. A task can fail
-  // to start (no memory for its stack, Task::start() says why); the caller then
-  // writes the reply at once instead of holding it. (On ESP targets a failed
-  // pthread_create terminates the program outright - exceptions are off - which
-  // is why this timer is created once and never per hold.)
-  held_replies_timer_ = std::make_unique<espp::Timer>(espp::Timer::Config{
+  // The timer is normally created at start(); this is the fallback for a
+  // start() that could not create it (Task::start() said why then). A task
+  // created while traffic is served is the one whose creation fails - and on
+  // ESP a failed pthread_create terminates the program outright (exceptions
+  // are off) - so this path is not expected to run.
+  if (!start_held_reply_timer_locked()) {
+    std::erase_if(servers_with_held_replies_, [&](const std::weak_ptr<ServiceServerContext> &w) {
+      return !w.owner_before(server) && !server.owner_before(w);
+    });
+    return false;
+  }
+  return true;
+}
+
+bool RtpsParticipant::start_held_reply_timer_locked() {
+  // One deadline timer per participant, kept until stop() (see the member's
+  // comment). The match itself flushes a held reply
+  // (subscriber_matched_trampoline), so this only polls for the reader's
+  // acknowledgement and enforces the deadline: a tenth of the default timeout
+  // is plenty, and a tick with nothing held is a lock and an empty check.
+  espp::Timer::Config timer_config{
       .name = "rtps_reply_hold",
       .period = std::chrono::milliseconds(100),
       .delay = std::chrono::milliseconds(100),
@@ -1123,14 +1144,18 @@ bool RtpsParticipant::note_held_reply(const std::shared_ptr<ServiceServerContext
       },
       .auto_start = true,
       .log_level = espp::Logger::Verbosity::WARN,
-  });
+  };
+  if (config_.tasks.reply_hold) {
+    // Timer::Config carries the task's stack, priority and core directly.
+    timer_config.stack_size_bytes = config_.tasks.reply_hold->stack_size_bytes;
+    timer_config.priority = config_.tasks.reply_hold->priority;
+    timer_config.core_id = config_.tasks.reply_hold->core_id;
+  }
+  held_replies_timer_ = std::make_unique<espp::Timer>(timer_config);
   if (!held_replies_timer_->is_running()) {
     held_replies_timer_.reset();
     logger_.error("Held-reply deadline timer could not be started; replies are written without "
                   "waiting for their reply reader");
-    std::erase_if(servers_with_held_replies_, [&](const std::weak_ptr<ServiceServerContext> &w) {
-      return !w.owner_before(server) && !server.owner_before(w);
-    });
     return false;
   }
   return true;
