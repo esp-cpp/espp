@@ -19,7 +19,7 @@ pair (the first pair's writer / reader capacity is spent by then):
     covered by the C++ loopback tests;
  5. stop() abandons a still-pending goal (on_result(ABORTED) once).
 
-Exits 0 on success, 1 on the first failed check; ~15 s. Needs a working
+Exits 0 on success, 1 on the first failed check; ~18 s. Needs a working
 loopback / local-interface multicast like the other python rtps scripts.
 """
 
@@ -58,8 +58,9 @@ def slow_handler(req):
 
 def main():
     log = espp.Logger.Verbosity.error
-    # the server blocks a receive worker per slow request: give it spares
-    server = espp.RtpsParticipant(espp.RtpsParticipant.Config(log_level=log, receive_workers=4))
+    # the server blocks a receive worker per slow request (the handlers and
+    # on_goal run on them): give it spares
+    server = espp.RtpsParticipant(espp.RtpsParticipant.Config(log_level=log, receive_workers=6))
     client = espp.RtpsParticipant(espp.RtpsParticipant.Config(log_level=log))
     check(server.start() and client.start(), "start")
     try:
@@ -131,7 +132,13 @@ def main():
 
         # 4. a result_timeout=0 server completes a goal normally (this pair's
         # last endpoints: a ROS 2 action server is 5 writers, a client 5 readers,
-        # and the host profile allows 13 of each per participant)
+        # and the host profile allows 13 of each per participant). First let the
+        # slow callbacks return: the two native handlers and the two on_goal
+        # calls each hold one of the server's receive workers for 2 s, and a
+        # server with every worker blocked cannot match the new pair's endpoints
+        # or take the goal (the Humble CI container hit exactly that: the goal
+        # never completed within its wait).
+        time.sleep(2.5)
         quick_goal(server, client, "/quick0", 0.0)
     finally:
         client.stop()  # abandons the second slow goal: on_result(ABORTED) once more
@@ -162,7 +169,7 @@ def quick_goal(server, client, name, result_timeout):
     time.sleep(0.3)  # feedback/status topics match alongside
     done = []
     check(qact.send_goal(EMPTY, lambda fb: None, lambda s, r: done.append(s)) is not None, f"{name} goal")
-    check(wait_until(lambda: len(done) == 1, 5.0) and done[0] == SUCCEEDED,
+    check(wait_until(lambda: len(done) == 1, 10.0) and done[0] == SUCCEEDED,
           f"{name} (result_timeout={result_timeout}) goal SUCCEEDED: {done}")
 
 
