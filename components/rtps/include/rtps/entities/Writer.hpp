@@ -66,6 +66,13 @@ public:
   bool hasProxyOfParticipant(const GuidPrefix_t &guidPrefix);
   /// Whether this exact remote reader is matched.
   bool hasProxy(const Guid_t &guid);
+  /// Whether this exact remote reader is matched and a change written now
+  /// reaches it: a reliable reader once it has acknowledged us (see
+  /// ReaderProxy::acknowledged), a best-effort reader as soon as it is matched.
+  bool hasAcknowledgedProxy(const Guid_t &guid);
+  /// hasAcknowledgedProxy() for any matched reader of the participant with
+  /// this prefix.
+  bool hasAcknowledgedProxyOfParticipant(const GuidPrefix_t &guidPrefix);
   virtual void reset() = 0;
   virtual const CacheChange *newChange(ChangeKind_t kind, const uint8_t *data, DataSize_t size);
 

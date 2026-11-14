@@ -907,10 +907,10 @@ struct RtpsParticipant::ServiceServerContext
   // an in-flight reply()) BEFORE the writer is deleted.
   std::shared_ptr<Liveness> writer_live{std::make_shared<Liveness>()};
 
-  // A reply in wire form, with whose match it waits for. Replies are held here
-  // until the requester's reply reader is matched to reply_writer (or the
-  // participant's service_reply_match_timeout passes); see
-  // ServiceResponder::reply() for why.
+  // A reply in wire form, and the reader whose acknowledgement it waits for.
+  // Replies are held here until the requester's reply reader is matched to
+  // reply_writer AND has acknowledged it (or the participant's
+  // service_reply_match_timeout passes); see ServiceResponder::reply() for why.
   struct HeldReply {
     std::vector<uint8_t> payload; // the Cyclone header, when one applies, already spliced in
     bool cyclonedds{false};
@@ -926,9 +926,13 @@ struct RtpsParticipant::ServiceServerContext
   std::vector<HeldReply> held;
   uint32_t held_token_seq{0}; // under held_mutex
 
+  // Matched, and acknowledged where the reader is reliable (every reply
+  // reader is): a VOLATILE Cyclone DDS reader skips everything the first
+  // HEARTBEAT it processes announces, so the reply must not be written before
+  // the reader has answered one (ReaderProxy::acknowledged).
   static bool reader_matched(rtps::Writer &writer, const HeldReply &reply) {
-    return reply.reply_reader_known ? writer.hasProxy(reply.reply_reader)
-                                    : writer.hasProxyOfParticipant(reply.requester);
+    return reply.reply_reader_known ? writer.hasAcknowledgedProxy(reply.reply_reader)
+                                    : writer.hasAcknowledgedProxyOfParticipant(reply.requester);
   }
 
   // The engine write of a reply, in the requester's form. The caller holds the
@@ -1043,15 +1047,21 @@ void RtpsParticipant::ServiceResponder::reply(std::span<const uint8_t> response)
     wire.payload.assign(response.begin(), response.end());
   }
   // Written at once when the requester's reply reader is matched to the reply
-  // writer. Until then it is HELD: the client sent its request as soon as its
-  // own side had matched, and this writer may learn of the client's reply
-  // reader (its SEDP record) a little after the request was served. A change
-  // written before that match is never sent to the reader - the writer sends
-  // new changes to the readers it has - and the first HEARTBEAT the reader
-  // then sees announces it as history, which a VOLATILE reader skips: the call
-  // times out although it was served. rmw_fastrtps / rmw_cyclonedds servers
-  // wait for the same match before writing a response. The hold ends with the
-  // match or after Config::service_reply_match_timeout (see sweep_held_replies).
+  // writer and has acknowledged it. Until then it is HELD: the client sent its
+  // request as soon as its own side had matched, and this writer may learn of
+  // the client's reply reader (its SEDP record) a little after the request was
+  // served. A change written before that match is never sent to the reader -
+  // the writer sends new changes to the readers it has - and the first
+  // HEARTBEAT the reader then sees announces it as history, which a VOLATILE
+  // reader skips: the call times out although it was served. A Cyclone DDS
+  // reader applies that rule to the first heartbeat it PROCESSES, so under
+  // loss the match alone is not enough: a reply written between the match and
+  // the reader's answer to our heartbeat was skipped the same way (the QEMU
+  // interop matrix's service call under 15 % loss, one call in 25). Hence the
+  // acknowledgement. rmw_fastrtps / rmw_cyclonedds servers wait for the same
+  // match before writing a response. The hold ends with the acknowledgement
+  // (sweep_held_replies polls for it, the match flushes at once) or after
+  // Config::service_reply_match_timeout.
   const auto timeout = state_->self->config_.service_reply_match_timeout;
   auto server = state_->server.lock();
   if (server == nullptr || timeout <= std::chrono::milliseconds{0} ||

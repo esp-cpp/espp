@@ -74,8 +74,16 @@ public:
   /// Install the scheduler nudge: invoked on newChange() so a publish
   /// piggybacks an immediate heartbeat evaluation instead of waiting out the
   /// current period.
-  void setProtocolNudge(std::function<void()> nudge) { m_protocolNudge = std::move(nudge); }
+  void setProtocolNudge(std::function<void()> nudge) {
+    std::lock_guard<std::recursive_mutex> lock(m_mutex); // read under it by addNewMatchedReader
+    m_protocolNudge = std::move(nudge);
+  }
   void setAllChangesToUnsent() override;
+  /// Adds the proxy and pulls the next heartbeat evaluation forward, so the
+  /// new reader gets a HEARTBEAT at once instead of up to a period later: its
+  /// answer is what acknowledges us (ReaderProxy::acknowledged), and a Cyclone
+  /// DDS reader sends that answer only once it has a heartbeat to answer.
+  bool addNewMatchedReader(const ReaderProxy &newProxy) override;
   void onNewAckNack(const SubmessageAckNack &msg, const GuidPrefix_t &sourceGuidPrefix) override;
   void reset() override;
   void updateChangeKind(SequenceNumber_t &sequence_number);

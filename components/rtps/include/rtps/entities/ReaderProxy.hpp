@@ -40,10 +40,17 @@ struct ReaderProxy {
   bool suppressUnicast = false;
   bool unknown_eid = false;
   bool finalFlag = false;
-  /// An ACKNACK from this reader has arrived. Every reliable reader sends one
-  /// when it matches a writer (the pre-emptive ACKNACK), so this is the remote
-  /// end's confirmation that it has discovered us: a sample written before it
-  /// may still reach a reader that has not, and a VOLATILE one drops it.
+  /// An ACKNACK from this reader has arrived that proves a change written now
+  /// will reach it: the remote end has discovered us, and it has processed a
+  /// HEARTBEAT of ours where that matters. Every reliable reader sends an
+  /// ACKNACK when it matches a writer (the pre-emptive ACKNACK); a sample
+  /// written before it may still reach a reader that has not discovered us,
+  /// and a VOLATILE one drops it. Cyclone DDS numbers that pre-emptive
+  /// ACKNACK 0, and a VOLATILE Cyclone reader also skips everything the first
+  /// heartbeat it processes announces, so an EMPTY ACKNACK numbered 0 does
+  /// not set this; the one that answers our heartbeat does, and so does any
+  /// ACKNACK that requests samples, whatever its count (see
+  /// StatefulWriter::onNewAckNack).
   bool acknowledged = false;
   SequenceNumber_t lastAckNackSequenceNumber = {0, 1};
 

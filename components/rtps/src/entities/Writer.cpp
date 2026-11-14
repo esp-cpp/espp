@@ -139,6 +139,35 @@ bool rtps::Writer::hasProxyOfParticipant(const GuidPrefix_t &guidPrefix) {
   return m_proxies.find(thunk, &isElementToFind) != nullptr;
 }
 
+bool rtps::Writer::hasAcknowledgedProxy(const Guid_t &guid) {
+  if (!isInitialized()) {
+    return false;
+  }
+  std::lock_guard<std::recursive_mutex> lock(m_mutex);
+  auto isElementToFind = [&](const ReaderProxy &proxy) {
+    return proxy.remoteReaderGuid == guid && (!proxy.is_reliable || proxy.acknowledged);
+  };
+  auto thunk = [](void *arg, const ReaderProxy &value) {
+    return (*static_cast<decltype(isElementToFind) *>(arg))(value);
+  };
+  return m_proxies.find(thunk, &isElementToFind) != nullptr;
+}
+
+bool rtps::Writer::hasAcknowledgedProxyOfParticipant(const GuidPrefix_t &guidPrefix) {
+  if (!isInitialized()) {
+    return false;
+  }
+  std::lock_guard<std::recursive_mutex> lock(m_mutex);
+  auto isElementToFind = [&](const ReaderProxy &proxy) {
+    return proxy.remoteReaderGuid.prefix == guidPrefix &&
+           (!proxy.is_reliable || proxy.acknowledged);
+  };
+  auto thunk = [](void *arg, const ReaderProxy &value) {
+    return (*static_cast<decltype(isElementToFind) *>(arg))(value);
+  };
+  return m_proxies.find(thunk, &isElementToFind) != nullptr;
+}
+
 bool rtps::Writer::isBuiltinEndpoint() {
   return !(m_attributes.endpointGuid.entityId.entityKind ==
                EntityKind_t::USER_DEFINED_WRITER_WITHOUT_KEY ||

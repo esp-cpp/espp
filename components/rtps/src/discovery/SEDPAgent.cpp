@@ -303,8 +303,9 @@ bool SEDPAgent::matchRemoteWriter(Reader &reader, const WriterProxy &proxy) {
     // Tell the writer we exist, as the SEDP readers do on participant discovery
     // and as Fast DDS and Cyclone DDS readers do on every match: the writer's
     // ReaderProxy::acknowledged is what a service client waits for before it
-    // sends (ServiceClient::wait_for_server), and a writer with an empty history
-    // sends no HEARTBEAT for us to answer otherwise.
+    // sends (ServiceClient::wait_for_server). Ours is numbered 1 or more, so
+    // an espp writer acknowledges us on it; a writer that waits for its
+    // heartbeat to be answered gets that answer from onNewHeartbeat.
     reader.sendPreemptiveAckNack(proxy);
   }
   return true;
