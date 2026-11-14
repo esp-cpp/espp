@@ -295,6 +295,19 @@ const bool SPDP_EVICT_UNUSED_PARTICIPANTS = RTPS_CFG_SPDP_EVICT_UNUSED_PARTICIPA
 #define RTPS_CFG_SPDP_EVICT_MIN_AGE_MS (3 * RTPS_CFG_SPDP_RESEND_PERIOD_MS)
 #endif
 const uint32_t SPDP_EVICT_MIN_AGE_MS = RTPS_CFG_SPDP_EVICT_MIN_AGE_MS;
+// A participant this one evicted is not let back in by evicting another one
+// for this long after (it still takes a free slot at once). Without it, on a
+// domain that stays bigger than the pool, the rejected peers re-announce every
+// period and take turns displacing each other at the eviction rate, and a peer
+// never seen before - the one this participant may actually need - competes
+// with all of them for the one slot per period and can lose every round. Held
+// off, the just-evicted go to the back of the queue; a peer never evicted is
+// admitted on its first announcement (the eviction cooldown does not apply to
+// it: it is new only once). menuconfig RTPS -> Discovery timing.
+#ifndef RTPS_CFG_SPDP_EVICT_READMIT_HOLDOFF_MS
+#define RTPS_CFG_SPDP_EVICT_READMIT_HOLDOFF_MS (5 * RTPS_CFG_SPDP_RESEND_PERIOD_MS)
+#endif
+const uint32_t SPDP_EVICT_READMIT_HOLDOFF_MS = RTPS_CFG_SPDP_EVICT_READMIT_HOLDOFF_MS;
 
 // Transport channel pool: 2 shared multicast channels (SPDP metatraffic +
 // user multicast) + 2 unicast channels per participant (builtin + user), plus

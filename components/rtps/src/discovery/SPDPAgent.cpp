@@ -264,13 +264,15 @@ void SPDPAgent::processProxyData() {
     // see Participant::evictUnusedRemoteParticipant; lock order here is the
     // SPDP agent mutex, held by handleSPDPPackage, -> SEDP agent -> Participant)
     // and retry. When nothing can be evicted (every known participant is one
-    // we talk to, or one was evicted this announcement period already) the
+    // we talk to, this one was itself evicted lately, or one was evicted this
+    // announcement period already for a peer that had been evicted before) the
     // peer announces again (SPDP is periodic), and the liveliness sweep frees
     // a slot once a known peer's lease runs out, so it gets in later; nothing
     // to do now. (This used to spin forever in non-verbose builds, with the
     // agent mutex held: one participant too many on the domain froze discovery.)
     GuidPrefix_t evicted{};
-    if (!mp_participant->evictUnusedRemoteParticipant(evicted, "Remote-participant pool full") ||
+    if (!mp_participant->evictUnusedRemoteParticipant(m_proxyDataBuffer.m_guid.prefix, evicted,
+                                                      "Remote-participant pool full") ||
         !mp_participant->addNewRemoteParticipant(m_proxyDataBuffer)) {
       SPDP_LOG("Remote-participant pool full, not adding this participant");
       return;
@@ -294,7 +296,8 @@ void SPDPAgent::processProxyData() {
     // takes the SPDP mutex while holding either of the others.
     GuidPrefix_t evicted{};
     const bool fits = mp_participant->evictUnusedRemoteParticipant(
-                          evicted, "Builtin proxies of a new remote participant do not fit") &&
+                          m_proxyDataBuffer.m_guid.prefix, evicted,
+                          "Builtin proxies of a new remote participant do not fit") &&
                       addProxiesForBuiltInEndpoints();
     if (!fits) {
       SPDP_LOG("Builtin proxies for the new participant did not fit, forgetting it");

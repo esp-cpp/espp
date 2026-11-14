@@ -313,7 +313,16 @@ for i in $(seq 1 120); do
   sleep 1
 done
 echo "  crowd up after ${i} s (first eviction seen: $([ "$i" -lt 120 ] && echo yes || echo no))"
-sleep 10
+# The first eviction says the pool is full; the rest of the crowd follows over
+# the next seconds. Let all of it arrive before the publisher starts, so the
+# case meets a domain that STAYS bigger than the pool - the crowd's rejected
+# members re-announce every period and would take turns displacing each other
+# - and not a pool that merely filled. (A run in which the publisher started
+# while the crowd was still coming up passed trivially; one in which the crowd
+# was complete starved the publisher for 90 s, 31 evictions, before the
+# hold-off for re-announcing evictees existed.)
+sleep 20
+echo "  evictions while the crowd settled: $(count_since "$m0" "forgot an unused participant")"
 echo "  device: $(grep -o 'RTPSTEST status.*' "$LOG" | tail -1)"
 m=$(mark)
 timeout 100 ros2 topic pub -r 5 /qemu_rx std_msgs/msg/String "data: 'made room for me'" > /dev/null 2>&1 &

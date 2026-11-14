@@ -29,6 +29,7 @@ Author: i11 - Embedded Software, RWTH Aachen University
 #include "base_component.hpp"
 #include "rtps/common/types.hpp"
 #include "rtps/config.hpp"
+#include "rtps/discovery/RecentEvictions.hpp"
 #include "rtps/discovery/SEDPAgent.hpp"
 #include "rtps/discovery/SPDPAgent.hpp"
 #include "rtps/entities/ReaderRef.hpp"
@@ -143,13 +144,17 @@ public:
   //! the participant we have the least use for so another can be added
   //! (Config::SPDP_EVICT_UNUSED_PARTICIPANTS):
   //! an expired one first, else the oldest-discovered one none of our user
-  //! endpoints match, provided it is older than Config::SPDP_EVICT_MIN_AGE_MS;
-  //! at most one eviction per SPDP_RESEND_PERIOD_MS (counted from a successful
-  //! removal). Returns true and sets `evicted` when a participant was removed;
-  //! `reason` names the trigger in the warning. Callers hold the SPDP agent
-  //! mutex (the documented order: SPDP agent -> SEDP agent -> Participant) and
-  //! must not hold m_mutex.
-  bool evictUnusedRemoteParticipant(GuidPrefix_t &evicted, const char *reason);
+  //! endpoints match, provided it is older than Config::SPDP_EVICT_MIN_AGE_MS.
+  //! `newcomer` is the announcing participant the room is made for: one
+  //! evicted less than Config::SPDP_EVICT_READMIT_HOLDOFF_MS ago gets nothing
+  //! evicted for it, one evicted before that waits for the cooldown of one
+  //! eviction per SPDP_RESEND_PERIOD_MS (counted from a successful removal),
+  //! and one never evicted is served at once (see RecentEvictions). Returns
+  //! true and sets `evicted` when a participant was removed; `reason` names the
+  //! trigger in the warning. Callers hold the SPDP agent mutex (the documented
+  //! order: SPDP agent -> SEDP agent -> Participant) and must not hold m_mutex.
+  bool evictUnusedRemoteParticipant(const GuidPrefix_t &newcomer, GuidPrefix_t &evicted,
+                                    const char *reason);
 
   bool hasReaderWithMulticastLocator(const std::array<uint8_t, 4> &address);
 
@@ -170,6 +175,9 @@ private:
   std::recursive_mutex m_mutex;
   MemoryPool<ParticipantProxyData, Config::SPDP_MAX_NUMBER_FOUND_PARTICIPANTS> m_remoteParticipants;
   std::chrono::steady_clock::time_point m_lastEvictionTimestamp{};
+  //! The participants evicted lately (under m_mutex): one slot per pool entry
+  //! is enough to remember every participant that can cycle through the pool.
+  RecentEvictions<Config::SPDP_MAX_NUMBER_FOUND_PARTICIPANTS> m_recentEvictions{};
   //! Whether any user (non-builtin) endpoint of ours has a proxy of this
   //! participant, i.e. we exchange data with it. Takes m_mutex (recursive:
   //! callable from the eviction path that already holds it).
