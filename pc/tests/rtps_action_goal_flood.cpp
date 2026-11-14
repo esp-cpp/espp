@@ -79,8 +79,11 @@ bool run() {
               while (!h.is_canceling()) {
                 std::this_thread::sleep_for(5ms);
               }
-              executing.fetch_sub(1);
+              // terminate FIRST: the test waits for this counter to reach 0 and
+              // then asks get_result, which must see CANCELED, not CANCELING
+              // (the Jazzy interop job hit that order once).
               h.canceled(kEmpty);
+              executing.fetch_sub(1);
             }),
         "add_action_server");
 
