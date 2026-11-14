@@ -105,6 +105,14 @@ bool Domain::completeInit() {
     return protocolLoop(m, cv, notified);
   };
   task_config.task_config = m_config.protocol_task;
+  // The loop ticks every writer's heartbeat and the SPDP announcements: below
+  // 4 KB it overflows on the target (the compile-time default clamps there
+  // too), so a smaller runtime value is raised, with a warning.
+  if (task_config.task_config.stack_size_bytes < 4096) {
+    logger_.warn("Protocol task stack {} B is below the 4096 B minimum; using 4096",
+                 task_config.task_config.stack_size_bytes);
+    task_config.task_config.stack_size_bytes = 4096;
+  }
   task_config.log_level = espp::Logger::Verbosity::WARN;
   m_protocolTask = espp::Task::make_unique(task_config);
   if (!m_protocolTask->start()) {

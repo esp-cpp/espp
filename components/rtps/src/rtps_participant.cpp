@@ -2514,11 +2514,18 @@ bool RtpsParticipant::add_action_server(const ActionConfig &config, action_goal_
                  continue;
                }
                {
-                 // Under the goal's mutex, so a worker starting this goal right
-                 // now cannot publish EXECUTING after CANCELING (see the
-                 // execute job).
-                 std::lock_guard<std::mutex> glock(gstate->mutex);
-                 if (!gstate->cancel_requested.exchange(true)) {
+                 // The flag flips under the goal's mutex, where the execute
+                 // job checks it and publishes EXECUTING in one step: a worker
+                 // starting this goal either sees the flag and stays silent, or
+                 // has already published EXECUTING, which CANCELING (published
+                 // below, outside the lock) then follows. The publish itself
+                 // needs no lock.
+                 bool first_cancel = false;
+                 {
+                   std::lock_guard<std::mutex> glock(gstate->mutex);
+                   first_cancel = !gstate->cancel_requested.exchange(true);
+                 }
+                 if (first_cancel) {
                    publish_goal_status(server->self, server->status_topic, goal_id,
                                        ract::GoalStatus::CANCELING);
                  }

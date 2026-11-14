@@ -172,7 +172,10 @@ bool run() {
     ids.push_back(make_id(n));
     CHECK(submit(ids.back()) == 1, "the goal is accepted");
   }
-  CHECK(wait_until([&] { return executing.load() == 2; }, 2s), "two goals execute");
+  // Both counters: `peak` follows `executing` by a few instructions in the
+  // callback, so wait for it too before watching the invariant.
+  CHECK(wait_until([&] { return executing.load() == 2 && peak.load() == 2; }, 2s),
+        "two goals execute");
   // The invariant, watched for a while rather than sampled once: two goals
   // run, never a third (the other two are waiting for a worker).
   {
