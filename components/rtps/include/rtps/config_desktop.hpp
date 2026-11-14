@@ -284,9 +284,10 @@ const Duration_t SPDP_MAX_REMOTE_LEASE_DURATION = {RTPS_CFG_SPDP_MAX_REMOTE_LEAS
 // endpoints matched by any user endpoint of ours) so the newcomer gets the
 // slot: oldest discovered first, never one discovered less than
 // SPDP_EVICT_MIN_AGE_MS ago (its endpoint discovery may still be in flight),
-// at most one per SPDP_RESEND_PERIOD_MS, and an expired participant before any
-// live one. Each eviction is logged: a domain that keeps evicting wants a bigger
-// SPDP_MAX_NUMBER_FOUND_PARTICIPANTS. menuconfig RTPS -> Discovery timing.
+// at most one per SPDP_RESEND_PERIOD_MS for a peer evicted before and one for a
+// peer never evicted (two budgets, see SPDP_EVICT_READMIT_HOLDOFF_MS), and an
+// expired participant before any live one. Each eviction is logged: a domain that keeps evicting
+// wants a bigger SPDP_MAX_NUMBER_FOUND_PARTICIPANTS. menuconfig RTPS -> Discovery timing.
 #ifndef RTPS_CFG_SPDP_EVICT_UNUSED_PARTICIPANTS
 #define RTPS_CFG_SPDP_EVICT_UNUSED_PARTICIPANTS 1
 #endif
@@ -301,9 +302,11 @@ const uint32_t SPDP_EVICT_MIN_AGE_MS = RTPS_CFG_SPDP_EVICT_MIN_AGE_MS;
 // period and take turns displacing each other at the eviction rate, and a peer
 // never seen before - the one this participant may actually need - competes
 // with all of them for the one slot per period and can lose every round. Held
-// off, the just-evicted go to the back of the queue; a peer never evicted is
-// admitted on its first announcement (the eviction cooldown does not apply to
-// it: it is new only once). menuconfig RTPS -> Discovery timing.
+// off, the just-evicted go to the back of the queue, and the one eviction per
+// period is budgeted per kind - former evictees and never-evicted peers each
+// have their own - so a stream of fresh GUIDs cannot starve a peer evicted
+// earlier that is needed now, nor the other way round; the churn is at most
+// two per period. menuconfig RTPS -> Discovery timing.
 #ifndef RTPS_CFG_SPDP_EVICT_READMIT_HOLDOFF_MS
 #define RTPS_CFG_SPDP_EVICT_READMIT_HOLDOFF_MS (5 * RTPS_CFG_SPDP_RESEND_PERIOD_MS)
 #endif

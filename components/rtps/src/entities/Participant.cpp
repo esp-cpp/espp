@@ -680,6 +680,7 @@ bool Participant::evictUnusedRemoteParticipant(const GuidPrefix_t &newcomer, Gui
   // Phase 1 - SELECT under m_mutex.
   GuidPrefix_t victim{};
   bool victimExpired = false;
+  bool known = false; // the newcomer is a former evictee (its budget)
   uint32_t victimAge = 0;
   {
     std::lock_guard<std::recursive_mutex> lock(m_mutex);
@@ -687,13 +688,15 @@ bool Participant::evictUnusedRemoteParticipant(const GuidPrefix_t &newcomer, Gui
     const auto now = std::chrono::steady_clock::now();
     // Who is asking: a participant evicted lately is held off (it is unused,
     // and letting it displace another unused one at once is how the rejected
-    // peers of a too-big domain took turns ahead of a newcomer); a former
-    // evictee past its hold-off gets one eviction per announcement period,
-    // which bounds how often an unused one is swapped for another unused one;
-    // a participant never evicted is served at once (see RecentEvictions).
+    // peers of a too-big domain took turns ahead of a newcomer); otherwise one
+    // eviction per announcement period from the budget of its kind - former
+    // evictees and never-evicted participants each have their own - which
+    // bounds how often an unused one is swapped for another unused one without
+    // letting either kind starve the other (see RecentEvictions).
+    known = m_recentEvictions.lastEviction(newcomer).has_value();
     using Gate = decltype(m_recentEvictions)::Gate;
     switch (
-        m_recentEvictions.gate(newcomer, now, m_lastEvictionTimestamp,
+        m_recentEvictions.gate(newcomer, now, m_lastEvictionTimestamp, m_lastFreshEvictionTimestamp,
                                std::chrono::milliseconds(Config::SPDP_RESEND_PERIOD_MS),
                                std::chrono::milliseconds(Config::SPDP_EVICT_READMIT_HOLDOFF_MS))) {
     case Gate::HeldOff:
@@ -711,6 +714,9 @@ bool Participant::evictUnusedRemoteParticipant(const GuidPrefix_t &newcomer, Gui
       break;
     }
     for (auto &remote : m_remoteParticipants) {
+      if (remote.m_guid.prefix == newcomer) {
+        continue; // already in the pool (its builtin proxies did not fit): never its own victim
+      }
       if (!remote.isAlive()) {
         // past its lease already: the liveliness sweep would forget it soon
         const uint32_t age = remote.getAliveSignalAgeInMilliseconds();
@@ -751,8 +757,9 @@ bool Participant::evictUnusedRemoteParticipant(const GuidPrefix_t &newcomer, Gui
   unsigned int inPool = 0;
   {
     std::lock_guard<std::recursive_mutex> lock(m_mutex);
-    m_lastEvictionTimestamp = std::chrono::steady_clock::now();
-    m_recentEvictions.note(victim, m_lastEvictionTimestamp);
+    const auto now = std::chrono::steady_clock::now();
+    (known ? m_lastEvictionTimestamp : m_lastFreshEvictionTimestamp) = now;
+    m_recentEvictions.note(victim, now);
     inPool = static_cast<unsigned int>(m_remoteParticipants.getNumElements());
   }
   // The logger formats at run time (fmt::vformat): keep the placeholder count

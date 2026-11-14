@@ -37,21 +37,25 @@ namespace rtps {
 //! it (Participant::evictUnusedRemoteParticipant).
 //!
 //! Why: on a domain that stays bigger than the pool, the participants that do
-//! not fit re-announce every period, and with a plain "one eviction per
-//! period" cooldown they take turns displacing each other at the eviction
-//! rate - one is forgotten, announces again a period later, and takes the slot
-//! of the next-oldest, forever. A participant never seen before (the one this
-//! participant may actually need) competes with all of them for that one slot
-//! per period and can lose every round (it did: a late publisher went
+//! not fit re-announce every period, and with one plain "one eviction per
+//! period" budget for anyone they take turns displacing each other at the
+//! eviction rate - one is forgotten, announces again a period later, and takes
+//! the slot of the next-oldest, forever. A participant never seen before (the
+//! one this participant may actually need) competes with all of them for that
+//! one slot per period and can lose every round (it did: a late publisher went
 //! unmatched for 90 s on a domain of 28 against 20 slots). So:
 //!  - a participant evicted less than `holdoff` ago is HELD OFF: nothing is
 //!    evicted for it (it is unused, and it still gets a free slot at once);
-//!  - a participant this one remembers evicting, past its hold-off, waits for
-//!    the eviction cooldown like before;
-//!  - a participant never evicted (or forgotten by this ring) may have one
-//!    evicted for it at once, cooldown or not: it is new only once, so this
-//!    does not unbound the churn, and it is admitted on its first announcement.
-//! A ring of N entries, oldest overwritten; no allocation.
+//!  - two eviction budgets of one per `cooldown`, each with its own clock: one
+//!    for the participants this one remembers evicting (past their hold-off),
+//!    one for participants never evicted (or no longer remembered). The
+//!    newcomer the device needs competes only with other first-timers, and a
+//!    stream of fresh GUIDs (ros2 CLI tools, restarting nodes) cannot starve a
+//!    former evictee the device has since grown a reader for: it has its own
+//!    budget. The churn stays bounded at two evictions per period.
+//! A ring of N entries; when full, the oldest eviction is overwritten. Sized
+//! by the caller so that the evictions one hold-off can hold (two per period)
+//! all fit: a peer forgotten by the ring would look like a first-timer.
 template <std::size_t N> class RecentEvictions {
 public:
   using time_point = std::chrono::steady_clock::time_point;
@@ -60,21 +64,29 @@ public:
   enum class Gate {
     Proceed, //!< may evict for this participant now
     HeldOff, //!< evicted lately: do not evict for it
-    Cooldown //!< a former evictee, but an eviction happened this period already
+    Cooldown //!< its budget (first-timer or former evictee) was spent this period
   };
 
   //! Remember that `prefix` was evicted at `now` (refreshes an existing entry,
-  //! else takes the ring's next slot).
+  //! else takes a free slot, else the slot of the oldest eviction).
   void note(const GuidPrefix_t &prefix, const time_point &now) {
     if (auto *entry = find(prefix); entry != nullptr) {
       entry->at = now;
       return;
     }
-    auto &slot = m_entries[m_next];
-    slot.prefix = prefix;
-    slot.at = now;
-    slot.valid = true;
-    m_next = (m_next + 1) % N;
+    auto *slot = &m_entries[0];
+    for (auto &entry : m_entries) {
+      if (!entry.valid) {
+        slot = &entry;
+        break;
+      }
+      if (entry.at < slot->at) {
+        slot = &entry;
+      }
+    }
+    slot->prefix = prefix;
+    slot->at = now;
+    slot->valid = true;
   }
 
   //! When `prefix` was last evicted, if the ring still remembers it.
@@ -83,22 +95,21 @@ public:
     return entry != nullptr ? std::optional<time_point>{entry->at} : std::nullopt;
   }
 
-  //! Whether an eviction may be made for `newcomer` at `now`, given the time
-  //! of the last eviction (`lastEvictionAt`, a default time_point when none
-  //! happened yet), the per-period `cooldown` and the readmission `holdoff`.
-  Gate gate(const GuidPrefix_t &newcomer, const time_point &now, const time_point &lastEvictionAt,
-            std::chrono::milliseconds cooldown, std::chrono::milliseconds holdoff) const {
+  //! Whether an eviction may be made for `newcomer` at `now`. `lastForKnownAt`
+  //! and `lastForFreshAt` are when the two budgets were last spent (a default
+  //! time_point: never); `cooldown` is the period of each, `holdoff` the time a
+  //! participant stays held off after its own eviction.
+  Gate gate(const GuidPrefix_t &newcomer, const time_point &now, const time_point &lastForKnownAt,
+            const time_point &lastForFreshAt, std::chrono::milliseconds cooldown,
+            std::chrono::milliseconds holdoff) const {
     const auto evictedAt = lastEviction(newcomer);
     if (!evictedAt) {
-      return Gate::Proceed;
+      return spent(lastForFreshAt, now, cooldown) ? Gate::Cooldown : Gate::Proceed;
     }
     if (now - *evictedAt < holdoff) {
       return Gate::HeldOff;
     }
-    if (lastEvictionAt != time_point{} && now - lastEvictionAt < cooldown) {
-      return Gate::Cooldown;
-    }
-    return Gate::Proceed;
+    return spent(lastForKnownAt, now, cooldown) ? Gate::Cooldown : Gate::Proceed;
   }
 
   static constexpr std::size_t capacity() { return N; }
@@ -110,8 +121,11 @@ private:
     bool valid{false};
   };
   std::array<Entry, N> m_entries{};
-  std::size_t m_next{0};
 
+  static bool spent(const time_point &last, const time_point &now,
+                    std::chrono::milliseconds cooldown) {
+    return last != time_point{} && now - last < cooldown;
+  }
   const Entry *find(const GuidPrefix_t &prefix) const {
     const auto it = std::find_if(m_entries.begin(), m_entries.end(), [&prefix](const Entry &e) {
       return e.valid && e.prefix == prefix;

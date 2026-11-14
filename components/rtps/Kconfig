@@ -320,9 +320,11 @@ menu "RTPS"
                 (an expired one first), so a peer you need can still be
                 discovered on a domain crowded with peers you do not. Never of
                 a participant discovered less than SPDP_EVICT_MIN_AGE_MS ago;
-                a peer never evicted is served at once, a peer evicted before
-                waits SPDP_EVICT_READMIT_HOLDOFF_MS and then gets at most one
-                eviction per SPDP_RESEND_PERIOD_MS; each logged as a warning.
+                a peer evicted before waits SPDP_EVICT_READMIT_HOLDOFF_MS;
+                then one eviction per SPDP_RESEND_PERIOD_MS from the budget
+                of its kind (former evictees and never-evicted peers each
+                have their own, so neither starves the other and the churn is
+                at most two per period); each logged as a warning.
                 Off: a participant beyond the pool is ignored until a lease
                 frees a slot (the previous behaviour).
 
@@ -350,8 +352,10 @@ menu "RTPS"
                 still takes at once). On a domain that stays bigger than the
                 pool, the peers that do not fit re-announce every period and
                 would otherwise take turns displacing each other ahead of a
-                peer never seen before - the one you may need. Longer: less
-                churn, but a peer you evicted and now need waits this long. 0
+                peer never seen before - the one you may need (which has its
+                own one-per-period eviction budget, as the former evictees have
+                theirs). Longer: less churn, but a peer you evicted and now
+                need waits this long. 0
                 keeps the selected profile's value (5 x SPDP_RESEND_PERIOD_MS:
                 10000 embedded, 5000 host).
 
@@ -390,7 +394,7 @@ menu "RTPS"
                 callback, and the reactor ("rtps_reactor"). Raise it when a
                 callback needs more than the default; a value below 2048 is
                 refused at build time. 0 keeps the selected profile's value
-                (6144 on the embedded profile).
+                (8192 on the embedded profile).
 
         config RTPS_SPDP_WRITER_PRIO
             int "SPDP_WRITER_PRIO: protocol task priority (0 = profile default)"

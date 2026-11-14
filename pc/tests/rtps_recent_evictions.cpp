@@ -1,11 +1,12 @@
 // The admission rule behind Participant::evictUnusedRemoteParticipant on a
 // domain that stays bigger than the remote-participant pool (RecentEvictions):
-// a peer evicted lately is held off, a former evictee past its hold-off waits
-// for the per-period cooldown, a peer never evicted is served at once. It
-// used to be one eviction per period for anyone: the peers that did not fit
-// re-announced every period and took turns displacing each other, and a late
-// publisher the device needed lost every round for 90 s in the QEMU suite
-// (pool_full_evicts_unused_for_late_joiner). This pins the rule and the ring.
+// a peer evicted lately is held off; otherwise one eviction per period from the
+// budget of its kind - former evictees and never-evicted peers each have their
+// own. It used to be one eviction per period for anyone: the peers that did
+// not fit re-announced every period and took turns displacing each other, and
+// a late publisher the device needed lost every round for 90 s in the QEMU
+// suite (pool_full_evicts_unused_for_late_joiner). This pins the rule, that
+// neither budget starves the other, and the ring (oldest eviction overwritten).
 
 #include <chrono>
 #include <cstdio>
@@ -56,69 +57,86 @@ int main() {
   const auto b = prefix(0xB2);
   const auto c = prefix(0xC3);
 
-  // unknown peers proceed whatever the cooldown state
-  ok = expect(ring.gate(a, t0, never, cooldown, holdoff), Gate::Proceed,
-              "unknown, no eviction yet") &&
+  // a first-timer: its own budget, never the former evictees'
+  ok = expect(ring.gate(a, t0, never, never, cooldown, holdoff), Gate::Proceed,
+              "unknown, nothing spent") &&
        ok;
-  ok = expect(ring.gate(a, t0, t0 - 100ms, cooldown, holdoff), Gate::Proceed,
-              "unknown peer during the cooldown is still served") &&
+  ok = expect(ring.gate(a, t0, t0 - 100ms, never, cooldown, holdoff), Gate::Proceed,
+              "unknown: an eviction for a FORMER evictee 100 ms ago does not count against it") &&
+       ok;
+  ok = expect(ring.gate(a, t0, never, t0 - 100ms, cooldown, holdoff), Gate::Cooldown,
+              "unknown: an eviction for another FIRST-TIMER 100 ms ago does") &&
+       ok;
+  ok = expect(ring.gate(a, t0, never, t0 - cooldown, cooldown, holdoff), Gate::Proceed,
+              "unknown: the first-timer budget is back after one cooldown") &&
        ok;
   if (ring.lastEviction(a)) {
     std::printf("FAIL: an unknown peer has an eviction time\n");
     ok = false;
   }
 
-  // a evicted at t0: held off for holdoff, then cooldown-bound, then free
+  // a evicted at t0: held off for holdoff, then on the former evictees' budget
   ring.note(a, t0);
   if (!ring.lastEviction(a) || *ring.lastEviction(a) != t0) {
     std::printf("FAIL: the eviction time of a is not remembered\n");
     ok = false;
   }
-  ok = expect(ring.gate(a, t0 + 1s, t0, cooldown, holdoff), Gate::HeldOff, "a one second after") &&
+  ok = expect(ring.gate(a, t0 + 1s, never, never, cooldown, holdoff), Gate::HeldOff,
+              "a one second after") &&
        ok;
-  ok = expect(ring.gate(a, t0 + holdoff - 1ms, t0, cooldown, holdoff), Gate::HeldOff,
+  ok = expect(ring.gate(a, t0 + holdoff - 1ms, never, never, cooldown, holdoff), Gate::HeldOff,
               "a just before the hold-off ends") &&
        ok;
-  ok = expect(ring.gate(a, t0 + holdoff, t0 + holdoff - 500ms, cooldown, holdoff), Gate::Cooldown,
-              "a past the hold-off, an eviction 500 ms ago") &&
+  ok = expect(ring.gate(a, t0 + holdoff, t0 + holdoff - 500ms, never, cooldown, holdoff),
+              Gate::Cooldown, "a past the hold-off, an eviction for a former evictee 500 ms ago") &&
        ok;
-  ok = expect(ring.gate(a, t0 + holdoff, t0 + holdoff - cooldown, cooldown, holdoff), Gate::Proceed,
-              "a past the hold-off, the cooldown just over") &&
+  ok = expect(ring.gate(a, t0 + holdoff, never, t0 + holdoff - 500ms, cooldown, holdoff),
+              Gate::Proceed, "a past the hold-off: a stream of first-timers does not starve it") &&
        ok;
-  ok = expect(ring.gate(a, t0 + holdoff, never, cooldown, holdoff), Gate::Proceed,
-              "a past the hold-off, no eviction ever") &&
+  ok = expect(ring.gate(a, t0 + holdoff, t0 + holdoff - cooldown, never, cooldown, holdoff),
+              Gate::Proceed, "a past the hold-off, its budget's cooldown just over") &&
        ok;
-  // meanwhile b, never evicted, is served even right after a's eviction
-  ok = expect(ring.gate(b, t0 + 1ms, t0, cooldown, holdoff), Gate::Proceed,
-              "b right after a's eviction") &&
+  // meanwhile b, never evicted, is served right after an eviction made for a
+  // former evictee: the budgets are separate
+  ok = expect(ring.gate(b, t0 + 1ms, t0, never, cooldown, holdoff), Gate::Proceed,
+              "b (first-timer) right after an eviction for a former evictee") &&
        ok;
 
   // a second eviction of a refreshes its entry rather than adding one
   ring.note(a, t0 + 30s);
-  ok = expect(ring.gate(a, t0 + 31s, t0 + 30s, cooldown, holdoff), Gate::HeldOff,
+  ok = expect(ring.gate(a, t0 + 31s, never, never, cooldown, holdoff), Gate::HeldOff,
               "a held off again") &&
        ok;
-  ring.note(b, t0 + 31s);
+  ring.note(b, t0 + 29s); // noted later but with an OLDER eviction time than a's refresh
   ring.note(c, t0 + 32s);
-  // the ring (4 entries) still knows a, b, c; one more distinct peer than it
-  // holds overwrites the OLDEST slot (a, noted first) - not the refreshed one
-  // in time order, but the ring is a ring: it rolls by slot, which is what a
-  // bounded, allocation-free memory affords. Pin that it keeps the newest.
   ring.note(prefix(0xD4), t0 + 33s);
+  // the ring (4 entries) is full: a fifth peer overwrites the OLDEST EVICTION
+  // (b at t0+29 s), not the oldest slot (a, refreshed to t0+30 s)
   ring.note(prefix(0xE5), t0 + 34s);
-  if (ring.lastEviction(a)) {
-    std::printf("FAIL: the oldest slot (a) was not overwritten by the fifth peer\n");
+  if (ring.lastEviction(b)) {
+    std::printf("FAIL: the oldest eviction (b) was not the one overwritten\n");
     ok = false;
   }
-  for (uint8_t tag : {uint8_t{0xB2}, uint8_t{0xC3}, uint8_t{0xD4}, uint8_t{0xE5}}) {
+  for (uint8_t tag : {uint8_t{0xA1}, uint8_t{0xC3}, uint8_t{0xD4}, uint8_t{0xE5}}) {
     if (!ring.lastEviction(prefix(tag))) {
-      std::printf("FAIL: peer %02x forgotten while the ring had room for it\n", tag);
+      std::printf("FAIL: peer %02x forgotten while a more recent eviction was kept\n", tag);
       ok = false;
     }
   }
   if (Ring::capacity() != 4) {
     std::printf("FAIL: capacity %zu\n", Ring::capacity());
     ok = false;
+  }
+  // a ring of one entry still works (the Participant derives at least 2; this
+  // pins that N=1 is not a special case)
+  {
+    rtps::RecentEvictions<1> one;
+    one.note(a, t0);
+    one.note(b, t0 + 1s);
+    if (one.lastEviction(a) || !one.lastEviction(b)) {
+      std::printf("FAIL: a one-entry ring does not keep the newest eviction\n");
+      ok = false;
+    }
   }
 
   if (!ok) {
