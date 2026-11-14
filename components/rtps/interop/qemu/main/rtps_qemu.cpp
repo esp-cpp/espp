@@ -16,10 +16,14 @@
 //   RTPSTEST status up=<s> tx= rx= be_rx= big_rx= heap=<free> min_heap=<low water>
 //                                    int=<internal free> int_min= int_largest= psram=<free>
 //                                    stack_min=<bytes> stack_min_task=<name>
+//                                    stack_min_worker=<bytes>
 //     stack_min: the smallest stack high-water mark (bytes never used) over the
-//     engine's tasks (rtps_* and the action servers' exec_* workers) since boot;
-//     the harness fails device_stack_margin below 512 (rtps_worker_0 overflowed
-//     once on the eviction path with a few hundred bytes of margin before).
+//     engine's tasks (rtps_* and the action servers' exec_* workers) since boot,
+//     and the task; stack_min_worker: the same over the receive workers alone
+//     (rtps_worker_*: they run every reader and matched callback on top of the
+//     engine's deepest path, and rtps_worker_0 overflowed once on the eviction
+//     path with a few hundred bytes of margin). The harness fails
+//     device_stack_margin below 1024 bytes.
 //                                    every 2 s, for the soak and memory checks
 //   RTPSTEST mem sizeof domain=<B> participant= stateful_writer= stateless_writer=
 //                                    stateful_reader= stateless_reader= facade=
@@ -330,6 +334,7 @@ extern "C" void app_main(void) {
   // a thin margin is a crash waiting for a slightly deeper call.
   std::vector<TaskStatus_t> tasks;
   uint32_t stack_min = UINT32_MAX;
+  uint32_t stack_min_worker = UINT32_MAX;
   std::string stack_min_task = "none";
   const auto sample_stacks = [&]() {
     const auto count = uxTaskGetNumberOfTasks();
@@ -345,6 +350,9 @@ extern "C" void app_main(void) {
         stack_min = margin;
         stack_min_task = std::string{name};
       }
+      if (name.starts_with("rtps_worker") && margin < stack_min_worker) {
+        stack_min_worker = margin;
+      }
     }
   };
 
@@ -358,7 +366,7 @@ extern "C" void app_main(void) {
     sample_stacks();
     logger.info("RTPSTEST status up={} tx={} rx={} be_rx={} big_rx={} pub_matches={} "
                 "sub_matches={} heap={} min_heap={} int={} int_min={} int_largest={} psram={} "
-                "stack_min={} stack_min_task={}",
+                "stack_min={} stack_min_task={} stack_min_worker={}",
                 up, tx_count.load(), rx_count.load(), be_rx_count.load(), big_rx_count.load(),
                 pub_matches.load(), sub_matches.load(), heap_caps_get_free_size(MALLOC_CAP_DEFAULT),
                 heap_caps_get_minimum_free_size(MALLOC_CAP_DEFAULT),
@@ -366,6 +374,6 @@ extern "C" void app_main(void) {
                 heap_caps_get_minimum_free_size(MALLOC_CAP_INTERNAL),
                 heap_caps_get_largest_free_block(MALLOC_CAP_INTERNAL),
                 heap_caps_get_free_size(MALLOC_CAP_SPIRAM), stack_min == UINT32_MAX ? 0 : stack_min,
-                stack_min_task);
+                stack_min_task, stack_min_worker == UINT32_MAX ? 0 : stack_min_worker);
   }
 }
