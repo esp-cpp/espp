@@ -40,7 +40,36 @@
 #include <arpa/inet.h>
 #include <ifaddrs.h>
 #include <netinet/in.h>
+
 #endif
+
+// `now + timeout` for the facade's deadlines. A timeout near milliseconds::max()
+// (a Python float('inf') clamps to it; a C++ caller may pass it as "never")
+// converted to steady_clock's nanoseconds overflows and lands the deadline in
+// the past, so a huge timeout meant "expire at once": a request_timeout of
+// inf abandoned every request on the next prune, a result_timeout of inf
+// retired every goal the moment it terminated (its own client then got the
+// unknown-goal response). Saturate instead.
+namespace {
+std::chrono::steady_clock::time_point deadline_after(std::chrono::steady_clock::time_point now,
+                                                     std::chrono::milliseconds timeout) {
+  using namespace std::chrono;
+  const auto room = duration_cast<milliseconds>(steady_clock::time_point::max() - now);
+  return timeout >= room ? steady_clock::time_point::max() : now + timeout;
+}
+// A cv wait that takes a huge timeout as "no deadline" (wait_for overflows too).
+template <typename Pred>
+bool wait_within(std::condition_variable &cv, std::unique_lock<std::mutex> &lock,
+                 std::chrono::milliseconds timeout, Pred pred) {
+  const auto now = std::chrono::steady_clock::now();
+  const auto deadline = deadline_after(now, timeout);
+  if (deadline == std::chrono::steady_clock::time_point::max()) {
+    cv.wait(lock, pred);
+    return true;
+  }
+  return cv.wait_until(lock, deadline, pred);
+}
+} // namespace
 
 namespace espp {
 
@@ -1521,7 +1550,7 @@ struct RtpsParticipant::ServiceClient::Impl
     Pending entry{std::move(on_reply), std::move(sync)};
     entry.on_abandon = std::move(on_abandon);
     if (request_timeout.count() > 0) {
-      entry.deadline = std::chrono::steady_clock::now() + request_timeout;
+      entry.deadline = deadline_after(std::chrono::steady_clock::now(), request_timeout);
     }
     // A request must fit a single DATA submessage: inline QoS does not survive
     // fragmentation, and the Cyclone header counts against the same budget (see
@@ -1741,7 +1770,7 @@ std::size_t RtpsParticipant::ServiceClient::pending_count() const { return impl_
 // is one walk of a handful of proxies under the writer's lock every 10 ms for
 // the few seconds discovery takes, with no vendor lookups.
 bool RtpsParticipant::ServiceClient::wait_for_server(std::chrono::milliseconds timeout) const {
-  const auto deadline = std::chrono::steady_clock::now() + timeout;
+  const auto deadline = deadline_after(std::chrono::steady_clock::now(), timeout);
   while (impl_->matched_servers() == 0) {
     // A participant that is stopping (or stopped under us) matches nothing
     // again this run: give up at once rather than wait out the timeout.
@@ -1776,7 +1805,7 @@ RtpsParticipant::ServiceClient::call(std::span<const uint8_t> request,
     return std::nullopt;
   }
   std::unique_lock<std::mutex> lock(slot->m);
-  if (!slot->cv.wait_for(lock, timeout, [&] { return slot->done; })) {
+  if (!wait_within(slot->cv, lock, timeout, [&] { return slot->done; })) {
     // Timed out: drop the pending entry so a late reply is ignored cleanly.
     std::lock_guard<std::mutex> plock(impl_->mutex);
     impl_->pending.erase(*key);
@@ -2025,8 +2054,12 @@ struct RtpsParticipant::ActionServerContext {
       {
         std::lock_guard<std::mutex> lock(it->second->mutex);
         if (it->second->done) {
-          drop = result_timeout.count() == 0 ? it->second->result_delivered
-                                             : now - it->second->terminated_at >= result_timeout;
+          // compared in milliseconds: widening result_timeout (inf from Python
+          // clamps to milliseconds::max()) to steady_clock's nanoseconds overflows
+          drop = result_timeout.count() == 0
+                     ? it->second->result_delivered
+                     : std::chrono::duration_cast<std::chrono::milliseconds>(
+                           now - it->second->terminated_at) >= result_timeout;
         }
       }
       it = drop ? goals.erase(it) : std::next(it);
@@ -2226,6 +2259,19 @@ bool RtpsParticipant::remove_service_client(const std::shared_ptr<ServiceClient>
 bool RtpsParticipant::add_action_server(const ActionConfig &config, action_goal_callback_t on_goal,
                                         action_execute_callback_t execute,
                                         action_cancel_callback_t on_cancel) {
+  // Checked before anything else, so a wrong configuration is refused the same
+  // way on a participant that has not started (the python misuse test, which
+  // opens no socket, sees it there). The response goes out as one DATA, like
+  // every service reply: a bigger one would be accepted here and then dropped
+  // on every get_result for an unknown goal, and a ROS 2 client asking for a
+  // retired goal never times that request out - it would hang.
+  if (config.unknown_goal_response.size() > rtps::MAX_UNFRAGMENTED_RPC_PAYLOAD) {
+    logger_.error("Cannot add action server '{}': unknown_goal_response is {} bytes, the reply "
+                  "budget is {} (MAX_UNFRAGMENTED_RPC_PAYLOAD)",
+                  config.action, config.unknown_goal_response.size(),
+                  static_cast<size_t>(rtps::MAX_UNFRAGMENTED_RPC_PAYLOAD));
+    return false;
+  }
   if (!started_) {
     logger_.error("Cannot add action server '{}': not started", config.action);
     return false;
@@ -2638,7 +2684,7 @@ std::size_t RtpsParticipant::ActionClient::server_count() const {
 }
 
 bool RtpsParticipant::ActionClient::wait_for_server(std::chrono::milliseconds timeout) const {
-  const auto deadline = std::chrono::steady_clock::now() + timeout;
+  const auto deadline = deadline_after(std::chrono::steady_clock::now(), timeout);
   while (server_count() == 0) {
     // see ServiceClient::wait_for_server(): a stopping participant matches nothing
     if (!impl_->send_goal_client->impl_->running() ||
@@ -3056,7 +3102,7 @@ struct RtpsParticipant::NativeServiceClient::Impl {
       Pending entry{std::move(on_reply), std::move(sync)};
       entry.on_abandon = std::move(on_abandon);
       if (request_timeout.count() > 0) {
-        entry.deadline = std::chrono::steady_clock::now() + request_timeout;
+        entry.deadline = deadline_after(std::chrono::steady_clock::now(), request_timeout);
       }
       pending[id] = std::move(entry);
     }
@@ -3097,7 +3143,7 @@ RtpsParticipant::NativeServiceClient::call(std::span<const uint8_t> request,
     return std::nullopt;
   }
   std::unique_lock<std::mutex> lock(slot->m);
-  if (!slot->cv.wait_for(lock, timeout, [&] { return slot->done; })) {
+  if (!wait_within(slot->cv, lock, timeout, [&] { return slot->done; })) {
     std::lock_guard<std::mutex> plock(impl_->mutex);
     impl_->pending.erase(*id);
     return std::nullopt;

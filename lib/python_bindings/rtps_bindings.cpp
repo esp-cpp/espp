@@ -20,6 +20,7 @@
 #include <vector>
 
 #include <chrono>
+#include <cmath>
 #include <optional>
 #include <pybind11/functional.h>
 #include <pybind11/pybind11.h>
@@ -129,10 +130,15 @@ Rtps::service_handler_t wrap_service_handler(const py::function &fn) {
 }
 
 // A Python timeout in seconds as milliseconds: anything that is not positive
-// clamps to 0, and anything beyond what a 64-bit millisecond count can hold
-// (about 2.9e8 years) clamps to milliseconds::max() instead of overflowing.
+// clamps to 0 (the facade's "never" / "at once" sentinel), and anything beyond
+// what a 64-bit millisecond count can hold (about 2.9e8 years, float('inf')
+// included) clamps to milliseconds::max(), which the facade takes as no
+// deadline. NaN is neither: it is refused rather than read as 0.
 static std::chrono::milliseconds seconds_to_ms(double seconds) {
   using ms = std::chrono::milliseconds;
+  if (std::isnan(seconds)) {
+    throw py::value_error("a timeout cannot be NaN");
+  }
   if (!(seconds > 0.0)) {
     return ms{0};
   }
@@ -202,18 +208,26 @@ Rtps::Config to_config(const PyRtpsConfig &pc) {
   };
 }
 
-// The action server's execute-worker settings (Rtps::ActionConfig), shared by
-// the ROS 2 and the native server bindings.
+// The action server's settings (Rtps::ActionConfig), shared by the ROS 2 and
+// the native server bindings. result_timeout is in seconds (seconds_to_ms: not
+// positive -> 0 = retire a goal as soon as its result was delivered) and
+// unknown_goal_response is the ROS 2 server's canned GetResult_Response for a
+// goal it does not know (both are read by the ROS 2 server only; the native
+// server forgets a goal when it terminates and has no such response).
 Rtps::ActionConfig action_config(const std::string &action, const std::string &type_name,
                                  espp::QosBand band, std::optional<espp::Dscp> dscp,
                                  std::size_t max_goals_in_flight, std::size_t execute_workers,
-                                 const std::optional<espp::Task::BaseConfig> &execute_task) {
+                                 const std::optional<espp::Task::BaseConfig> &execute_task,
+                                 double result_timeout,
+                                 std::vector<uint8_t> unknown_goal_response) {
   Rtps::ActionConfig config{.action = action,
                             .type_name = type_name,
                             .band = band,
                             .dscp = dscp,
                             .max_goals_in_flight = max_goals_in_flight,
-                            .execute_workers = execute_workers};
+                            .execute_workers = execute_workers,
+                            .result_timeout = seconds_to_ms(result_timeout),
+                            .unknown_goal_response = std::move(unknown_goal_response)};
   if (execute_task) {
     config.execute_task = *execute_task;
   }
@@ -433,7 +447,7 @@ void py_init_rtps(py::module &m) {
             std::optional<std::vector<uint8_t>> r;
             {
               py::gil_scoped_release rel;
-              r = self.call(req, std::chrono::milliseconds(static_cast<long>(timeout * 1000)));
+              r = self.call(req, seconds_to_ms(timeout));
             }
             return r ? py::object(to_bytes(*r)) : py::none();
           },
@@ -534,7 +548,10 @@ void py_init_rtps(py::module &m) {
           py::arg("dscp") = py::none(), py::arg("request_timeout") = 30.0,
           py::arg("max_pending_requests") = 64,
           "Add a ROS 2 service client. A request unanswered for request_timeout seconds is\n"
-          "abandoned (0 = never); at most max_pending_requests wait at once (0 = unlimited).");
+          "abandoned - call()/call_future() give None, on_abandon runs if given, on_reply never\n"
+          "does (0 or negative = never) - checked when the client next sends, counts its pending\n"
+          "requests, or stops, so a reply landing between the expiry and that moment still runs\n"
+          "on_reply; at most max_pending_requests wait at once (0 = unlimited).");
 
   // ---- Actions (AMI, ROS 2-interoperable) ---------------------------------
   py::class_<Rtps::ActionGoalHandle>(
@@ -657,13 +674,15 @@ void py_init_rtps(py::module &m) {
       [](Rtps &self, const std::string &action, const std::string &type_name,
          const py::function &on_goal, const py::function &execute, espp::QosBand band,
          std::optional<espp::Dscp> dscp, std::size_t max_goals_in_flight,
-         std::size_t execute_workers, const std::optional<espp::Task::BaseConfig> &execute_task) {
+         std::size_t execute_workers, const std::optional<espp::Task::BaseConfig> &execute_task,
+         double result_timeout, const py::bytes &unknown_goal_response) {
         auto og = make_gil_safe_holder(on_goal);
         auto ex = make_gil_safe_holder(execute);
+        auto unknown = to_vec(unknown_goal_response);
         py::gil_scoped_release rel;
         return self.add_action_server(
             action_config(action, type_name, band, dscp, max_goals_in_flight, execute_workers,
-                          execute_task),
+                          execute_task, result_timeout, std::move(unknown)),
             [og](const Rtps::GoalId &, std::span<const uint8_t> goal) -> bool {
               py::gil_scoped_acquire gil;
               try {
@@ -685,7 +704,8 @@ void py_init_rtps(py::module &m) {
       py::arg("action"), py::arg("type_name"), py::arg("on_goal"), py::arg("execute"),
       py::arg("band") = espp::QosBand::Normal, py::arg("dscp") = py::none(),
       py::arg("max_goals_in_flight") = 8, py::arg("execute_workers") = 1,
-      py::arg("execute_task") = py::none(),
+      py::arg("execute_task") = py::none(), py::arg("result_timeout") = 60.0,
+      py::arg("unknown_goal_response") = py::bytes(),
       "Add a ROS 2 action server. on_goal(goal_bytes)->bool; execute(ActionGoalHandle), which\n"
       "runs on one of execute_workers tasks the server owns (0 counts as 1; goals beyond the\n"
       "workers wait in acceptance order). execute_task, an espp.Task.BaseConfig, configures\n"
@@ -693,16 +713,34 @@ void py_init_rtps(py::module &m) {
       "a BaseConfig you pass replaces all three (an empty name is still derived; a name you give\n"
       "gets the worker's index appended and is cut to 15 characters on ESP; stack size and core\n"
       "id take effect on ESP targets only, see Config). A goal beyond max_goals_in_flight\n"
-      "(running or waiting; 0: unlimited) is rejected before on_goal.");
+      "(running or waiting; 0: unlimited) is rejected before on_goal. A finished goal stays\n"
+      "known for result_timeout seconds (a late or repeated get_result is answered, a cancel\n"
+      "gets GOAL_TERMINATED) and is retired when the next goal request comes in; 0 or negative\n"
+      "retires it as soon as its result was delivered (a result nobody fetches then stays).\n"
+      "unknown_goal_response is the complete CDR GetResult_Response (status UNKNOWN + a\n"
+      "default Result) sent for a goal this server does not know; b'' sends status UNKNOWN\n"
+      "with no result body, which only parses for an empty Result type. It must fit one DATA\n"
+      "like every service reply (65391 bytes): bigger, the server is refused (False).");
   rtps.def(
       "add_action_client",
       [](Rtps &self, const std::string &action, const std::string &type_name, espp::QosBand band,
-         std::optional<espp::Dscp> dscp) {
+         std::optional<espp::Dscp> dscp, double request_timeout) {
         py::gil_scoped_release rel;
-        return self.add_action_client({action, type_name, band, dscp});
+        return self.add_action_client({.action = action,
+                                       .type_name = type_name,
+                                       .band = band,
+                                       .dscp = dscp,
+                                       .request_timeout = seconds_to_ms(request_timeout)});
       },
       py::arg("action"), py::arg("type_name"), py::arg("band") = espp::QosBand::Normal,
-      py::arg("dscp") = py::none(), "Add a ROS 2 action client.");
+      py::arg("dscp") = py::none(), py::arg("request_timeout") = 30.0,
+      "Add a ROS 2 action client. request_timeout (seconds; 0 or negative = never) bounds the\n"
+      "send_goal and cancel_goal requests: a goal whose send_goal request is unanswered that\n"
+      "long ends with on_result(6 ABORTED, b'') - the same as a rejection - reported when the\n"
+      "client's pending table is next touched (the next send_goal / cancel_goal, or stop()),\n"
+      "and an unanswered cancel_goal never calls on_response. The get_result request is never\n"
+      "timed out: it waits for the whole goal, however long it runs. (The native action client\n"
+      "has no such knob, see add_native_action_client.)");
 
   // ---- Native (espp<->espp) services + actions ----------------------------
   py::class_<Rtps::NativeServiceClient, std::shared_ptr<Rtps::NativeServiceClient>>(
@@ -715,7 +753,7 @@ void py_init_rtps(py::module &m) {
             std::optional<std::vector<uint8_t>> r;
             {
               py::gil_scoped_release rel;
-              r = self.call(req, std::chrono::milliseconds(static_cast<long>(timeout * 1000)));
+              r = self.call(req, seconds_to_ms(timeout));
             }
             return r ? py::object(to_bytes(*r)) : py::none();
           },
@@ -789,7 +827,10 @@ void py_init_rtps(py::module &m) {
             return fut;
           },
           py::arg("request"),
-          "Async call (AMI): returns a concurrent.futures.Future for the reply bytes.");
+          "Async call (AMI): returns a concurrent.futures.Future for the reply bytes.")
+      .def("pending_count", &Rtps::NativeServiceClient::pending_count,
+           "Requests sent and not yet answered (expired ones, past request_timeout, are "
+           "dropped first).");
 
   py::class_<Rtps::NativeActionClient, std::shared_ptr<Rtps::NativeActionClient>>(
       rtps, "NativeActionClient", "Handle for a lean native (espp<->espp) action.")
@@ -856,12 +897,25 @@ void py_init_rtps(py::module &m) {
       .def(
           "add_native_service_client",
           [](Rtps &self, const std::string &service, const std::string &type_name,
-             espp::QosBand band, std::optional<espp::Dscp> dscp) {
+             espp::QosBand band, std::optional<espp::Dscp> dscp, double request_timeout,
+             std::size_t max_pending_requests) {
             py::gil_scoped_release rel;
-            return self.add_native_service_client({service, type_name, band, dscp});
+            return self.add_native_service_client(
+                {.service = service,
+                 .type_name = type_name,
+                 .band = band,
+                 .dscp = dscp,
+                 .request_timeout = seconds_to_ms(request_timeout),
+                 .max_pending_requests = max_pending_requests});
           },
           py::arg("service"), py::arg("type_name"), py::arg("band") = espp::QosBand::Normal,
-          py::arg("dscp") = py::none())
+          py::arg("dscp") = py::none(), py::arg("request_timeout") = 30.0,
+          py::arg("max_pending_requests") = 64,
+          "Add a native service client. A request unanswered for request_timeout seconds is\n"
+          "abandoned - call()/call_future() give None, on_abandon runs if given, on_reply never\n"
+          "does (0 or negative = never) - checked when the client next sends, counts its pending\n"
+          "requests, or stops; at most max_pending_requests wait at once (0 = unlimited), one\n"
+          "more is refused.")
       .def(
           "add_native_action_server",
           [](Rtps &self, const std::string &action, const std::string &type_name,
@@ -887,7 +941,7 @@ void py_init_rtps(py::module &m) {
             py::gil_scoped_release rel;
             return self.add_native_action_server(
                 action_config(action, type_name, band, dscp, max_goals_in_flight, execute_workers,
-                              execute_task),
+                              execute_task, 60.0, {}),
                 [og](std::span<const uint8_t> goal) -> bool {
                   py::gil_scoped_acquire gil;
                   try {
@@ -917,7 +971,8 @@ void py_init_rtps(py::module &m) {
           "execute_task as for add_action_server (stack size and core id take effect on ESP\n"
           "targets only); a goal beyond max_goals_in_flight (running or\n"
           "waiting; 0: unlimited) is rejected before on_goal; on_cancel(handle)->bool gates\n"
-          "cancel requests.")
+          "cancel requests. A native goal is forgotten when it terminates (its result goes out\n"
+          "on the feedback topic), so there is no result_timeout here.")
       .def(
           "add_native_action_client",
           [](Rtps &self, const std::string &action, const std::string &type_name,
@@ -926,7 +981,11 @@ void py_init_rtps(py::module &m) {
             return self.add_native_action_client({action, type_name, band, dscp});
           },
           py::arg("action"), py::arg("type_name"), py::arg("band") = espp::QosBand::Normal,
-          py::arg("dscp") = py::none());
+          py::arg("dscp") = py::none(),
+          "Add a native action client. Its goal and cancel requests use the native service\n"
+          "defaults (30 s, 64 pending): a send_goal request unanswered that long is dropped\n"
+          "WITHOUT a callback (no on_result), unlike the ROS 2 action client; there is no\n"
+          "request_timeout knob here.");
 
   py::class_<Rtps::NativeGoalHandle>(rtps, "NativeGoalHandle",
                                      "Server-side handle to a running native goal.")

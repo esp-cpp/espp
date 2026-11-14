@@ -231,9 +231,20 @@ four mechanisms; the essence:
    p.start()
    p.add_service_server("/add_two_ints", "example_interfaces::srv::dds_::AddTwoInts",
                         lambda req: make_reply(req))
-   svc = p.add_service_client("/add_two_ints", "example_interfaces::srv::dds_::AddTwoInts")
+   svc = p.add_service_client("/add_two_ints", "example_interfaces::srv::dds_::AddTwoInts",
+                              request_timeout=5.0, max_pending_requests=16)
    svc.wait_for_server(5.0)                       # a call before the match is refused
    reply = svc.call(request_bytes, timeout=1.0)  # bytes or None
+   # a request unanswered for request_timeout seconds is abandoned (call_future()
+   # -> None, on_abandon runs, on_reply never); the same two keywords exist on
+   # add_native_service_client, and request_timeout on add_action_client bounds
+   # its send_goal / cancel_goal requests (an abandoned send_goal reports the
+   # goal ABORTED). An action server keeps a finished goal for result_timeout
+   # seconds (0: until its result was delivered) and answers a get_result for a
+   # goal it does not know with unknown_goal_response (a complete CDR
+   # GetResult_Response):
+   p.add_action_server("/fib", "example_interfaces::action::dds_::Fibonacci", on_goal, execute,
+                       result_timeout=10.0, unknown_goal_response=unknown_fib_result)
 
    # the participant's tasks and an action server's execute workers take an
    # espp.Task.BaseConfig; None keeps the default. Stack size and core id take

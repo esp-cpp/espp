@@ -31,8 +31,8 @@ classes = [
 
 # Methods on the client / goal-handle classes (the full client call surface).
 class_methods = {
-    "ServiceClient": ["call", "call_async", "call_future"],
-    "NativeServiceClient": ["call", "call_async", "call_future"],
+    "ServiceClient": ["call", "call_async", "call_future", "pending_count", "server_count"],
+    "NativeServiceClient": ["call", "call_async", "call_future", "pending_count"],
     "ActionClient": ["send_goal", "cancel_goal"],
     "NativeActionClient": ["send_goal", "cancel_goal"],
     "ActionGoalHandle": ["goal", "publish_feedback", "succeed", "abort", "canceled", "is_canceling"],
@@ -48,8 +48,12 @@ for cls, method_names in class_methods.items():
 kwargs = {
     "Config": ["receive_workers", "receive_worker_task", "reactor_task", "job_retry_task",
                "protocol_task", "reply_hold_task"],
-    "add_action_server": ["max_goals_in_flight", "execute_workers", "execute_task"],
+    "add_action_server": ["max_goals_in_flight", "execute_workers", "execute_task", "result_timeout",
+                          "unknown_goal_response"],
     "add_native_action_server": ["max_goals_in_flight", "execute_workers", "execute_task"],
+    "add_service_client": ["request_timeout", "max_pending_requests"],
+    "add_native_service_client": ["request_timeout", "max_pending_requests"],
+    "add_action_client": ["request_timeout"],
 }
 for name, args in kwargs.items():
     target = p.Config.__init__ if name == "Config" else getattr(p, name, None)
