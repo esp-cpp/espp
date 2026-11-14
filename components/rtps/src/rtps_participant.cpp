@@ -41,6 +41,8 @@
 #include <ifaddrs.h>
 #include <netinet/in.h>
 
+#endif
+
 // `now + timeout` for the facade's deadlines. A timeout near milliseconds::max()
 // (a Python float('inf') clamps to it; a C++ caller may pass it as "never")
 // converted to steady_clock's nanoseconds overflows and lands the deadline in
@@ -68,7 +70,6 @@ bool wait_within(std::condition_variable &cv, std::unique_lock<std::mutex> &lock
   return cv.wait_until(lock, deadline, pred);
 }
 } // namespace
-#endif
 
 namespace espp {
 
