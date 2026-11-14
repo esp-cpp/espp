@@ -236,11 +236,13 @@ four mechanisms; the essence:
    reply = svc.call(request_bytes, timeout=1.0)  # bytes or None
 
    # the participant's tasks and an action server's execute workers take an
-   # espp.Task.BaseConfig (stack size, priority, core id); None keeps the default
-   p2 = espp.RtpsParticipant(espp.RtpsParticipant.Config(
-       receive_workers=2, reactor_task=espp.Task.BaseConfig(name="rx", stack_size_bytes=8192)))
+   # espp.Task.BaseConfig; None keeps the default. Stack size and core id take
+   # effect on ESP targets (a wheel runs on the OS default stack, unpinned);
+   # priority applies on host only with host_realtime=True.
+   cfg = espp.RtpsParticipant.Config(
+       receive_workers=2, reactor_task=espp.Task.BaseConfig(name="rx", stack_size_bytes=8192))
    p.add_action_server("/fib", "example_interfaces::action::dds_::Fibonacci", on_goal, execute,
-                       execute_workers=2, execute_task=espp.Task.BaseConfig(stack_size_bytes=8192))
+                       execute_workers=2, execute_task=espp.Task.BaseConfig(priority=5))
 
 Payloads are CDR-encapsulated ``bytes`` (a 4-byte encapsulation header + CDR
 body). Pack them with :mod:`struct` for simple fields, or with the ``cdr``

@@ -106,6 +106,8 @@ def main():
     check(raises(TypeError, lambda: Rtps.Config(receive_workers=2**64)), "oversized receive_workers is a TypeError")
     check(raises(TypeError, lambda: Rtps.Config(reactor_task="not a BaseConfig")),
           "a non-BaseConfig task config is a TypeError")
+    check(Rtps.Config(max_prioritized_endpoint_ports=255).max_prioritized_endpoint_ports == 255,
+          "the uint8 field takes 255")
     check(raises(TypeError, lambda: Rtps.Config(max_prioritized_endpoint_ports=256)),
           "an out-of-range uint8 is a TypeError")
     c = Rtps.Config(receive_workers=1)

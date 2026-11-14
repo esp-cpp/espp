@@ -292,9 +292,13 @@ void py_init_rtps(py::module &m) {
            "requester's reply reader to be matched before it is written anyway (0: never held).\n"
            "receive_workers: the transport's receive worker tasks (0: the default, 2).\n"
            "receive_worker_task / reactor_task / job_retry_task / protocol_task / "
-           "reply_hold_task: an espp.Task.BaseConfig (stack size, priority, core id) for "
-           "that task; None keeps the compile-time default (menuconfig RTPS -> Tasks). "
-           "reply_hold_task's name is ignored (the timer names its task).")
+           "reply_hold_task: an espp.Task.BaseConfig for that task; None keeps the compile-time "
+           "default (menuconfig RTPS -> Tasks). Stack size and core id take effect on ESP targets "
+           "(the wheels run every task on the OS default stack, unpinned; a protocol_task stack "
+           "below 4096 B is raised to 4096 with a warning there); priority applies on host only "
+           "with host_realtime=True. reply_hold_task's name and host_realtime are ignored (the "
+           "timer names its task and runs it at the OS default scheduling). The task configs "
+           "are read back by value: to change one field, assign a whole espp.Task.BaseConfig.")
       .def_readwrite("interface_address", &PyRtpsConfig::interface_address)
       .def_readwrite("interface_netmask", &PyRtpsConfig::interface_netmask)
       .def_readwrite("on_publisher_matched", &PyRtpsConfig::on_publisher_matched)
@@ -686,8 +690,10 @@ void py_init_rtps(py::module &m) {
       "runs on one of execute_workers tasks the server owns (0 counts as 1; goals beyond the\n"
       "workers wait in acceptance order). execute_task, an espp.Task.BaseConfig, configures\n"
       "those tasks; None means a 4 KB stack, priority 5 and a name derived from the action, and\n"
-      "a BaseConfig you pass replaces all three (an empty name is still derived). A goal beyond\n"
-      "max_goals_in_flight (running or waiting; 0: unlimited) is rejected before on_goal.");
+      "a BaseConfig you pass replaces all three (an empty name is still derived; a name you give\n"
+      "gets the worker's index appended and is cut to 15 characters on ESP; stack size and core\n"
+      "id take effect on ESP targets only, see Config). A goal beyond max_goals_in_flight\n"
+      "(running or waiting; 0: unlimited) is rejected before on_goal.");
   rtps.def(
       "add_action_client",
       [](Rtps &self, const std::string &action, const std::string &type_name, espp::QosBand band,
@@ -908,7 +914,8 @@ void py_init_rtps(py::module &m) {
           "Add a native action server. on_goal(goal_bytes)->bool; execute(NativeGoalHandle), "
           "which\n"
           "runs on one of execute_workers tasks the server owns (0 counts as 1), configured by\n"
-          "execute_task as for add_action_server; a goal beyond max_goals_in_flight (running or\n"
+          "execute_task as for add_action_server (stack size and core id take effect on ESP\n"
+          "targets only); a goal beyond max_goals_in_flight (running or\n"
           "waiting; 0: unlimited) is rejected before on_goal; on_cancel(handle)->bool gates\n"
           "cancel requests.")
       .def(

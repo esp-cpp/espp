@@ -713,6 +713,7 @@ else
   timeout 120 /opt/espp-venv/bin/python python/rtps_task_configs_test.py > /tmp/pytasks.log 2>&1
   pytasks_rc=$?
   grep -E "PASS|FAIL" /tmp/pytasks.log | tail -3
+  [ $pytasks_rc -eq 0 ] || { echo "  --- python_task_configs log tail (exit $pytasks_rc; 124 = timed out) ---"; tail -20 /tmp/pytasks.log; }
   result "python_task_configs" $pytasks_rc
 fi
 
