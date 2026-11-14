@@ -28,6 +28,23 @@ on:
       - "lib/espp.cmake"
       - "pc/tests/rtps_interop_*"
       - ".github/workflows/rtps_qemu.yml"
+  # On main as well, for the same paths: a main run's memory numbers are the
+  # baseline the next pull requests' reports show their deltas against (the
+  # memory job fetches the latest main run's rtps-memory artifact whose memory
+  # job passed). The whole workflow runs there on purpose - the matrix and the
+  # soak on main are the regression gate a pull request's run can only
+  # approximate - at the cost of one QEMU run per push that touches the engine.
+  push:
+    branches: [main]
+    paths:
+      - "components/rtps/**"
+      - "components/qemu/**"
+      - "components/ethernet/**"
+      - "components/socket/**"
+      - "components/cdr/**"
+      - "lib/espp.cmake"
+      - "pc/tests/rtps_interop_*"
+      - ".github/workflows/rtps_qemu.yml"
   workflow_dispatch:
 
 concurrency:
@@ -69,6 +86,7 @@ jobs:
             && python -m esptool --chip esp32 merge-bin --fill-flash-size 4MB -o qemu_flash.bin @flash_args
       - uses: actions/upload-artifact@v4
         with:
+          overwrite: true # a re-run of a failed job replaces its artifact (v4 refuses otherwise)
           name: qemu-flash-${{ matrix.profile }}
           path: |
             components/rtps/interop/qemu/build/qemu_flash.bin
@@ -118,6 +136,8 @@ jobs:
       # pull_request event GitHub checks the pull-requests permission for it
       issues: write
       pull-requests: write
+      # to list main's runs and download the baseline's rtps-memory artifact
+      actions: read
     steps:
       - uses: actions/checkout@v7
         with:
@@ -126,6 +146,53 @@ jobs:
         with:
           pattern: qemu-flash-*
           path: components/rtps/interop/qemu/images
+      - name: Fetch the baseline (the latest run on main whose memory job passed)
+        # The report compares every number against main's latest run of this
+        # workflow (its rtps-memory artifact): a pull request's cost reads as
+        # a delta, not as another absolute figure. On a push to main the
+        # baseline is the previous main run, so the merge's own delta shows in
+        # the step summary. The baseline is chosen by its MEMORY job having
+        # passed, not by the whole run's conclusion: a soak or matrix flake on
+        # main must not quietly move the baseline back to an older commit. No
+        # baseline (the first run, expired artifacts): the report says why and
+        # prints the absolute numbers.
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          # Whatever happens below, the report learns why there is no baseline:
+          # `reason` describes the NEWEST run that could not serve (the one a
+          # maintainer wants to know about), and is written on every exit path.
+          reason=""
+          miss() { [ -n "$reason" ] || reason="$1"; }
+          finish() { if [ -z "${RTPS_MEMORY_BASELINE:-}" ]; then echo "no baseline: ${reason:-no completed run of this workflow on main yet}"; echo "RTPS_MEMORY_BASELINE_LABEL=${reason:-no completed run of this workflow on main yet}" >> "$GITHUB_ENV"; fi; }
+          trap finish EXIT
+          # The most recent completed runs ON main - pushes, or the manual dispatch
+          # that seeds the first one. `--branch` matches a run's HEAD branch, which
+          # for a pull request from a fork is the fork's branch name: a fork PR from
+          # a branch called "main" must never become the baseline, hence the event
+          # filter. The workflow is named by its file, so a renamed `name:` on a
+          # pull request still finds main's runs. Cancelled runs are "completed" too
+          # (every push to main cancels the previous one), so the window is wide.
+          runs=$(gh run list --workflow rtps_qemu.yml --branch main --status completed --limit 30 \
+                   --json databaseId,event --jq '.[] | select(.event == "push" or .event == "workflow_dispatch") | .databaseId') \
+            || { miss "could not list the workflow's runs on main (gh run list failed)"; runs=""; }
+          for run_id in $runs; do
+            memory=$(gh run view "$run_id" --json jobs --jq '[.jobs[] | select(.name == "memory") | .conclusion][0] // empty') \
+              || { miss "could not read main run $run_id (gh run view failed)"; continue; }
+            if [ "$memory" != success ]; then miss "the latest main run's memory job did not pass (run $run_id: ${memory:-no memory job})"; continue; fi
+            rm -rf baseline && mkdir -p baseline
+            if gh run download "$run_id" -n rtps-memory -D baseline && [ -s baseline/rtps-memory.json ]; then
+              sha=$(gh run view "$run_id" --json headSha --jq '.headSha[0:9]') || sha=unknown
+              echo "baseline: main @ $sha, run $run_id"
+              echo "RTPS_MEMORY_BASELINE=$PWD/baseline/rtps-memory.json" >> "$GITHUB_ENV"
+              echo "RTPS_MEMORY_BASELINE_LABEL=main @ $sha ([run ${run_id}](${{ github.server_url }}/${{ github.repository }}/actions/runs/${run_id}))" >> "$GITHUB_ENV"
+              RTPS_MEMORY_BASELINE=set
+              exit 0
+            fi
+            miss "the rtps-memory artifact of main run $run_id is gone (expired?)"
+          done
       - name: Run the memory suite on every limits profile
         # The embedded firmware runs the host-driven steps as well; the other
         # profiles boot for their sizeof and stage markers only.
@@ -147,7 +214,15 @@ jobs:
         run: |
           cd components/rtps/interop/qemu
           rm -f rtps-memory-report.md
-          python3 memory_report.py --summary rtps-memory-report.md --json rtps-memory.json \
+          # with a baseline: deltas against it; without: the label says why there is none
+          baseline_args=()
+          if [ -n "${RTPS_MEMORY_BASELINE:-}" ] && [ -s "$RTPS_MEMORY_BASELINE" ]; then
+            baseline_args=(--baseline "$RTPS_MEMORY_BASELINE")
+          fi
+          if [ -n "${RTPS_MEMORY_BASELINE_LABEL:-}" ]; then
+            baseline_args+=(--baseline-label "$RTPS_MEMORY_BASELINE_LABEL")
+          fi
+          python3 memory_report.py --summary rtps-memory-report.md --json rtps-memory.json "${baseline_args[@]}" \
             $(for p in embedded host host_large; do d="images/qemu-flash-$p"; echo "$p:$d/memory.json:$d/size-components.json"; done)
           cat rtps-memory-report.md >> "${GITHUB_STEP_SUMMARY:-/dev/null}"
       - name: Post the report on the pull request
@@ -179,6 +254,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always()
         with:
+          overwrite: true # a re-run of a failed job replaces its artifact (v4 refuses otherwise)
           name: rtps-memory
           path: |
             components/rtps/interop/qemu/rtps-memory.json
