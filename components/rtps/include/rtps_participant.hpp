@@ -20,7 +20,8 @@
 #include "base_component.hpp"
 #include "dscp.hpp"     // espp::Dscp (per-endpoint outbound marking)
 #include "qos_band.hpp" // espp::QosBand (per-endpoint / per-channel priority)
-#include "timer.hpp"    // retry timer for rejected deferred-drain arms
+#include "task.hpp"     // espp::Task::BaseConfig (the participant's tasks)
+#include "timer.hpp"    // the held-reply deadline timer
 
 // Forward declarations of the embeddedRTPS engine types (see
 // components/rtps/include/rtps/). The engine headers are only needed
@@ -36,8 +37,8 @@ class EsppTransport;
 
 // The RPC layer (services + actions, ROS-interoperable and native) is compiled
 // in by default. Define RTPS_NO_RPC (the ESP Kconfig option RTPS_ENABLE_RPC=n
-// does this via CMake) to exclude it and its std::thread/std::future use, saving
-// flash on devices that only need pub/sub. Pure pub/sub is unaffected.
+// does this via CMake) to exclude it and its std::future use, saving flash on
+// devices that only need pub/sub. Pure pub/sub is unaffected.
 #if !defined(RTPS_NO_RPC)
 #define RTPS_WITH_RPC 1
 #endif
@@ -207,6 +208,28 @@ public:
     /// (its ACKNACK). Replies are therefore held until then, up to this long
     /// (then written anyway, with a warning). Zero disables the hold.
     std::chrono::milliseconds service_reply_match_timeout{1000};
+    /// The participant's tasks, for a core id, a priority or a stack size
+    /// other than the compile-time defaults (menuconfig RTPS -> Tasks, which
+    /// an unset entry keeps). Every entry is applied at start().
+    struct Tasks {
+      /// Receive workers: every received datagram's dispatch (discovery,
+      /// samples, the user's callbacks for inline readers) and every writer's
+      /// send run on one of them. 0 keeps the transport's default (2).
+      std::size_t receive_workers{0};
+      std::optional<espp::Task::BaseConfig> receive_worker{};
+      /// The socket reactor's loop task (select() over every socket).
+      std::optional<espp::Task::BaseConfig> reactor{};
+      /// The transport's job-retry task (resubmits work a full pool rejected).
+      std::optional<espp::Task::BaseConfig> job_retry{};
+      /// The protocol task: SPDP announcements and the heartbeat cadence.
+      std::optional<espp::Task::BaseConfig> protocol{};
+      /// The held-reply deadline timer's task (RPC builds): sweeps the
+      /// service replies waiting for their reader every 100 ms (see
+      /// service_reply_match_timeout). Created at start(), with the other
+      /// tasks, never while traffic is being served.
+      std::optional<espp::Task::BaseConfig> reply_hold{};
+    };
+    Tasks tasks{};
   };
 
   /// Construct the participant (does not open sockets; see start()).
@@ -499,10 +522,25 @@ public:
     /// waits for the whole goal, however long that runs, and is released by
     /// the server's result (or its result_timeout retirement) and by stop().
     std::chrono::milliseconds request_timeout{std::chrono::seconds { 30 }};
-    /// Server only: goals that may execute at once (each accepted goal runs on
-    /// its own thread); one more is rejected before on_goal, with a warning.
-    /// A goal id the server already holds is rejected too. 0 = unlimited.
+    /// Server only: goals the server may hold at once - executing, or accepted
+    /// and waiting for an execute worker (see execute_workers); one more is
+    /// rejected before on_goal, with a warning. A goal id the server already
+    /// holds is rejected too. 0 = unlimited.
     std::size_t max_goals_in_flight{8};
+    /// Server only: the execute workers, a small task pool owned by the action
+    /// server (created with it, so its stacks are allocated once, not per
+    /// goal). Accepted goals run on them in acceptance order at the action's
+    /// band; a goal waits (status ACCEPTED) while every worker is busy, so
+    /// raise this for goals that must run concurrently. 0 is taken as 1.
+    std::size_t execute_workers{1};
+    /// Server only: the execute workers' task configuration - stack size (the
+    /// execute callback runs on it), priority, core id. An empty name is
+    /// replaced by one derived from the action.
+    espp::Task::BaseConfig execute_task{
+        .name = "",
+        .stack_size_bytes = 4096,
+        .priority = 5,
+    };
     /// Server only: how long a finished goal stays known after it terminated
     /// - for its get_result (also a late or repeated one) and for a cancel to
     /// be answered ERROR_GOAL_TERMINATED - before it is retired; retirement
@@ -520,7 +558,8 @@ public:
   };
 
   /// Server-side handle to a running goal, passed to the execute callback (which
-  /// runs on its own thread). Publish feedback and terminate the goal through it.
+  /// runs on one of the server's execute workers, see ActionConfig). Publish
+  /// feedback and terminate the goal through it.
   class ActionGoalHandle {
   public:
     const GoalId &goal_id() const;
@@ -558,13 +597,14 @@ public:
   /// Called when a goal arrives; return true to accept, false to reject.
   using action_goal_callback_t =
       std::function<bool(const GoalId &goal_id, std::span<const uint8_t> goal)>;
-  /// Called (on its own thread) to run an accepted goal to completion.
+  /// Called (on one of the server's execute workers) to run an accepted goal
+  /// to completion.
   using action_execute_callback_t = std::function<void(ActionGoalHandle handle)>;
   /// Called when a cancel is requested for a goal; return true to accept.
   using action_cancel_callback_t = std::function<bool(const GoalId &goal_id)>;
 
   /// Add an action server. on_goal decides acceptance; execute runs each accepted
-  /// goal on its own thread; on_cancel (optional) accepts/rejects cancellations.
+  /// goal on an execute worker; on_cancel (optional) accepts/rejects cancellations.
   /// \return True on success (false when not started or endpoint creation fails).
   bool add_action_server(const ActionConfig &config, action_goal_callback_t on_goal,
                          action_execute_callback_t execute,
@@ -684,7 +724,7 @@ public:
   // ---------------------------------------------------------------------------
 
   /// Server-side handle to a running native goal (passed to the execute callback,
-  /// which runs on its own thread).
+  /// which runs on one of the server's execute workers).
   class NativeGoalHandle {
   public:
     uint32_t goal_handle() const;
@@ -716,7 +756,7 @@ public:
   using native_cancel_callback_t = std::function<bool(uint32_t goal_handle)>;
 
   /// Add a native action server. on_goal accepts/rejects; execute runs each
-  /// accepted goal on its own thread; on_cancel (optional) gates cancel requests.
+  /// accepted goal on an execute worker; on_cancel (optional) gates cancel requests.
   /// \return True on success.
   bool add_native_action_server(const ActionConfig &config, native_goal_callback_t on_goal,
                                 native_execute_callback_t execute,
@@ -773,21 +813,11 @@ protected:
     rtps::EsppTransport *transport{nullptr};
     std::mutex mutex;                        ///< guards queue / flags / dropped
     std::deque<std::function<void()>> queue; ///< pending deliveries (bounded)
-    bool in_flight{false};                   ///< a drain job is queued/running
-    bool needs_arm{false};                   ///< an arm was rejected; retried by the timer
+    bool in_flight{false};                   ///< a drain job is queued, parked or running
     bool closed{false};                      ///< close() ran: drop queue, refuse new work
     bool delivering{false};                  ///< a delivery callback is executing right now
     std::condition_variable drain_done;      ///< signalled when a delivery finishes (close() waits)
     std::size_t dropped{0};                  ///< deliveries dropped (queue full)
-    /// Lazy retry timer, created only when the transport pool rejects a drain
-    /// arm: guarantees a queued (possibly lone/last) delivery is re-armed even
-    /// if no further traffic arrives. Its callback captures the OWNING context
-    /// weakly (no cycle). It NEVER self-cancels (the callback always returns
-    /// false, no-op'ing once there is nothing to re-arm); only close() cancels
-    /// it, synchronously. A self-cancelling espp::Timer leaves running_ set
-    /// while its task exits, so a later start() would no-op against a dead task
-    /// and strand the parked delivery - keeping it alive avoids that race.
-    std::unique_ptr<espp::Timer> retry_timer;
     /// Pending-delivery bound per endpoint: beyond it the NEWEST delivery is
     /// dropped (with a warning), so a stalled callback cannot queue without
     /// limit beyond the pool's own bounds.
@@ -800,20 +830,20 @@ protected:
     /// lifetime model for all deferred work - see close()).
     void run_or_defer(std::function<void()> delivery, std::shared_ptr<void> owner);
 
-    /// Quiesce: drop all queued deliveries, refuse new ones, and cancel the
-    /// retry timer (synchronously - after close() returns no timer callback
-    /// is running). MUST be called before the owning context's references are
-    /// released and before its engine endpoints are deleted; the at-most-one
-    /// in-flight delivery finishes against memory kept alive by its shared
-    /// owner capture.
+    /// Quiesce: drop all queued deliveries, refuse new ones, and withdraw a
+    /// drain job the transport has parked (EsppTransport::cancelGuaranteed).
+    /// MUST be called before the owning context's references are released and
+    /// before its engine endpoints are deleted; the at-most-one in-flight
+    /// delivery finishes against memory kept alive by its shared owner capture.
     void close();
 
   private:
-    /// Submit the single drain job (in_flight must already be true). On pool
-    /// rejection: flags needs_arm and starts the retry timer.
+    /// Submit the single drain job (in_flight must already be true) through
+    /// the transport's guaranteed drain: a full pool parks it and the
+    /// transport's one retry task resubmits it, so this dispatcher needs no
+    /// timer of its own.
     void arm(std::shared_ptr<void> owner);
     void drain(std::shared_ptr<void> owner); ///< one delivery, then re-arm if queued
-    void ensure_retry_timer_locked(const std::shared_ptr<void> &owner); ///< mutex held
   };
 
   /// Per-reader context bridging the engine's C function-pointer callback to
@@ -945,14 +975,19 @@ protected:
   /// has acknowledged the reply writer (see Config::service_reply_match_timeout
   /// and ServiceResponder::reply()): the servers holding one. A match flushes
   /// the acknowledged ones at once (the engine's subscriber-matched callback);
-  /// a timer polls for the acknowledgement and enforces the deadline. The timer is
-  /// created by the first held reply and kept until stop(): creating one per
-  /// hold fragmented the ESP32's internal RAM (every task stack lives there)
-  /// until a creation failed and the thread constructor's exception took the
-  /// device down (the QEMU soak, after 13 cycles of service calls).
+  /// a timer polls for the acknowledgement and enforces the deadline. The timer
+  /// is created at start() with the participant's other tasks and kept until
+  /// stop(): a task created while traffic is served is the one whose creation
+  /// fails, and on ESP the thread constructor's exception then takes the device
+  /// down (the QEMU soak did that with one timer per hold, and again with one
+  /// created by the first hold once less internal RAM was free).
   std::mutex held_replies_mutex_;
   std::vector<std::weak_ptr<ServiceServerContext>> servers_with_held_replies_;
   std::unique_ptr<espp::Timer> held_replies_timer_;
+  /// Create held_replies_timer_ (RPC builds; from start(), or as the fallback
+  /// in note_held_reply() when that failed). held_replies_mutex_ held. False
+  /// when the timer could not be started: replies are then written at once.
+  bool start_held_reply_timer_locked();
   /// List the server and make sure the deadline timer runs. False when the
   /// timer could not be created (no memory for its task): the caller must
   /// not hold the reply, there would be nothing to write it at the deadline.

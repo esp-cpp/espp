@@ -75,31 +75,103 @@ bool isMulticastAddress(const rtps::Ip4AddressBytes &addr) {
 } // namespace
 
 EsppTransport::EsppTransport(RxCallback callback, void *args)
+    : EsppTransport(callback, args, TaskConfig{}) {}
+
+EsppTransport::EsppTransport(RxCallback callback, void *args, const TaskConfig &tasks)
     : espp::BaseComponent("RtpsTransport", espp::Logger::Verbosity::WARN)
     , m_rxCallback(callback)
-    , m_callbackArgs(args) {
+    , m_callbackArgs(args)
+    , m_tasks(tasks) {
   espp::ThreadPool::Config pool_config;
-  pool_config.worker_count = 2;
+  pool_config.worker_count =
+      m_tasks.worker_count > 0 ? m_tasks.worker_count : TaskConfig{}.worker_count; // 0 = default
   // Bounded queue: rejected submissions are real backpressure signals (the
   // reactor re-arms the socket and the deferred dispatchers retry via their
   // timer), instead of an unbounded heap-backed backlog under overload.
   pool_config.max_queue_size = 64;
-  pool_config.worker_task_config = {
-      .name = "rtps_worker",
-      .stack_size_bytes = Config::THREAD_POOL_READER_STACKSIZE,
-      .priority = Config::THREAD_POOL_READER_PRIO,
-  };
+  pool_config.worker_task_config = m_tasks.worker_task;
   m_pool = std::make_shared<espp::ThreadPool>(pool_config);
+  if (!m_pool->is_running()) {
+    logger_.error("The receive workers ('{}') could not be started", m_tasks.worker_task.name);
+  }
 
   espp::SocketReactor::Config reactor_config;
   reactor_config.thread_pool = m_pool;
-  reactor_config.loop_task_config = {
-      .name = "rtps_reactor",
-      .stack_size_bytes = Config::THREAD_POOL_READER_STACKSIZE,
-      .priority = Config::THREAD_POOL_READER_PRIO,
-  };
+  reactor_config.loop_task_config = m_tasks.reactor_task;
   reactor_config.log_level = espp::Logger::Verbosity::WARN;
   m_reactor = std::make_shared<espp::SocketReactor>(reactor_config);
+  if (!m_reactor->is_running()) {
+    logger_.error("The socket reactor ('{}') could not be started", m_tasks.reactor_task.name);
+  }
+
+  // The guaranteed-submission retry task, created now rather than on the
+  // first rejection: a task created under load (the only time a rejection
+  // happens) is the one whose creation fails, and on a build without
+  // exceptions that failure ends the program. It sleeps until a job is parked.
+  espp::Task::Config retry_config;
+  retry_config.callback = [this](std::mutex &m, std::condition_variable &cv, bool &notified) {
+    return retryLoop(m, cv, notified);
+  };
+  retry_config.task_config = m_tasks.retry_task;
+  retry_config.log_level = espp::Logger::Verbosity::WARN;
+  m_retryTask = espp::Task::make_unique(retry_config);
+  m_retryTaskRunning = m_retryTask->start();
+  if (!m_retryTaskRunning) {
+    // Nothing can be guaranteed without it: a rejected submission is dropped
+    // (with an error) instead of parked for a retry that would never come.
+    logger_.error("Could not start the job-retry task '{}': a submission the worker pool "
+                  "rejects will be dropped",
+                  m_tasks.retry_task.name);
+  }
+}
+
+EsppTransport::~EsppTransport() { stop(); }
+
+bool EsppTransport::tasksRunning() const {
+  return m_pool && m_pool->is_running() && m_reactor && m_reactor->is_running() &&
+         m_retryTaskRunning;
+}
+
+bool EsppTransport::retryLoop(std::mutex &m, std::condition_variable &cv, bool &notified) {
+  // Publish the task's synchronization objects for nudgeRetry() (once; the
+  // values are stable for the task's lifetime).
+  {
+    std::lock_guard<std::mutex> nudge_lock(m_retryNudgeMutex);
+    m_retryMutex = &m;
+    m_retryCv = &cv;
+  }
+  bool saturated = false;
+  {
+    std::lock_guard<std::mutex> lock(m_pendingMutex);
+    if (m_stopping) {
+      return true; // stop() stops this task; nothing to resubmit
+    }
+    saturated = drainPendingLocked();
+    m_pendingWork.store(!m_pendingByKey.empty());
+  }
+  // Sleep until a job is parked (m_pendingWork, set before the nudge) or
+  // stop() notifies; while the pool is full, re-try every RETRY_PERIOD. The
+  // Task's `notified` is left to the Task (its stop() sets it).
+  std::unique_lock<std::mutex> lock(m);
+  if (saturated) {
+    cv.wait_for(lock, RETRY_PERIOD, [&notified] { return notified; });
+  } else {
+    cv.wait(lock, [&notified, this] { return notified || m_pendingWork.load(); });
+  }
+  return false; // stop() is observed through m_stopping at the top of the loop
+}
+
+void EsppTransport::nudgeRetry() {
+  // Notify under the task's mutex: retryLoop() evaluates its wait predicate
+  // (m_pendingWork, already set by the caller) under it, so the wake-up
+  // cannot slip between the evaluation and the wait. The Task's `notified`
+  // flag is left to Task::stop(): setting it here would need clearing, and a
+  // stale one would turn the wait into a spin.
+  std::lock_guard<std::mutex> nudge_lock(m_retryNudgeMutex);
+  if (m_retryMutex != nullptr && m_retryCv != nullptr) {
+    std::lock_guard<std::mutex> lock(*m_retryMutex);
+    m_retryCv->notify_all();
+  }
 }
 
 EsppTransport::Channel *EsppTransport::findChannel(Ip4Port_t port) {
@@ -264,9 +336,21 @@ void EsppTransport::cancelGuaranteed(const void *key) {
 
 void EsppTransport::parkPendingJob(const void *key, std::function<void()> job, espp::QosBand band,
                                    bool cap_to_one) {
+  if (!parkPendingJobLocked(key, std::move(job), band, cap_to_one)) {
+    return;
+  }
+  nudgeRetry();
+}
+
+bool EsppTransport::parkPendingJobLocked(const void *key, std::function<void()> job,
+                                         espp::QosBand band, bool cap_to_one) {
   std::lock_guard<std::mutex> lock(m_pendingMutex);
   if (m_stopping) {
-    return; // teardown: nothing to guarantee anymore
+    return false; // teardown: nothing to guarantee anymore
+  }
+  if (!m_retryTaskRunning) {
+    logger_.error("Worker pool rejected a job and the job-retry task is not running: dropped");
+    return false;
   }
   // Coalesce by producer: a repeated poke for the same writer just bumps its
   // owed count (the job/band are identical), so the map is bounded by the
@@ -284,79 +368,67 @@ void EsppTransport::parkPendingJob(const void *key, std::function<void()> job, e
   } else {
     ++entry.count;
   }
-  if (m_retryTimer) {
-    return; // already running; it drains owed runs on its next tick
+  // Wake the retry task (it may already be awake: a nudge is idempotent).
+  // The flag is set under m_pendingMutex, the nudge is sent after releasing
+  // it (nudgeRetry takes the task's mutex, which the task holds while it
+  // evaluates its wait predicate).
+  m_pendingWork.store(true);
+  return true;
+}
+
+bool EsppTransport::drainPendingLocked() {
+  // Fair drain: submit at most one owed run per key per pass and rotate
+  // the starting key across passes, with NO band ordering at this
+  // admission stage. Draining one key to exhaustion starved later keys;
+  // sorting by band here was no better - a continuously-owed higher-band
+  // producer would take the only freed slot on every pass and starve
+  // lower bands forever, violating submitGuaranteed()'s eventual-run
+  // contract. Round-robin admission guarantees every key is admitted
+  // within N passes of a free slot; PRIORITY is preserved because each job
+  // is submitted at its own band and the pool's banded queues (with
+  // aging) decide execution order among admitted jobs.
+  bool saturated = false;
+  using MapIt = std::map<const void *, PendingProgress>::iterator;
+  std::vector<MapIt> ready;
+  ready.reserve(m_pendingByKey.size());
+  for (auto it = m_pendingByKey.begin(); it != m_pendingByKey.end(); ++it) {
+    if (it->second.count > 0) {
+      ready.push_back(it);
+    }
   }
-  // The retry timer NEVER self-cancels (callback always returns false). A
-  // self-cancelling espp::Timer stops its task but leaves running_ set, so a
-  // later start() would no-op against a dead task and strand parked work;
-  // keeping it alive until stop() sidesteps that. Cost: a 20 ms mutex+empty
-  // check, paid only after an actual pool rejection and only until stop().
-  m_retryTimer = std::make_unique<espp::Timer>(espp::Timer::Config{
-      .name = "rtps_job_retry",
-      .period = std::chrono::milliseconds(20),
-      .delay = std::chrono::milliseconds(20),
-      .callback = [this]() -> bool {
-        std::lock_guard<std::mutex> lock(m_pendingMutex);
-        if (m_stopping) {
-          return false; // stop() cancels this timer; nothing to do
+  if (!ready.empty()) {
+    // Rotate the start so a different key leads each tick.
+    std::rotate(ready.begin(), ready.begin() + (m_drainRotor++ % ready.size()), ready.end());
+    while (!saturated) {
+      bool submitted_this_pass = false;
+      for (MapIt it : ready) {
+        if (it->second.count == 0) {
+          continue;
         }
-        // Fair drain: submit at most one owed run per key per pass and rotate
-        // the starting key across ticks, with NO band ordering at this
-        // admission stage. Draining one key to exhaustion starved later keys;
-        // sorting by band here was no better - a continuously-owed higher-band
-        // producer would take the only freed slot on every tick and starve
-        // lower bands forever, violating submitGuaranteed()'s eventual-run
-        // contract. Round-robin admission guarantees every key is admitted
-        // within N ticks of a free slot; PRIORITY is preserved because each job
-        // is submitted at its own band and the pool's banded queues (with
-        // aging) decide execution order among admitted jobs.
-        using MapIt = std::map<const void *, PendingProgress>::iterator;
-        std::vector<MapIt> ready;
-        ready.reserve(m_pendingByKey.size());
-        for (auto it = m_pendingByKey.begin(); it != m_pendingByKey.end(); ++it) {
-          if (it->second.count > 0) {
-            ready.push_back(it);
-          }
+        // Pass a COPY of the job - it is reused `count` times, so it must
+        // not be moved out (try_submit takes it by rvalue).
+        if (!m_pool ||
+            !m_pool->try_submit(std::function<void()>(it->second.job), it->second.band)) {
+          saturated = true; // pool full; remaining owed runs retry after RETRY_PERIOD
+          break;
         }
-        if (!ready.empty()) {
-          // Rotate the start so a different key leads each tick.
-          std::rotate(ready.begin(), ready.begin() + (m_drainRotor++ % ready.size()), ready.end());
-          bool saturated = false;
-          while (!saturated) {
-            bool submitted_this_pass = false;
-            for (MapIt it : ready) {
-              if (it->second.count == 0) {
-                continue;
-              }
-              // Pass a COPY of the job - it is reused `count` times, so it must
-              // not be moved out (try_submit takes it by rvalue).
-              if (!m_pool ||
-                  !m_pool->try_submit(std::function<void()>(it->second.job), it->second.band)) {
-                saturated = true; // pool full; remaining owed runs retry next tick
-                break;
-              }
-              --it->second.count;
-              submitted_this_pass = true;
-            }
-            if (!submitted_this_pass) {
-              break; // every key drained (or nothing left to submit)
-            }
-          }
-          // Drop fully-drained keys.
-          for (auto it = m_pendingByKey.begin(); it != m_pendingByKey.end();) {
-            if (it->second.count == 0) {
-              it = m_pendingByKey.erase(it);
-            } else {
-              ++it;
-            }
-          }
-        }
-        return false; // never self-cancel (see above)
-      },
-      .auto_start = true,
-      .log_level = espp::Logger::Verbosity::WARN,
-  });
+        --it->second.count;
+        submitted_this_pass = true;
+      }
+      if (!submitted_this_pass) {
+        break; // every key drained (or nothing left to submit)
+      }
+    }
+    // Drop fully-drained keys.
+    for (auto it = m_pendingByKey.begin(); it != m_pendingByKey.end();) {
+      if (it->second.count == 0) {
+        it = m_pendingByKey.erase(it);
+      } else {
+        ++it;
+      }
+    }
+  }
+  return saturated;
 }
 
 void EsppTransport::stop() {
@@ -369,8 +441,12 @@ void EsppTransport::stop() {
     m_stopping = true;
     m_pendingByKey.clear();
   }
-  if (m_retryTimer) {
-    m_retryTimer->cancel();
+  if (m_retryTask) {
+    nudgeRetry(); // wake the loop so it observes m_stopping
+    m_retryTask->stop();
+    std::lock_guard<std::mutex> nudge_lock(m_retryNudgeMutex);
+    m_retryMutex = nullptr;
+    m_retryCv = nullptr;
   }
   if (m_reactor) {
     m_reactor->stop();

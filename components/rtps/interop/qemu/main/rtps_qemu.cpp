@@ -29,12 +29,15 @@
 //   rt/qemu_be_rx  best-effort, device subscribes
 //   rt/qemu_big    reliable, device subscribes (fragmented samples)
 //   /qemu_add_two_ints  example_interfaces/srv/AddTwoInts service the device serves
+//   /qemu_fibonacci     example_interfaces/action/Fibonacci action the device serves
+//                       (one execute worker: the memory suite reads its cost)
 
 #include <atomic>
 #include <chrono>
 #include <cstdint>
 #include <string>
 #include <thread>
+#include <vector>
 
 #include <esp_heap_caps.h>
 #include <esp_netif.h>
@@ -43,6 +46,7 @@
 
 #include "logger.hpp"
 #include "rtps/entities/Domain.hpp"
+#include "rtps_action.hpp"
 #include "rtps_participant.hpp"
 #include "rtps_pubsub.hpp"
 #include "rtps_service.hpp"
@@ -88,6 +92,17 @@ struct AddReq {
 };
 struct AddResp {
   int64_t sum;
+};
+
+// example_interfaces/action/Fibonacci
+struct FibGoal {
+  int32_t order;
+};
+struct FibResult {
+  std::vector<int32_t> sequence;
+};
+struct FibFeedback {
+  std::vector<int32_t> sequence;
 };
 
 static std::string ip4_to_string(esp_ip4_addr_t ip) {
@@ -237,6 +252,43 @@ extern "C" void app_main(void) {
                    });
   if (!add_service.is_valid()) {
     logger.error("RTPSTEST fatal service");
+    return;
+  }
+  // The action server's execute worker is a task created with the server (its
+  // stack is part of the "endpoints" stage); a goal runs on it.
+  espp::ActionServer<FibGoal, FibResult, FibFeedback> fib_action(
+      participant, {
+                       .action = "/qemu_fibonacci",
+                       .type_name = "example_interfaces::action::dds_::Fibonacci",
+                       .on_goal = [](const FibGoal &g) { return g.order >= 0 && g.order <= 20; },
+                       .execute =
+                           [&](auto &h) {
+                             FibResult r;
+                             // Reserved up front: the memory step measures the
+                             // action, not the vector's growth.
+                             r.sequence.reserve(static_cast<std::size_t>(h.goal().order));
+                             int32_t a = 0, b = 1;
+                             for (int32_t i = 0; i < h.goal().order && !h.is_canceling(); ++i) {
+                               r.sequence.push_back(a);
+                               const int32_t next = a + b;
+                               a = b;
+                               b = next;
+                               FibFeedback fb;
+                               fb.sequence.reserve(r.sequence.size());
+                               fb.sequence = r.sequence;
+                               h.publish_feedback(fb);
+                             }
+                             logger.info("RTPSTEST action order={} len={}", h.goal().order,
+                                         r.sequence.size());
+                             if (h.is_canceling()) {
+                               h.canceled(r);
+                             } else {
+                               h.succeed(r);
+                             }
+                           },
+                   });
+  if (!fib_action.is_valid()) {
+    logger.error("RTPSTEST fatal action");
     return;
   }
 #endif

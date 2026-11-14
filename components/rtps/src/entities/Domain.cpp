@@ -47,7 +47,7 @@ using rtps::Domain;
 
 Domain::Domain(const rtps::Ip4AddressBytes &localIpAddress, const DomainConfig &config)
     : espp::BaseComponent("RtpsDomain", espp::Logger::Verbosity::WARN)
-    , m_defaultTransport(&Domain::datagramJumppad, this)
+    , m_defaultTransport(&Domain::datagramJumppad, this, config.transport)
     , m_transport(&m_defaultTransport)
     , m_localIpAddress(localIpAddress)
     , m_config(config) {
@@ -66,6 +66,11 @@ Domain::Domain(rtps::EsppTransport &transport, const rtps::Ip4AddressBytes &loca
 
 bool Domain::initializeTransport() {
   assert(m_transport != nullptr);
+  if (!m_transport->tasksRunning()) {
+    logger_.error("The transport's tasks did not all start (a core id or stack size the "
+                  "platform refuses?): the domain cannot run");
+    return false;
+  }
   // Metatraffic (SPDP discovery multicast) is registered at the configured
   // metatraffic band (High by default) so discovery dispatch overtakes queued
   // user-traffic handling; user multicast runs at the user-traffic band.
@@ -99,13 +104,28 @@ bool Domain::completeInit() {
   task_config.callback = [this](std::mutex &m, std::condition_variable &cv, bool &notified) {
     return protocolLoop(m, cv, notified);
   };
-  task_config.task_config.name = "rtps_protocol";
-  task_config.task_config.stack_size_bytes =
-      Config::SPDP_WRITER_STACKSIZE > 4096 ? Config::SPDP_WRITER_STACKSIZE : 4096;
-  task_config.task_config.priority = Config::SPDP_WRITER_PRIO;
+  task_config.task_config = m_config.protocol_task;
+  // The loop ticks every writer's heartbeat and the SPDP announcements: below
+  // 4 KB it overflows on the target (the compile-time default clamps there
+  // too), so a smaller runtime value is raised, with a warning.
+  if (task_config.task_config.stack_size_bytes < 4096) {
+    logger_.warn("Protocol task stack {} B is below the 4096 B minimum; using 4096",
+                 task_config.task_config.stack_size_bytes);
+    task_config.task_config.stack_size_bytes = 4096;
+  }
   task_config.log_level = espp::Logger::Verbosity::WARN;
   m_protocolTask = espp::Task::make_unique(task_config);
-  (void)m_protocolTask->start();
+  if (!m_protocolTask->start()) {
+    // Without it nothing announces this participant or heartbeats its
+    // writers: the initialization fails as a whole (the facade tears the
+    // domain down on false).
+    logger_.error("The protocol task ('{}') could not be started (a core id or stack size the "
+                  "platform refuses?)",
+                  m_config.protocol_task.name);
+    m_protocolTask.reset();
+    m_initComplete = false;
+    return false;
+  }
 
   for (uint8_t slot = 0; slot < m_numParticipants; ++slot) {
     m_participants[slot].getSPDPAgent().start();

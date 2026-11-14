@@ -65,6 +65,16 @@ struct DomainConfig {
   /// tell which of a peer's announced unicast locators is reachable when the
   /// peer sits on several networks; a /24 when unknown.
   uint8_t local_prefix_length{DEFAULT_SUBNET_PREFIX_LENGTH};
+  /// The default transport's tasks (ignored when a transport is passed in).
+  EsppTransport::TaskConfig transport{};
+  /// The protocol task (SPDP announcements, every stateful writer's heartbeat
+  /// cadence). Defaults from the compile-time Config (menuconfig RTPS -> Tasks).
+  espp::Task::BaseConfig protocol_task{
+      .name = "rtps_protocol",
+      .stack_size_bytes = static_cast<EsppTransport::TaskConfig::StackSize>(
+          Config::SPDP_WRITER_STACKSIZE > 4096 ? Config::SPDP_WRITER_STACKSIZE : 4096),
+      .priority = static_cast<EsppTransport::TaskConfig::Priority>(Config::SPDP_WRITER_PRIO),
+  };
 };
 
 /// Per-endpoint scheduling options for createWriter()/createReader().

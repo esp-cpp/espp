@@ -1,4 +1,12 @@
 # The memory suite's third firmware: the host_large limits profile on the
-# target (rtps/config_host_large.hpp). It may not fit the ESP32's internal RAM;
-# the suite reports whether the participant started.
+# target (rtps/config_host_large.hpp). It does not fit the ESP32's internal RAM
+# (building its Domain creates more mutexes than that RAM holds, and the
+# firmware panics on the way out of the failed start()); the suite records
+# that, with the sizeof and the boot heap the firmware logs first.
 CONFIG_RTPS_LIMITS_PROFILE_HOST_LARGE=y
+# The pools sdkconfig.ci.defaults raises for the embedded build are this
+# profile's own (larger) defaults again.
+CONFIG_RTPS_LIMIT_NUM_STATEFUL_WRITERS=0
+CONFIG_RTPS_LIMIT_NUM_STATEFUL_READERS=0
+CONFIG_RTPS_LIMIT_NUM_WRITERS_PER_PARTICIPANT=0
+CONFIG_RTPS_LIMIT_NUM_READERS_PER_PARTICIPANT=0

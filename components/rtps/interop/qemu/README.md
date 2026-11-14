@@ -17,6 +17,7 @@ What it runs, all at once:
 | subscriber | `/qemu_be_rx` | best effort |
 | subscriber for fragmented samples | `/qemu_big` | reliable |
 | service server (`example_interfaces/srv/AddTwoInts`) | `/qemu_add_two_ints` | |
+| action server (`example_interfaces/action/Fibonacci`) | `/qemu_fibonacci` | one execute worker (`ActionConfig::execute_workers`), whose task is part of the "endpoints" memory stage |
 
 and a status line every 2 s with the counters, free heap and the heap low-water
 mark. The markers are listed at the top of `main/rtps_qemu.cpp`.

@@ -2,3 +2,9 @@
 # (rtps/config_desktop.hpp), to put a number on what the relaxed caps cost.
 # Layered over sdkconfig.defaults;sdkconfig.ci.defaults by rtps_qemu.yml.
 CONFIG_RTPS_LIMITS_PROFILE_HOST=y
+# The pools sdkconfig.ci.defaults raises for the embedded build are this
+# profile's own (larger) defaults again.
+CONFIG_RTPS_LIMIT_NUM_STATEFUL_WRITERS=0
+CONFIG_RTPS_LIMIT_NUM_STATEFUL_READERS=0
+CONFIG_RTPS_LIMIT_NUM_WRITERS_PER_PARTICIPANT=0
+CONFIG_RTPS_LIMIT_NUM_READERS_PER_PARTICIPANT=0

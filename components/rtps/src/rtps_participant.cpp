@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <atomic>
+#include <cctype>
 #include <condition_variable>
 #include <cstdio>
 #include <iterator>
@@ -23,6 +24,7 @@
 #include "rtps/rpc/native_protocol.hpp"
 #include "rtps/rpc/sample_identity.hpp"
 #include "rtps/rpc/service_naming.hpp"
+#include "thread_pool.hpp"
 
 // Host-side interface auto-detection uses platform-specific enumeration APIs.
 #if defined(ESP_PLATFORM)
@@ -214,6 +216,27 @@ bool RtpsParticipant::resolve_interface(std::array<uint8_t, 4> &ip_bytes,
   return true;
 }
 
+namespace {
+// The transport's tasks: the compile-time defaults, overridden by whatever
+// Config::tasks sets.
+rtps::EsppTransport::TaskConfig transport_config(const RtpsParticipant::Config &config) {
+  rtps::EsppTransport::TaskConfig transport;
+  if (config.tasks.receive_workers > 0) {
+    transport.worker_count = config.tasks.receive_workers; // 0 keeps the transport's default
+  }
+  if (config.tasks.receive_worker) {
+    transport.worker_task = *config.tasks.receive_worker;
+  }
+  if (config.tasks.reactor) {
+    transport.reactor_task = *config.tasks.reactor;
+  }
+  if (config.tasks.job_retry) {
+    transport.retry_task = *config.tasks.job_retry;
+  }
+  return transport;
+}
+} // namespace
+
 bool RtpsParticipant::start() {
   std::lock_guard<std::mutex> lock(mutex_);
   if (started_) {
@@ -230,12 +253,15 @@ bool RtpsParticipant::start() {
   // Channel/endpoint scheduling: metatraffic (SPDP/SEDP) dispatches at
   // metatraffic_band (High by default), user traffic at user_traffic_band;
   // banded endpoints may get dedicated ports, rationed by the configured cap.
+  const rtps::DomainConfig engine_defaults{}; // the engine's own task defaults
   const rtps::DomainConfig domain_config{
       .metatraffic_band = config_.metatraffic_band,
       .user_traffic_band = config_.user_traffic_band,
       .enable_dedicated_endpoint_ports = config_.enable_dedicated_endpoint_ports,
       .max_prioritized_endpoint_ports = config_.max_prioritized_endpoint_ports,
       .local_prefix_length = prefix_length,
+      .transport = transport_config(config_),
+      .protocol_task = config_.tasks.protocol.value_or(engine_defaults.protocol_task),
   };
   domain_ = std::make_unique<rtps::Domain>(ip_bytes, domain_config);
   // Fresh liveness token for this run (a prior stop() left the old one flipped).
@@ -263,6 +289,16 @@ bool RtpsParticipant::start() {
     domain_.reset();
     return false;
   }
+
+#ifdef RTPS_WITH_RPC
+  // The held-reply deadline timer, with the other tasks: never created while
+  // traffic is served (see the member's comment). A failure is logged and
+  // leaves the fallback in note_held_reply().
+  {
+    std::lock_guard<std::mutex> held_lock(held_replies_mutex_);
+    (void)start_held_reply_timer_locked();
+  }
+#endif
 
   started_ = true;
   logger_.info("Started (interface {}.{}.{}.{})", ip_bytes[0], ip_bytes[1], ip_bytes[2],
@@ -627,7 +663,6 @@ void RtpsParticipant::DeferredDispatch::run_or_defer(std::function<void()> deliv
     queue.push_back(std::move(delivery));
     if (!in_flight) {
       in_flight = true;
-      needs_arm = false;
       do_arm = true;
     }
   }
@@ -639,86 +674,41 @@ void RtpsParticipant::DeferredDispatch::run_or_defer(std::function<void()> deliv
 void RtpsParticipant::DeferredDispatch::arm(std::shared_ptr<void> owner) {
   // in_flight is already true (set by the caller under the mutex). The drain
   // job captures `owner` (the shared context embedding this dispatcher), so
-  // queued work can never outlive the context.
-  if (transport->submit([this, owner]() { drain(owner); }, band)) {
-    return;
-  }
-  // Pool full/stopped: a queued (possibly lone/last) delivery must never be
-  // stranded waiting for traffic that may not come - flag the failed arm and
-  // let the retry timer recover it.
+  // queued work can never outlive the context. Guaranteed: when the pool is
+  // full the transport parks the job (one per dispatcher, drain semantics)
+  // and its retry task resubmits it, so a queued (possibly lone/last)
+  // delivery is never stranded waiting for traffic that may not come.
+  // Submitted under the dispatcher mutex so that close() - which marks the
+  // dispatcher closed under it and then withdraws the parked job through
+  // cancelGuaranteed() - either sees the arm refused here or cancels what it
+  // parked: an arm slipping in between would park a job holding the removed
+  // endpoint's context. The transport takes only its own pending-job mutex
+  // under this one, never a dispatcher's.
   std::lock_guard<std::mutex> lock(mutex);
-  in_flight = false;
   if (closed) {
+    in_flight = false;
     return;
   }
-  needs_arm = true;
-  ensure_retry_timer_locked(owner);
-}
-
-void RtpsParticipant::DeferredDispatch::ensure_retry_timer_locked(
-    const std::shared_ptr<void> &owner) {
-  if (retry_timer) {
-    return; // already running; it re-arms from needs_arm on its next tick
-  }
-  // The timer runs until close() cancels it synchronously - it NEVER
-  // self-cancels. A self-cancelling espp::Timer (callback returning true)
-  // stops its underlying task but leaves Timer::running_ set, so a later
-  // start() would CAS-fail ("already running") and no-op against a dead task,
-  // stranding the parked work. Keeping it alive (callback always returns
-  // false) sidesteps that entirely; the per-tick cost is a mutex + empty
-  // check, paid only after an actual pool rejection and only until close().
-  //
-  // Weak owner capture: the context owns this dispatcher (and thus the timer),
-  // so a strong capture would be a cycle; the callback promotes it per tick.
-  std::weak_ptr<void> weak_owner = owner;
-  retry_timer = std::make_unique<espp::Timer>(espp::Timer::Config{
-      .name = "rtps_defer_arm",
-      .period = std::chrono::milliseconds(20),
-      .delay = std::chrono::milliseconds(20),
-      .callback = [this, weak_owner]() -> bool {
-        auto strong = weak_owner.lock();
-        if (!strong) {
-          return false; // owner gone (close() cancels first); nothing to do
-        }
-        {
-          std::lock_guard<std::mutex> lock(mutex);
-          if (closed || !needs_arm || in_flight) {
-            return false; // nothing to recover this tick; keep the timer alive
-          }
-          if (queue.empty()) {
-            needs_arm = false;
-            return false;
-          }
-          in_flight = true;
-          needs_arm = false;
-        }
-        // Reached only when a drain is owed and now in_flight: try to arm it.
-        if (!transport->submit([this, strong]() { drain(strong); }, band)) {
-          std::lock_guard<std::mutex> lock(mutex);
-          in_flight = false;
-          if (!closed) {
-            needs_arm = true; // still saturated; the next tick retries
-          }
-        }
-        return false; // never self-cancel (see above)
-      },
-      .auto_start = true,
-      .log_level = espp::Logger::Verbosity::WARN,
-  });
+  transport->submitGuaranteedDrain(
+      this, [this, owner]() { drain(owner); }, band);
 }
 
 void RtpsParticipant::DeferredDispatch::close() {
   {
     std::lock_guard<std::mutex> lock(mutex);
     closed = true;
-    needs_arm = false;
     queue.clear();
   }
-  // Cancel the retry timer synchronously and OUTSIDE the lock: cancel() joins
-  // the timer task, whose callback takes `mutex` - holding it here would
-  // deadlock. After cancel() returns no timer callback is running or will run.
-  if (retry_timer) {
-    retry_timer->cancel();
+  // Withdraw a parked drain job (it holds the owner): after this the
+  // transport's retry task cannot resubmit it. A job it already handed to the
+  // pool runs drain(), which sees `closed` and returns. Either way no drain
+  // is queued or parked for this dispatcher any more: say so in its state.
+  if (transport != nullptr) {
+    transport->cancelGuaranteed(this);
+  }
+  {
+    std::lock_guard<std::mutex> lock(mutex);
+    in_flight = false;
   }
   // Wait for any in-flight delivery to finish. A delivery runs a user handler
   // that may still be using endpoints the caller is about to delete (e.g. a
@@ -776,7 +766,7 @@ void RtpsParticipant::DeferredDispatch::drain(std::shared_ptr<void> owner) {
   }
   if (rearm) {
     // Same guaranteed-recovery path as the initial arm: a rejected re-arm
-    // flags needs_arm and the retry timer picks it up.
+    // the transport parks the drain job and its retry task resubmits it.
     arm(std::move(owner));
   }
 }
@@ -1124,16 +1114,27 @@ bool RtpsParticipant::note_held_reply(const std::shared_ptr<ServiceServerContext
   if (held_replies_timer_) {
     return true;
   }
-  // One deadline timer per participant, created by the first held reply and
-  // kept until stop() (see the member's comment). The match itself flushes a
-  // held reply (subscriber_matched_trampoline), so this only enforces the
-  // deadline and backs the match up: a tenth of the default timeout is plenty,
-  // and a tick with nothing held is a lock and an empty check. A task can fail
-  // to start (no memory for its stack, Task::start() says why); the caller then
-  // writes the reply at once instead of holding it. (On ESP targets a failed
-  // pthread_create terminates the program outright - exceptions are off - which
-  // is why this timer is created once and never per hold.)
-  held_replies_timer_ = std::make_unique<espp::Timer>(espp::Timer::Config{
+  // The timer is normally created at start(); this is the fallback for a
+  // start() that could not create it (Task::start() said why then). A task
+  // created while traffic is served is the one whose creation fails - and on
+  // ESP a failed pthread_create terminates the program outright (exceptions
+  // are off) - so this path is not expected to run.
+  if (!start_held_reply_timer_locked()) {
+    std::erase_if(servers_with_held_replies_, [&](const std::weak_ptr<ServiceServerContext> &w) {
+      return !w.owner_before(server) && !server.owner_before(w);
+    });
+    return false;
+  }
+  return true;
+}
+
+bool RtpsParticipant::start_held_reply_timer_locked() {
+  // One deadline timer per participant, kept until stop() (see the member's
+  // comment). The match itself flushes a held reply
+  // (subscriber_matched_trampoline), so this only polls for the reader's
+  // acknowledgement and enforces the deadline: a tenth of the default timeout
+  // is plenty, and a tick with nothing held is a lock and an empty check.
+  espp::Timer::Config timer_config{
       .name = "rtps_reply_hold",
       .period = std::chrono::milliseconds(100),
       .delay = std::chrono::milliseconds(100),
@@ -1143,14 +1144,18 @@ bool RtpsParticipant::note_held_reply(const std::shared_ptr<ServiceServerContext
       },
       .auto_start = true,
       .log_level = espp::Logger::Verbosity::WARN,
-  });
+  };
+  if (config_.tasks.reply_hold) {
+    // Timer::Config carries the task's stack, priority and core directly.
+    timer_config.stack_size_bytes = config_.tasks.reply_hold->stack_size_bytes;
+    timer_config.priority = config_.tasks.reply_hold->priority;
+    timer_config.core_id = config_.tasks.reply_hold->core_id;
+  }
+  held_replies_timer_ = std::make_unique<espp::Timer>(timer_config);
   if (!held_replies_timer_->is_running()) {
     held_replies_timer_.reset();
     logger_.error("Held-reply deadline timer could not be started; replies are written without "
                   "waiting for their reply reader");
-    std::erase_if(servers_with_held_replies_, [&](const std::weak_ptr<ServiceServerContext> &w) {
-      return !w.owner_before(server) && !server.owner_before(w);
-    });
     return false;
   }
   return true;
@@ -1929,49 +1934,31 @@ RtpsParticipant::add_service_server_deferred_internal(const ServiceConfig &confi
 namespace {
 namespace ract = rtps::rpc;
 
-// An owned action-execute worker: the std::thread plus a flag it sets true just
-// before returning. Threads are stored (not detached) so shutdown can join them
-// before the participant is torn down; finished ones are reaped when new goals
-// arrive so the list stays bounded over a long-lived server. See
-// reap_and_store / the join loop in stop().
-struct ActionExecThread {
-  std::thread thread;
-  std::shared_ptr<std::atomic<bool>> finished;
-};
-
-// Append a freshly-spawned worker after reaping any that have finished (joining
-// them releases their captured goal state). Bounds the vector without blocking.
-void reap_and_store(std::mutex &m, std::vector<ActionExecThread> &threads, std::thread th,
-                    std::shared_ptr<std::atomic<bool>> finished) {
-  std::lock_guard<std::mutex> lock(m);
-  for (auto it = threads.begin(); it != threads.end();) {
-    if (it->finished->load()) {
-      if (it->thread.joinable()) {
-        it->thread.join();
-      }
-      it = threads.erase(it);
-    } else {
-      ++it;
+// The execute workers of an action server: a small espp::ThreadPool owned by
+// the server (created with it, stopped before the domain is torn down).
+// Accepted goals are submitted to it in acceptance order at the action's band;
+// its stacks are allocated once, not per goal as the std::thread per goal
+// used to (3 KB of internal RAM each on ESP, created and destroyed per goal).
+std::unique_ptr<espp::ThreadPool> make_exec_pool(const RtpsParticipant::ActionConfig &config) {
+  espp::ThreadPool::Config pool;
+  pool.worker_count = config.execute_workers > 0 ? config.execute_workers : 1;
+  pool.max_queue_size = 0; // bounded by max_goals_in_flight, applied before on_goal
+  pool.worker_task_config = config.execute_task;
+  if (pool.worker_task_config.name.empty()) {
+    // "exec_<action>" with everything but letters and digits replaced by '_',
+    // capped at 15 characters: FreeRTOS keeps configMAX_TASK_NAME_LEN (16 by
+    // default) including the terminator, and '/' in a name reads badly in logs.
+    std::string name = "exec_" + config.action;
+    std::transform(name.begin() + 5, name.end(), name.begin() + 5, [](const char c) {
+      return std::isalnum(static_cast<unsigned char>(c)) ? c : '_';
+    });
+    if (name.back() == '_' && name.size() > 5) {
+      name.pop_back();
     }
+    pool.worker_task_config.name = name.substr(0, 15);
   }
-  threads.push_back(ActionExecThread{std::move(th), std::move(finished)});
-}
-
-// Join every execute worker and clear the list. A joinable std::thread's
-// destructor calls std::terminate, so any worker an accepted goal spawned MUST
-// be joined before its owning context is destroyed - during shutdown AND when a
-// partially-created action server is rolled back (its goal service was already
-// announced, so a peer could have submitted a goal). Callers should first
-// remove the endpoints / signal cooperative cancellation so this cannot block
-// on a long-running execute callback.
-void join_exec_threads(std::mutex &m, std::vector<ActionExecThread> &threads) {
-  std::lock_guard<std::mutex> lock(m);
-  for (auto &t : threads) {
-    if (t.thread.joinable()) {
-      t.thread.join();
-    }
-  }
-  threads.clear();
+  pool.log_level = espp::Logger::Verbosity::WARN;
+  return std::make_unique<espp::ThreadPool>(pool);
 }
 
 // Generate a unique 16-byte goal id: random_device bytes mixed with a process
@@ -2054,10 +2041,10 @@ struct RtpsParticipant::ActionServerContext {
     }
     return n;
   }
-  // Owned execute workers (not detached): joined in stop() before the domain is
-  // torn down, reaped as they finish. See ActionExecThread / reap_and_store.
-  std::mutex threads_mutex;
-  std::vector<ActionExecThread> exec_threads;
+  // The execute workers (see make_exec_pool): stopped in stop() before the
+  // domain is torn down. Goals run at `band`.
+  std::unique_ptr<espp::ThreadPool> exec_pool;
+  espp::QosBand band{espp::QosBand::Normal};
 };
 
 const RtpsParticipant::GoalId &RtpsParticipant::ActionGoalHandle::goal_id() const {
@@ -2261,6 +2248,12 @@ bool RtpsParticipant::add_action_server(const ActionConfig &config, action_goal_
   ctx->max_goals_in_flight = config.max_goals_in_flight;
   ctx->result_timeout = config.result_timeout;
   ctx->execute = std::move(execute);
+  ctx->band = config.band;
+  ctx->exec_pool = make_exec_pool(config);
+  if (!ctx->exec_pool->is_running()) {
+    logger_.error("Action server '{}': the execute workers could not be started", config.action);
+    return false;
+  }
 
   // Feedback + status publishers (plain reliable topics). The action's
   // band/dscp are inherited by every underlying endpoint (see ActionConfig).
@@ -2327,8 +2320,8 @@ bool RtpsParticipant::add_action_server(const ActionConfig &config, action_goal_
         if (server == nullptr || !ract::unwrap_send_goal_request(req, id, goal)) {
           return ract::make_send_goal_response(false);
         }
-        // Bounded: a goal beyond max_goals_in_flight (each runs on its own
-        // thread) or a goal id the server already has is rejected before the
+        // Bounded: a goal beyond max_goals_in_flight (executing or waiting for
+        // an execute worker) or a goal id the server already has is rejected before the
         // user's on_goal sees it. A duplicate would replace an in-flight goal
         // and orphan its pending get_result; rcl rejects them too.
         {
@@ -2362,21 +2355,49 @@ bool RtpsParticipant::add_action_server(const ActionConfig &config, action_goal_
           std::lock_guard<std::mutex> lock(server->goals_mutex);
           server->goals[id] = gstate;
         }
-        publish_goal_status(this, server->status_topic, id, ract::GoalStatus::EXECUTING);
         if (server->execute) {
-          // Own the worker (not detached) so stop() joins it before the domain
-          // is torn down. It captures a weak server ref (locked only while
-          // running), so a finished worker forms no goals<->server cycle.
-          auto finished = std::make_shared<std::atomic<bool>>(false);
+          // Runs on one of the server's execute workers (owned by the server,
+          // stopped before the domain is torn down). The job captures a weak
+          // server ref (locked only while running), so a goal waiting for a
+          // worker forms no goals<->server cycle. The pool's queue is
+          // unbounded (max_goals_in_flight bounds it above), so the only
+          // rejection is a stopped pool: then the goal is not accepted after
+          // all - forgotten again and rejected to the client - rather than
+          // held without ever running.
           std::weak_ptr<ActionServerContext> weak_server = server;
-          std::thread worker([gstate, weak_server, finished]() {
-            if (auto s = weak_server.lock()) {
-              s->execute(ActionGoalHandle(gstate));
-            }
-            finished->store(true);
-          });
-          reap_and_store(server->threads_mutex, server->exec_threads, std::move(worker), finished);
+          const bool queued =
+              server->exec_pool &&
+              server->exec_pool->try_submit(
+                  [gstate, weak_server]() {
+                    auto s = weak_server.lock();
+                    if (!s) {
+                      return;
+                    }
+                    // EXECUTING, unless the goal was cancelled while it
+                    // waited: it is CANCELING then, and stays so until the
+                    // execute callback terminates it. Under the goal's
+                    // mutex: the cancel path sets the flag and publishes
+                    // CANCELING under it too, so the two never cross.
+                    {
+                      std::lock_guard<std::mutex> lock(gstate->mutex);
+                      if (!gstate->cancel_requested.load()) {
+                        publish_goal_status(s->self, s->status_topic, gstate->goal_id,
+                                            ract::GoalStatus::EXECUTING);
+                      }
+                    }
+                    s->execute(ActionGoalHandle(gstate));
+                  },
+                  server->band);
+          if (!queued) {
+            logger_.warn("Action server: the execute workers are stopped; goal rejected");
+            std::lock_guard<std::mutex> lock(server->goals_mutex);
+            server->goals.erase(id);
+            return ract::make_send_goal_response(false);
+          }
         }
+        // ACCEPTED now, EXECUTING once an execute worker picks the goal up (as
+        // rclcpp_action reports it: the goal may wait for a worker).
+        publish_goal_status(this, server->status_topic, id, ract::GoalStatus::ACCEPTED);
         // The acceptance stamp (builtin_interfaces/Time, wall clock), as rcl
         // reports it; a client may hand it back in a CancelGoal request.
         const auto since_epoch = gstate->accepted_at.time_since_epoch();
@@ -2517,9 +2538,22 @@ bool RtpsParticipant::add_action_server(const ActionConfig &config, action_goal_
                  ++refused;
                  continue;
                }
-               if (!gstate->cancel_requested.exchange(true)) {
-                 publish_goal_status(server->self, server->status_topic, goal_id,
-                                     ract::GoalStatus::CANCELING);
+               {
+                 // The flag flips under the goal's mutex, where the execute
+                 // job checks it and publishes EXECUTING in one step: a worker
+                 // starting this goal either sees the flag and stays silent, or
+                 // has already published EXECUTING, which CANCELING (published
+                 // below, outside the lock) then follows. The publish itself
+                 // needs no lock.
+                 bool first_cancel = false;
+                 {
+                   std::lock_guard<std::mutex> glock(gstate->mutex);
+                   first_cancel = !gstate->cancel_requested.exchange(true);
+                 }
+                 if (first_cancel) {
+                   publish_goal_status(server->self, server->status_topic, goal_id,
+                                       ract::GoalStatus::CANCELING);
+                 }
                }
                canceling.push_back(goal_id);
              }
@@ -2534,19 +2568,19 @@ bool RtpsParticipant::add_action_server(const ActionConfig &config, action_goal_
     // above by this call) - so nothing stays announced (or holds a ration
     // slot) for the action that failed to build, and nothing else is touched.
     // The goal service was announced before this failure, so a peer may already
-    // have submitted an accepted goal and spawned a joinable execute worker in
-    // ctx->exec_threads. Teardown order matters:
+    // have submitted an accepted goal that runs (or waits) on ctx->exec_pool.
+    // Teardown order matters:
     //   1. remove the send_goal service FIRST (created_servers[0]) so no NEW
-    //      goal can spawn another worker after the join below;
-    //   2. signal cooperative cancellation and JOIN the workers - BEFORE the
-    //      get_result service (and its reply writer) is deleted, because a
-    //      deferred get_result handler may have handed a ServiceResponder to a
-    //      worker, whose goal-terminating reply() must go through that writer
-    //      while it is still alive (deleting it first would leave the
-    //      responder replying through a reset/reused writer slot);
+    //      goal is queued after the stop below;
+    //   2. signal cooperative cancellation and STOP the workers (stop() waits
+    //      for the running goal) - BEFORE the get_result service (and its
+    //      reply writer) is deleted, because a deferred get_result handler may
+    //      have handed a ServiceResponder to a worker, whose goal-terminating
+    //      reply() must go through that writer while it is still alive
+    //      (deleting it first would leave the responder replying through a
+    //      reset/reused writer slot);
     //   3. only then remove the remaining services and the topic writers.
-    // A joinable std::thread destructor would std::terminate, so the join must
-    // also precede ctx destruction. Not under mutex_, so workers can take it.
+    // Not under mutex_, so workers can take it.
     if (!created_servers.empty()) {
       remove_service_server(created_servers.front()); // send_goal: stop new spawns
     }
@@ -2556,7 +2590,9 @@ bool RtpsParticipant::add_action_server(const ActionConfig &config, action_goal_
         kv.second->cancel_requested.store(true);
       }
     }
-    join_exec_threads(ctx->threads_mutex, ctx->exec_threads);
+    if (ctx->exec_pool) {
+      ctx->exec_pool->stop();
+    }
     for (size_t i = 1; i < created_servers.size(); ++i) {
       remove_service_server(created_servers[i]);
     }
@@ -3326,10 +3362,11 @@ struct RtpsParticipant::NativeActionServerContext {
   std::string feedback_topic;
   native_execute_callback_t execute{nullptr};
   std::atomic<uint32_t> next_handle{1};
-  // Owned execute workers (not detached): joined in stop() before the domain is
-  // torn down, reaped as they finish. See ActionExecThread / reap_and_store.
-  std::mutex threads_mutex;
-  std::vector<ActionExecThread> exec_threads;
+  std::size_t max_goals_in_flight{0}; ///< running + waiting goals held at once; 0 = unlimited
+  // The execute workers (see make_exec_pool): stopped in stop() before the
+  // domain is torn down. Goals run at `band`.
+  std::unique_ptr<espp::ThreadPool> exec_pool;
+  espp::QosBand band{espp::QosBand::Normal};
   // Running goals keyed by handle, for routing cancel requests. weak so a
   // finished goal's State can expire; the executing worker owns the strong ref.
   std::mutex goals_mutex;
@@ -3390,6 +3427,14 @@ bool RtpsParticipant::add_native_action_server(const ActionConfig &config,
   ctx->self = this;
   ctx->feedback_topic = rtps::rpc::native_feedback_topic(config.action);
   ctx->execute = std::move(execute);
+  ctx->band = config.band;
+  ctx->max_goals_in_flight = config.max_goals_in_flight;
+  ctx->exec_pool = make_exec_pool(config);
+  if (!ctx->exec_pool->is_running()) {
+    logger_.error("Native action server '{}': the execute workers could not be started",
+                  config.action);
+    return false;
+  }
 
   // The action's band/dscp are inherited by all ~3 native endpoints.
   if (!add_writer({.topic = ctx->feedback_topic,
@@ -3407,7 +3452,22 @@ bool RtpsParticipant::add_native_action_server(const ActionConfig &config,
       {rtps::rpc::native_goal_service(config.action), config.type_name, config.band, config.dscp},
       [this, weak, on_goal](std::span<const uint8_t> goal) -> std::vector<uint8_t> {
         auto server = weak.lock();
-        if (server == nullptr || (on_goal && !on_goal(goal))) {
+        if (server == nullptr) {
+          return rtps::rpc::native_make_goal_reply(false, 0);
+        }
+        // Bounded like the ROS 2 server: a goal beyond max_goals_in_flight
+        // (running or waiting for an execute worker - `goals` holds a goal
+        // until its execute job finishes) is rejected before on_goal.
+        if (server->max_goals_in_flight > 0) {
+          std::lock_guard<std::mutex> lock(server->goals_mutex);
+          if (server->goals.size() >= server->max_goals_in_flight) {
+            logger_.warn("Native action server: {} goals in flight (max_goals_in_flight); "
+                         "goal rejected",
+                         server->goals.size());
+            return rtps::rpc::native_make_goal_reply(false, 0);
+          }
+        }
+        if (on_goal && !on_goal(goal)) {
           return rtps::rpc::native_make_goal_reply(false, 0);
         }
         const uint32_t handle = server->next_handle.fetch_add(1);
@@ -3421,19 +3481,32 @@ bool RtpsParticipant::add_native_action_server(const ActionConfig &config,
             std::lock_guard<std::mutex> lock(server->goals_mutex);
             server->goals[handle] = gstate; // weak; for cancel routing
           }
-          // Own the worker (not detached) so stop() joins it before teardown.
-          auto finished = std::make_shared<std::atomic<bool>>(false);
+          // Runs on one of the server's execute workers (owned by the server,
+          // stopped before teardown); the job holds the goal state while it
+          // waits for a worker.
           std::weak_ptr<NativeActionServerContext> weak_server = server;
-          std::thread worker([gstate, weak_server, finished, handle]() {
-            if (auto s = weak_server.lock()) {
-              s->execute(NativeGoalHandle(gstate));
-              // Goal finished: drop it from the cancel-routing map.
-              std::lock_guard<std::mutex> lock(s->goals_mutex);
-              s->goals.erase(handle);
-            }
-            finished->store(true);
-          });
-          reap_and_store(server->threads_mutex, server->exec_threads, std::move(worker), finished);
+          const bool queued =
+              server->exec_pool && server->exec_pool->try_submit(
+                                       [gstate, weak_server, handle]() {
+                                         auto s = weak_server.lock();
+                                         if (!s) {
+                                           return;
+                                         }
+                                         s->execute(NativeGoalHandle(gstate));
+                                         // Goal finished: drop it from the
+                                         // cancel-routing map.
+                                         std::lock_guard<std::mutex> lock(s->goals_mutex);
+                                         s->goals.erase(handle);
+                                       },
+                                       server->band);
+          if (!queued) {
+            // A stopped pool (the only rejection: the queue is unbounded):
+            // the goal is not accepted after all.
+            logger_.warn("Native action server: the execute workers are stopped; goal rejected");
+            std::lock_guard<std::mutex> lock(server->goals_mutex);
+            server->goals.erase(handle);
+            return rtps::rpc::native_make_goal_reply(false, 0); // handle 0: rejected, like above
+          }
         }
         return rtps::rpc::native_make_goal_reply(true, handle);
       });
@@ -3473,13 +3546,15 @@ bool RtpsParticipant::add_native_action_server(const ActionConfig &config,
     // Transactional: unwind EXACTLY what this invocation created - the goal
     // service handle and the feedback writer. The goal service was announced
     // before this failure, so a peer may already have submitted an accepted
-    // goal and spawned a joinable execute worker: remove the endpoints, then
-    // JOIN before ctx is destroyed (a joinable std::thread destructor would
-    // call std::terminate). Matches the native-server teardown in stop(), which
-    // likewise joins without a cancel signal (native goals are weak refs).
+    // goal to ctx->exec_pool: remove the endpoints, then stop the workers
+    // (waiting for a running goal) before ctx is destroyed. Matches the
+    // native-server teardown in stop(), which likewise stops without a cancel
+    // signal (native goals are weak refs).
     remove_native_service_server(goal_server);
     remove_writer(ctx->feedback_topic);
-    join_exec_threads(ctx->threads_mutex, ctx->exec_threads);
+    if (ctx->exec_pool) {
+      ctx->exec_pool->stop();
+    }
     logger_.error("Native action server '{}': cancel service failed", config.action);
     return false;
   }
@@ -3780,11 +3855,13 @@ void RtpsParticipant::stop() {
         kv.second->cancel_requested.store(true);
       }
     }
-    join_exec_threads(ctx->threads_mutex, ctx->exec_threads);
+    if (ctx->exec_pool) {
+      ctx->exec_pool->stop();
+    }
   }
-  for (auto &ctx : native_action_servers_) {
-    if (ctx) {
-      join_exec_threads(ctx->threads_mutex, ctx->exec_threads);
+  for (const auto &ctx : native_action_servers_) {
+    if (ctx && ctx->exec_pool) {
+      ctx->exec_pool->stop();
     }
   }
 #endif // RTPS_WITH_RPC
