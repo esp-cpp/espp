@@ -97,7 +97,7 @@ cd .. && ./run_qemu.sh
 | netem_reorder_best_effort, netem_duplicate_best_effort | the same against the best-effort reader: samples may be lost, but none arrives twice or out of order (RTPS 2.5 8.4.12.1, `rtps_best_effort_order` on the host) |
 | netem_delay_discovery | 300 ms (+-50) delay from before discovery: a ROS 2 publisher is still discovered, matched and delivered over a 600 ms round trip |
 | netem_loss_device_pub | 15 % loss towards the device: the device's reliable writer repairs for the host subscriber against lost ACKNACKs |
-| device_heap_stable, device_no_crash | free heap at the end within 96 KB of the start (two buffers grow once to the largest sample, 30 KB each); no panic / abort / assert |
+| device_heap_stable, device_no_crash, device_stack_margin | free heap at the end within 96 KB of the start (two buffers grow once to the largest sample, 30 KB each); no panic / abort / assert; the smallest stack high-water mark over the engine's tasks (`stack_min=` / `stack_min_task=` in the status line: the rtps_* tasks and the action servers' exec_* workers, since boot) is at least 512 bytes - a receive worker once overflowed on the eviction path with less |
 
 The **soak** suite (`./run_qemu.sh <image> soak`, the second CI job on the same
 firmware build) runs 20 cycles of churn instead: each cycle six ROS 2

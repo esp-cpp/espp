@@ -162,7 +162,7 @@ const uint8_t MAX_TOPICNAME_LENGTH = RTPS_CFG_MAX_TOPICNAME_LENGTH;
 // sets stacks through esp_pthread; a host std::thread uses the platform
 // default). menuconfig RTPS -> Tasks.
 #ifndef RTPS_CFG_THREAD_POOL_READER_STACKSIZE
-#define RTPS_CFG_THREAD_POOL_READER_STACKSIZE 6144
+#define RTPS_CFG_THREAD_POOL_READER_STACKSIZE 8192
 #endif
 const int THREAD_POOL_READER_STACKSIZE = RTPS_CFG_THREAD_POOL_READER_STACKSIZE; // byte
 // Stack requested for the protocol task (SPDP announcements, heartbeats,

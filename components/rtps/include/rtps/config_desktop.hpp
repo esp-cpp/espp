@@ -187,11 +187,11 @@ const uint8_t MAX_TOPICNAME_LENGTH = RTPS_CFG_MAX_TOPICNAME_LENGTH;
 // The 1600 is a host figure that nothing applies; selected ON the target (the
 // Kconfig limits-profile choice puts this header on an ESP32 too) this IS the
 // FreeRTOS stack of every receive worker, and 1600 overflows on the first
-// datagram - so on ESP it is the embedded profile's 6144, as the capacity
+// datagram - so on ESP it is the embedded profile's 8192, as the capacity
 // profiles are about pool sizes, not task stacks.
 #ifndef RTPS_CFG_THREAD_POOL_READER_STACKSIZE
 #if defined(ESP_PLATFORM)
-#define RTPS_CFG_THREAD_POOL_READER_STACKSIZE 6144
+#define RTPS_CFG_THREAD_POOL_READER_STACKSIZE 8192
 #else
 #define RTPS_CFG_THREAD_POOL_READER_STACKSIZE 1600
 #endif

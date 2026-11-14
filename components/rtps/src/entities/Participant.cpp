@@ -697,11 +697,13 @@ bool Participant::evictUnusedRemoteParticipant(const GuidPrefix_t &newcomer, Gui
                                std::chrono::milliseconds(Config::SPDP_RESEND_PERIOD_MS),
                                std::chrono::milliseconds(Config::SPDP_EVICT_READMIT_HOLDOFF_MS))) {
     case Gate::HeldOff:
-      logger_.debug("{}: not evicting for participant {:02x}{:02x}{:02x}{:02x}, itself evicted "
-                    "less than {} ms ago",
-                    reason != nullptr ? reason : "no room for a new remote participant",
-                    newcomer.id[4], newcomer.id[5], newcomer.id[6], newcomer.id[7],
-                    static_cast<unsigned int>(Config::SPDP_EVICT_READMIT_HOLDOFF_MS));
+      // Compiled out unless PARTICIPANT_VERBOSE: this runs on a receive worker
+      // whose stack is sized for the engine, not for a second formatted log
+      // beside the eviction warning (the first build with one here overflowed
+      // rtps_worker_0 in the QEMU suite).
+      PARTICIPANT_LOG("{}: not evicting for a participant itself evicted less than {} ms ago",
+                      reason != nullptr ? reason : "no room for a new remote participant",
+                      static_cast<unsigned int>(Config::SPDP_EVICT_READMIT_HOLDOFF_MS));
       return false;
     case Gate::Cooldown:
       return false;

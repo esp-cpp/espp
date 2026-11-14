@@ -483,6 +483,14 @@ echo "free heap first=$FIRST_HEAP last=$LAST_HEAP"
 if [ "$DEVICE_STARTED" = 1 ]; then
   [ -n "$FIRST_HEAP" ] && [ -n "$LAST_HEAP" ] && [ "$LAST_HEAP" -ge $((FIRST_HEAP - 98304)) ]; result "device_heap_stable" $?
   ! grep -qE "Guru Meditation|abort\(\)|assert failed|RTPSTEST fatal" "$LOG"; result "device_no_crash" $?
+  # The engine tasks' stack margin (stack_min= in the status line: the smallest
+  # high-water mark over the rtps_* / exec_* tasks since boot, and the task).
+  # 512 bytes is the floor: rtps_worker_0 overflowed once on the eviction
+  # path with less than that, from one more formatted log in the frame.
+  STACK_MIN=$(grep -o " stack_min=[0-9]*" "$LOG" | tail -1 | cut -d= -f2)
+  STACK_MIN_TASK=$(grep -o " stack_min_task=[A-Za-z0-9_]*" "$LOG" | tail -1 | cut -d= -f2)
+  echo "engine tasks' smallest stack margin: ${STACK_MIN:-?} bytes (${STACK_MIN_TASK:-?})"
+  [ -n "$STACK_MIN" ] && [ "$STACK_MIN" -ge 512 ]; result "device_stack_margin" $?
 else
   # the memory suite on a profile that does not fit: the fatal IS the finding,
   # and so is a panic while the engine was being built (recorded at boot).
