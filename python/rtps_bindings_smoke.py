@@ -7,6 +7,7 @@ demo needs multicast discovery and lives in the dockerised interop harness (see
 python/rtps_rpc_demo.py). Catches a dropped/renamed binding after a build change.
 """
 
+import re
 import sys
 
 import espp
@@ -53,7 +54,12 @@ kwargs = {
 for name, args in kwargs.items():
     target = p.Config.__init__ if name == "Config" else getattr(p, name, None)
     doc = (target.__doc__ if target is not None else None) or ""
-    missing += [f"{name}({a}=)" for a in args if a not in doc]
+    # pybind11 renders the signature on the first line, "name: type = default"
+    # per argument (none of these is overloaded, which would list one
+    # signature per line instead); the prose below it may mention an argument
+    # that was dropped from the signature, so only the signature counts.
+    signature = doc.splitlines()[0] if doc else ""
+    missing += [f"{name}({a}=)" for a in args if re.search(rf"\b{a}:", signature) is None]
 
 if missing:
     print("espp RTPS binding surface INCOMPLETE, missing:", missing, file=sys.stderr)

@@ -9,8 +9,13 @@ from Python. Two participants in one process (discovery on the local interface):
     pc/tests/rtps_action_worker_pool.cpp, through the binding);
  3. the native server takes the same settings.
 
-Exits 0 on success, 1 on the first failed check. Needs a working loopback /
-local-interface multicast like the other python rtps scripts.
+Exits 0 on success, 1 on the first failed check (the participants are stopped
+on every exit path: torn down at interpreter exit instead, one would join its
+execute workers with the GIL held while the Python callback waits for it).
+Needs a working loopback / local-interface multicast like the other python
+rtps scripts; the dockerised interop harness runs it after rtps_rpc_demo.py.
+The multicast-free checks of the same interface (construction, validation,
+misuse) are python/rtps_bindings_misuse_test.py, which the wheel build runs.
 """
 
 import sys
@@ -55,6 +60,17 @@ def main():
     )
     client = espp.RtpsParticipant(espp.RtpsParticipant.Config(log_level=espp.Logger.Verbosity.error))
     check(server.start() and client.start(), "start")
+    try:
+        return run_goals(server, client, task)
+    finally:
+        # Stopped on EVERY exit: a participant torn down at interpreter exit
+        # joins its execute workers with the GIL held, while the Python execute
+        # callback needs the GIL to see its cancellation - a hang, not a FAIL.
+        client.stop()
+        server.stop()
+
+
+def run_goals(server, client, task):
 
     # 2. two workers, four goals
     executing = 0
@@ -94,11 +110,14 @@ def main():
         check(gid is not None, "send_goal accepted")
         goal_ids.append(gid)
     check(wait_until(lambda: executing == 2 and peak == 2, 2.0), "two goals execute")
-    time.sleep(0.3)
-    with lock:
-        check(executing == 2 and peak == 2, "no more than two goals execute at once")
+    # the invariant, watched over 300 ms: two run, never a third
+    until = time.monotonic() + 0.3
+    while time.monotonic() < until:
+        with lock:
+            check(executing == 2 and peak == 2, "no more than two goals execute at once")
+        time.sleep(0.005)
     for gid in goal_ids:
-        act.cancel_goal(gid)
+        check(act.cancel_goal(gid), "cancel_goal sent")
     check(wait_until(lambda: finished == 4, 5.0), "every goal ran and finished")
     check(peak == 2, "still no more than two at once")
     check(wait_until(lambda: len(results) == 4, 5.0), "every result arrived")
@@ -114,8 +133,6 @@ def main():
         "add_native_action_server",
     )
 
-    client.stop()
-    server.stop()
     print("PASS")
     return 0
 

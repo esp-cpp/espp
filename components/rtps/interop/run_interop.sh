@@ -708,6 +708,12 @@ else
   pydemo_rc=$?
   grep -E "PASS|FAIL|ALL PASS|FAILURES" /tmp/pydemo.log | tail -8
   result "python_rpc_demo" $pydemo_rc
+  # The task configuration and the action servers' execute workers through
+  # the binding (every task configured; two of four blocking goals at once).
+  timeout 120 /opt/espp-venv/bin/python python/rtps_task_configs_test.py > /tmp/pytasks.log 2>&1
+  pytasks_rc=$?
+  grep -E "PASS|FAIL" /tmp/pytasks.log | tail -3
+  result "python_task_configs" $pytasks_rc
 fi
 
 echo ""

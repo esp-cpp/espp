@@ -293,7 +293,8 @@ void py_init_rtps(py::module &m) {
            "receive_workers: the transport's receive worker tasks (0: the default, 2).\n"
            "receive_worker_task / reactor_task / job_retry_task / protocol_task / "
            "reply_hold_task: an espp.Task.BaseConfig (stack size, priority, core id) for "
-           "that task; None keeps the compile-time default (menuconfig RTPS -> Tasks).")
+           "that task; None keeps the compile-time default (menuconfig RTPS -> Tasks). "
+           "reply_hold_task's name is ignored (the timer names its task).")
       .def_readwrite("interface_address", &PyRtpsConfig::interface_address)
       .def_readwrite("interface_netmask", &PyRtpsConfig::interface_netmask)
       .def_readwrite("on_publisher_matched", &PyRtpsConfig::on_publisher_matched)
@@ -308,11 +309,36 @@ void py_init_rtps(py::module &m) {
       .def_readwrite("service_reply_match_timeout_ms",
                      &PyRtpsConfig::service_reply_match_timeout_ms)
       .def_readwrite("receive_workers", &PyRtpsConfig::receive_workers)
-      .def_readwrite("receive_worker_task", &PyRtpsConfig::receive_worker_task)
-      .def_readwrite("reactor_task", &PyRtpsConfig::reactor_task)
-      .def_readwrite("job_retry_task", &PyRtpsConfig::job_retry_task)
-      .def_readwrite("protocol_task", &PyRtpsConfig::protocol_task)
-      .def_readwrite("reply_hold_task", &PyRtpsConfig::reply_hold_task);
+      // The optional task configs are read back BY VALUE: def_readwrite's
+      // reference_internal policy would hand Python a reference into the
+      // optional's storage, which dangles as soon as the field is set to None
+      // (a use-after-free read on a long name). A copy is the right semantics
+      // for an optional value anyway.
+      .def_property(
+          "receive_worker_task", [](const PyRtpsConfig &c) { return c.receive_worker_task; },
+          [](PyRtpsConfig &c, std::optional<espp::Task::BaseConfig> v) {
+            c.receive_worker_task = std::move(v);
+          })
+      .def_property(
+          "reactor_task", [](const PyRtpsConfig &c) { return c.reactor_task; },
+          [](PyRtpsConfig &c, std::optional<espp::Task::BaseConfig> v) {
+            c.reactor_task = std::move(v);
+          })
+      .def_property(
+          "job_retry_task", [](const PyRtpsConfig &c) { return c.job_retry_task; },
+          [](PyRtpsConfig &c, std::optional<espp::Task::BaseConfig> v) {
+            c.job_retry_task = std::move(v);
+          })
+      .def_property(
+          "protocol_task", [](const PyRtpsConfig &c) { return c.protocol_task; },
+          [](PyRtpsConfig &c, std::optional<espp::Task::BaseConfig> v) {
+            c.protocol_task = std::move(v);
+          })
+      .def_property(
+          "reply_hold_task", [](const PyRtpsConfig &c) { return c.reply_hold_task; },
+          [](PyRtpsConfig &c, std::optional<espp::Task::BaseConfig> v) {
+            c.reply_hold_task = std::move(v);
+          });
 
   rtps.def(py::init([](const PyRtpsConfig &config) { return new Rtps(to_config(config)); }),
            py::arg("config") = PyRtpsConfig{})
@@ -657,8 +683,10 @@ void py_init_rtps(py::module &m) {
       py::arg("max_goals_in_flight") = 8, py::arg("execute_workers") = 1,
       py::arg("execute_task") = py::none(),
       "Add a ROS 2 action server. on_goal(goal_bytes)->bool; execute(ActionGoalHandle), which\n"
-      "runs on one of execute_workers tasks the server owns (configured by execute_task, an\n"
-      "espp.Task.BaseConfig; goals beyond the workers wait in acceptance order). A goal beyond\n"
+      "runs on one of execute_workers tasks the server owns (0 counts as 1; goals beyond the\n"
+      "workers wait in acceptance order). execute_task, an espp.Task.BaseConfig, configures\n"
+      "those tasks; None means a 4 KB stack, priority 5 and a name derived from the action, and\n"
+      "a BaseConfig you pass replaces all three (an empty name is still derived). A goal beyond\n"
       "max_goals_in_flight (running or waiting; 0: unlimited) is rejected before on_goal.");
   rtps.def(
       "add_action_client",
@@ -879,9 +907,10 @@ void py_init_rtps(py::module &m) {
           py::arg("execute_workers") = 1, py::arg("execute_task") = py::none(),
           "Add a native action server. on_goal(goal_bytes)->bool; execute(NativeGoalHandle), "
           "which\n"
-          "runs on one of execute_workers tasks the server owns (configured by execute_task, an\n"
-          "espp.Task.BaseConfig); a goal beyond max_goals_in_flight (running or waiting; 0:\n"
-          "unlimited) is rejected before on_goal; on_cancel(handle)->bool gates cancel requests.")
+          "runs on one of execute_workers tasks the server owns (0 counts as 1), configured by\n"
+          "execute_task as for add_action_server; a goal beyond max_goals_in_flight (running or\n"
+          "waiting; 0: unlimited) is rejected before on_goal; on_cancel(handle)->bool gates\n"
+          "cancel requests.")
       .def(
           "add_native_action_client",
           [](Rtps &self, const std::string &action, const std::string &type_name,

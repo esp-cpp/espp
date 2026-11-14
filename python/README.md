@@ -62,6 +62,16 @@ This section gives a brief overview of what the scripts in this folder do.
   user-data multicast locators, joining matching subscribed-topic multicast
   groups dynamically. Run `python rtps_host.py --self-test` to validate the
   wire-format encoders/decoders against the firmware with no network I/O.
+- `rtps_rpc_demo.py`: the services / actions / native RPC showcase the
+  dockerised interop harness (`components/rtps/interop`) runs; needs multicast
+  discovery on the local interface.
+- `rtps_task_configs_test.py`: the participant's task configuration
+  (`Config(receive_workers=..., reactor_task=espp.Task.BaseConfig(...), ...)`) and
+  an action server's execute workers (`add_action_server(..., execute_workers=2,
+  execute_task=...)`) through the binding; run by the interop harness after the
+  demo. `rtps_bindings_smoke.py` (the binding surface and its keyword arguments)
+  and `rtps_bindings_misuse_test.py` (construction, validation and misuse of the
+  RTPS binding without any network) are what every wheel build runs.
 - `rtps_pubsub.py`, `rtps_publisher.py`, `rtps_subscriber.py`: RTPS tests that
   use the **espp Python library** (`espp.RtpsParticipant` + `espp.CdrWriter`/
   `CdrReader`) rather than the pure-stdlib harness. `rtps_pubsub.py` is
