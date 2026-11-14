@@ -1,0 +1,1579 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>XIAO ESP32S3 Sense &#8212; espp</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../_static/styles/theme.css?digest=55c26ed414f5f8a31ebb" rel="stylesheet" />
+<link href="../../_static/styles/pydata-sphinx-theme.css?digest=55c26ed414f5f8a31ebb" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=03e43079" />
+    <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=949a1ff5" />
+    <link rel="stylesheet" type="text/css" href="../../_static/theme_overrides.css?v=851bd809" />
+    <link rel="stylesheet" type="text/css" href="../../_static/espp.css?v=a39a0385" />
+  
+  <!-- So that users can add custom icons -->
+  <script defer src="../../_static/scripts/fontawesome.js?digest=55c26ed414f5f8a31ebb"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=55c26ed414f5f8a31ebb" />
+<link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=55c26ed414f5f8a31ebb" />
+
+    <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js?v=d01aebe5"></script>
+    <script src="../../_static/doctools.js?v=888ff710"></script>
+    <script src="../../_static/sphinx_highlight.js?v=4825356b"></script>
+    <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../../_static/copybutton.js?v=ff8fa330"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'dev_boards/seeed/xiao_esp32s3_sense';</script>
+    <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
+    <link rel="icon" href="../../_static/favicon.png"/>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="XIAO ESP32S3 Sense Example" href="xiao_esp32s3_sense_example.html" />
+    <link rel="prev" title="Seeed Studio Round Display Example" href="seeed_studio_round_display_example.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="master" />
+  
+    
+    <script src="../../_static/searchtools.js"></script>
+    <script src="../../_static/language_data.js"></script>
+    <script src="../../searchindex.js"></script>
+  
+  </head>
+  <body data-default-mode="">
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+  
+  
+  
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header id="pst-header" class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class=" navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../index.html">
+  
+  
+  
+  
+  
+    
+    
+      
+    
+    
+    <img src="../../_static/espp-logo.png" class="logo__image only-light" alt=""/>
+    <img src="../../_static/espp-logo.png" class="logo__image only-dark pst-js-only" alt=""/>
+  
+  
+    <p class="title logo__title">espp</p>
+  
+</a></div>
+    
+  </div>
+  
+  <div class=" navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../getting_started.html">
+    Getting Started
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../api_reference.html">
+    API Reference
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="../index.html">
+    Dev Boards (BSPs)
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../web_apps.html">
+    Web Apps
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../qemu.html">
+    Running espp in QEMU
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+      
+        <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/esp-cpp/espp" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://discord.gg/dvcQw37xAY" title="Discord" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-discord fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">Discord</span></a>
+        </li>
+</ul></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+    <button class="pst-navbar-icon sidebar-toggle secondary-toggle" aria-label="On this page">
+      <span class="fa-solid fa-outdent"></span>
+    </button>
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../getting_started.html">
+    Getting Started
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../api_reference.html">
+    API Reference
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="../index.html">
+    Dev Boards (BSPs)
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../web_apps.html">
+    Web Apps
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../qemu.html">
+    Running espp in QEMU
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+        
+          <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/esp-cpp/espp" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://discord.gg/dvcQw37xAY" title="Discord" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-discord fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">Discord</span></a>
+        </li>
+</ul></div>
+        
+      </div>
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item pst-sidebar-collapse"><button id="pst-collapse-sidebar-button" aria-expanded="true" aria-controls="pst-primary-sidebar"><svg class="pst-icon svg-inline--fa" role="img" aria-hidden="true" focusable="false" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
+    <path fill="currentColor" d="M3 15.5C2.36232 15.5 1.74874 15.2564 1.28478 14.8189C0.820828 14.3815 0.541576 13.7832 0.504167 13.1467L0.5 13L0.5 3C0.499965 2.36232 0.743605 1.74874 1.18107 1.28478C1.61854 0.820828 2.21676 0.541576 2.85333 0.504167L3 0.5L13 0.5C13.6377 0.499965 14.2513 0.743605 14.7152 1.18107C15.1792 1.61854 15.4584 2.21676 15.4958 2.85333L15.5 3L15.5 13C15.5 13.6377 15.2564 14.2513 14.8189 14.7152C14.3815 15.1792 13.7832 15.4584 13.1467 15.4958L13 15.5L3 15.5ZM3 13.8333L10.5 13.8333L10.5 2.16667L3 2.16667C2.79589 2.16669 2.59889 2.24163 2.44636 2.37726C2.29383 2.5129 2.19638 2.69979 2.1725 2.9025L2.16667 3L2.16667 13C2.16669 13.2041 2.24163 13.4011 2.37726 13.5536C2.5129 13.7062 2.69979 13.8036 2.9025 13.8275L3 13.8333ZM6.65583 10.325L6.5775 10.2558L4.91083 8.58917C4.76735 8.44567 4.68116 8.25476 4.66843 8.05223C4.65569 7.84971 4.71729 7.6495 4.84167 7.48917L4.91083 7.41083L6.5775 5.74417C6.72747 5.59471 6.9287 5.50794 7.14032 5.50148C7.35194 5.49502 7.55809 5.56935 7.7169 5.70937C7.8757 5.8494 7.97525 6.04463 7.99533 6.25539C8.01541 6.46616 7.95451 6.67667 7.825 6.84417L7.75583 6.9225L6.67917 8L7.75583 9.0775C7.89931 9.22099 7.98551 9.41191 7.99824 9.61443C8.01097 9.81695 7.94938 10.0172 7.825 10.1775L7.75583 10.2558C7.61234 10.3993 7.42142 10.4855 7.2189 10.4982C7.01638 10.511 6.81617 10.4494 6.65583 10.325Z"/>
+  </svg>
+  <span class="pst-collapse-sidebar-label">Collapse Sidebar</span>
+  <span class="pst-expand-sidebar-label">Expand Sidebar</span>
+</button></div>
+        <div class="sidebar-primary-item">
+
+<nav class="bd-docs-nav bd-links"
+     aria-label="Section Navigation">
+  <p class="bd-links__title" role="heading" aria-level="1">Section Navigation</p>
+  <div class="bd-toc-item navbar-nav"><ul class="current nav bd-sidenav">
+<li class="toctree-l1 has-children"><a class="reference internal" href="../espressif/index.html">Espressif Boards</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../espressif/esp_box.html">ESP BOX</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../espressif/esp_box_example.html">ESP-BOX Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../espressif/esp32_ethernet_kit.html">ESP32-Ethernet-Kit A V1.2</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../espressif/esp32_ethernet_kit_example.html">ESP32-Ethernet-Kit Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../espressif/esp32_p4_function_ev_board.html">ESP32-P4 Function EV Board</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../espressif/esp32_p4_function_ev_board_example.html">ESP32-P4 Function EV Board Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../espressif/esp32_timer_cam.html">ESP32 TimerCam</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../espressif/esp32_timer_cam_example.html">ESP32-TIMER-CAM Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../espressif/wrover_kit.html">ESP32-WROVER-KIT</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../espressif/wrover_kit_example.html">Wrover-Kit Example</a></li>
+</ul>
+</details></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../adafruit/index.html">Adafruit Boards</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../adafruit/qtpy.html">QtPy ESP32 Pico and QtPy ESP32-S3</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../adafruit/qtpy_example.html">QtPy Example</a></li>
+</ul>
+</details></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../lilygo/index.html">LilyGo Boards</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../lilygo/lilygo_t5_47.html">LilyGo T5 4.7” e-paper</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../lilygo/lilygo_t5_47_example.html">LilyGo T5 4.7” e-paper Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../lilygo/t_deck.html">LilyGo T-Deck</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../lilygo/t_deck_example.html">T-Deck Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../lilygo/t_dongle_s3.html">LilyGo T-Dongle S3</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../lilygo/t_dongle_s3_example.html">T-Dongle-S3 Example</a></li>
+</ul>
+</details></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../m5stack/index.html">M5Stack Boards</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../m5stack/m5stack_cardputer.html">M5Stack Cardputer</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../m5stack/m5stack_cardputer_example.html">M5Stack Cardputer Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../m5stack/m5stack_tab5.html">M5Stack Tab5</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../m5stack/m5stack_tab5_example.html">M5Stack Tab5 BSP Example</a></li>
+</ul>
+</details></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../motorgo/index.html">MotorGo Boards</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../motorgo/motorgo_axis.html">MotorGo Axis</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../motorgo/motorgo_axis_example.html">MotorGo Axis Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../motorgo/motorgo_mini.html">MotorGo Mini</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../motorgo/motorgo_mini_example.html">MotorGo-Mini Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../motorgo/motorgo_plink.html">MotorGo Plink</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../motorgo/motorgo_plink_example.html">MotorGo Plink Example</a></li>
+</ul>
+</details></li>
+</ul>
+</details></li>
+<li class="toctree-l1 current active has-children"><a class="reference internal" href="index.html">Seeed Studio Boards</a><details open="open"><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul class="current">
+<li class="toctree-l2 has-children"><a class="reference internal" href="seeed_studio_round_display.html">Seeed Studio Round Display</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="seeed_studio_round_display_example.html">Seeed Studio Round Display Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 current active has-children"><a class="current reference internal" href="#">XIAO ESP32S3 Sense</a><details open="open"><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="xiao_esp32s3_sense_example.html">XIAO ESP32S3 Sense Example</a></li>
+</ul>
+</details></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../waveshare/index.html">Waveshare Boards</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../waveshare/esp32_p4_eth.html">Waveshare ESP32-P4-ETH</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../waveshare/esp32_p4_eth_example.html">ESP32-P4-ETH Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../waveshare/esp32_p4_module_dev_kit.html">Waveshare ESP32-P4-Module-DEV-KIT</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../waveshare/esp32_p4_module_dev_kit_example.html">ESP32-P4-Module-DEV-KIT Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../waveshare/esp32_p4_nano.html">Waveshare ESP32-P4-NANO</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../waveshare/esp32_p4_nano_example.html">ESP32-P4-NANO Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../waveshare/esp32_p4_wifi6_dev_kit.html">Waveshare ESP32-P4-WIFI6-DEV-KIT</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../waveshare/esp32_p4_wifi6_dev_kit_example.html">ESP32-P4-WIFI6-DEV-KIT Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../waveshare/esp32_p4_wifi6_poe_eth.html">Waveshare ESP32-P4-WIFI6-POE-ETH</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../waveshare/esp32_p4_wifi6_poe_eth_example.html">ESP32-P4-WIFI6-POE-ETH Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../waveshare/ws_s3_geek.html">Waveshare ESP32-S3 GEEK</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../waveshare/ws_s3_geek_example.html">Waveshare ESP32-S3-GEEK Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../waveshare/ws_s3_lcd_1_47.html">Waveshare ESP32-S3 LCD 1.47”</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../waveshare/ws_s3_lcd_1_47_example.html">Waveshare ESP32-S3-LCD-1.47 Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../waveshare/ws_s3_touch.html">Waveshare ESP32-S3 TouchLCD</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../waveshare/ws_s3_touch_example.html">Waveshare ESP32-S3 TouchLCD Example</a></li>
+</ul>
+</details></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../other/index.html">Other Boards</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../other/byte90.html">ALXV Labs Byte90</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../other/byte90_example.html">Byte90 Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../other/qemu.html">QEMU (emulator)</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../other/qemu_example.html">QEMU Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../other/matouch_rotary_display.html">MaTouch Rotary Display</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../other/matouch_rotary_display_example.html">Matouch-Rotary-Display Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../other/smartpanlee_sc01_plus.html">Smart Panlee SC01 Plus</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../other/smartpanlee_sc01_plus_example.html">Smart Panlee SC01 Plus BSP Example</a></li>
+</ul>
+</details></li>
+</ul>
+</details></li>
+</ul>
+</div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../index.html" class="nav-link">Dev Boards (BSPs)</a></li>
+    
+    
+    <li class="breadcrumb-item"><a href="index.html" class="nav-link">Seeed Studio Boards</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">XIAO ESP32S3 Sense</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <section id="xiao-esp32s3-sense">
+<h1>XIAO ESP32S3 Sense<a class="headerlink" href="#xiao-esp32s3-sense" title="Permalink to this heading">#</a></h1>
+<section id="id1">
+<h2>XIAO ESP32S3 Sense<a class="headerlink" href="#id1" title="Permalink to this heading">#</a></h2>
+<p>The Seeed Studio XIAO ESP32S3 Sense combines the XIAO ESP32S3 module with the
+Sense expansion board, which adds an OV2640 camera, a PDM microphone, and a
+microSD card slot.</p>
+<p>The <cite>espp::XiaoEsp32S3Sense</cite> component provides a singleton hardware abstraction
+for the board’s documented camera, microphone, user-LED, and microSD pin
+mappings, as well as helpers for building the default ESP-IDF PDM RX microphone
+configuration, mounting the onboard microSD card over SDSPI, and controlling the
+onboard LED with a Gaussian breathing effect.</p>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="xiao_esp32s3_sense_example.html">XIAO ESP32S3 Sense Example</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="xiao_esp32s3_sense_example.html#how-to-use-example">How to use example</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="xiao_esp32s3_sense_example.html#hardware-required">Hardware Required</a></li>
+<li class="toctree-l3"><a class="reference internal" href="xiao_esp32s3_sense_example.html#configuration">Configuration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="xiao_esp32s3_sense_example.html#build-and-flash">Build and Flash</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</div>
+</section>
+<section id="api-reference">
+<h2>API Reference<a class="headerlink" href="#api-reference" title="Permalink to this heading">#</a></h2>
+<section id="header-file">
+<h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this heading">#</a></h3>
+<ul class="simple">
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/93b985d2/components/xiao-esp32s3-sense/include/xiao-esp32s3-sense.hpp">components/xiao-esp32s3-sense/include/xiao-esp32s3-sense.hpp</a></p></li>
+</ul>
+</section>
+<section id="classes">
+<h3>Classes<a class="headerlink" href="#classes" title="Permalink to this heading">#</a></h3>
+<dl class="cpp class">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp16XiaoEsp32S3SenseE">
+<span id="_CPPv3N4espp16XiaoEsp32S3SenseE"></span><span id="_CPPv2N4espp16XiaoEsp32S3SenseE"></span><span id="espp::XiaoEsp32S3Sense"></span><span class="target" id="classespp_1_1XiaoEsp32S3Sense"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">XiaoEsp32S3Sense</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="k"><span class="pre">public</span></span><span class="w"> </span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../../core/base_component.html#_CPPv4N4espp13BaseComponentE" title="espp::BaseComponent"><span class="n"><span class="pre">BaseComponent</span></span></a><a class="headerlink" href="#_CPPv4N4espp16XiaoEsp32S3SenseE" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>The <a class="reference internal" href="#classespp_1_1XiaoEsp32S3Sense"><span class="std std-ref">XiaoEsp32S3Sense</span></a> class provides an interface to the Seeed Studio XIAO ESP32S3 Sense board.</p>
+<p>The class provides access to the following features:<ul class="simple">
+<li><p>OV2640 camera pin mapping</p></li>
+<li><p>PDM microphone pin mapping</p></li>
+<li><p>User LED control / gaussian breathing helpers</p></li>
+<li><p>User LED pin</p></li>
+<li><p>microSD SPI pin mapping</p></li>
+<li><p>Default ESP-IDF PDM RX microphone configuration helpers</p></li>
+</ul>
+</p>
+<p>The class is a singleton and can be accessed using the <a class="reference internal" href="#classespp_1_1XiaoEsp32S3Sense_1ac4449383fe958b3c1ae15c37da1f8d45"><span class="std std-ref">get()</span></a> method.</p>
+<section id="classespp_1_1XiaoEsp32S3Sense_1xiao_esp32s3_sense_example">
+<h4>Example<a class="headerlink" href="#classespp_1_1XiaoEsp32S3Sense_1xiao_esp32s3_sense_example" title="Permalink to this heading">#</a></h4>
+<div class="highlight-cpp notranslate" id="classespp_1_1XiaoEsp32S3Sense_1xiao_esp32s3_sense_example"><div class="highlight"><pre><span></span><span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="o">&amp;</span><span class="n">sense</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">XiaoEsp32S3Sense</span><span class="o">::</span><span class="n">get</span><span class="p">();</span>
+<span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">microphone</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">sense</span><span class="p">.</span><span class="n">microphone_pins</span><span class="p">();</span>
+<span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">sd_card</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">sense</span><span class="p">.</span><span class="n">sd_card_pins</span><span class="p">();</span>
+<span class="w">  </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">"Using XIAO ESP32S3 Sense camera + microphone"</span><span class="p">);</span>
+<span class="w">  </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">"User LED pin: {}"</span><span class="p">,</span><span class="w"> </span><span class="k">static_cast</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span><span class="p">(</span><span class="n">sense</span><span class="p">.</span><span class="n">user_led_pin</span><span class="p">()));</span>
+<span class="w">  </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">"Microphone pins: clk={}, data={}"</span><span class="p">,</span><span class="w"> </span><span class="k">static_cast</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span><span class="p">(</span><span class="n">microphone</span><span class="p">.</span><span class="n">clk</span><span class="p">),</span>
+<span class="w">              </span><span class="k">static_cast</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span><span class="p">(</span><span class="n">microphone</span><span class="p">.</span><span class="n">data</span><span class="p">));</span>
+<span class="w">  </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">"microSD pins: clk={}, mosi={}, miso={}, cs={}"</span><span class="p">,</span><span class="w"> </span><span class="k">static_cast</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span><span class="p">(</span><span class="n">sd_card</span><span class="p">.</span><span class="n">clk</span><span class="p">),</span>
+<span class="w">              </span><span class="k">static_cast</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span><span class="p">(</span><span class="n">sd_card</span><span class="p">.</span><span class="n">mosi</span><span class="p">),</span><span class="w"> </span><span class="k">static_cast</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span><span class="p">(</span><span class="n">sd_card</span><span class="p">.</span><span class="n">miso</span><span class="p">),</span>
+<span class="w">              </span><span class="k">static_cast</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span><span class="p">(</span><span class="n">sd_card</span><span class="p">.</span><span class="n">cs</span><span class="p">));</span>
+
+<span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">sense</span><span class="p">.</span><span class="n">initialize_led</span><span class="p">(</span><span class="n">disconnected_led_breathing_period</span><span class="p">))</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">error</span><span class="p">(</span><span class="s">"Could not initialize user LED"</span><span class="p">);</span>
+<span class="w">    </span><span class="k">return</span><span class="p">;</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="w">  </span><span class="n">sense</span><span class="p">.</span><span class="n">start_led_breathing</span><span class="p">();</span>
+
+<span class="w">  </span><span class="n">initialize_and_test_sdcard</span><span class="p">();</span>
+
+<span class="w">  </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">"Initializing camera"</span><span class="p">);</span>
+<span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">err</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">initialize_camera</span><span class="p">();</span>
+<span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">err</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="n">ESP_OK</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">error</span><span class="p">(</span><span class="s">"Could not initialize camera: {} '{}'"</span><span class="p">,</span><span class="w"> </span><span class="n">err</span><span class="p">,</span><span class="w"> </span><span class="n">esp_err_to_name</span><span class="p">(</span><span class="n">err</span><span class="p">));</span>
+<span class="w">    </span><span class="k">return</span><span class="p">;</span>
+<span class="w">  </span><span class="p">}</span>
+
+<span class="w">  </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">"Initializing microphone"</span><span class="p">);</span>
+<span class="w">  </span><span class="n">err</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">initialize_microphone</span><span class="p">();</span>
+<span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">err</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="n">ESP_OK</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">error</span><span class="p">(</span><span class="s">"Could not initialize microphone: {} '{}'"</span><span class="p">,</span><span class="w"> </span><span class="n">err</span><span class="p">,</span><span class="w"> </span><span class="n">esp_err_to_name</span><span class="p">(</span><span class="n">err</span><span class="p">));</span>
+<span class="w">    </span><span class="n">deinitialize_microphone</span><span class="p">();</span>
+<span class="w">    </span><span class="k">return</span><span class="p">;</span>
+<span class="w">  </span><span class="p">}</span>
+</pre></div>
+</div>
+</section>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp16XiaoEsp32S3Sense11camera_pinsEv">
+<span id="_CPPv3NK4espp16XiaoEsp32S3Sense11camera_pinsEv"></span><span id="_CPPv2NK4espp16XiaoEsp32S3Sense11camera_pinsEv"></span><span id="espp::XiaoEsp32S3Sense::camera_pinsC"></span><span class="target" id="classespp_1_1XiaoEsp32S3Sense_1a1f677349104187605c002ddf72949247"></span><a class="reference internal" href="#_CPPv4N4espp16XiaoEsp32S3Sense10CameraPinsE" title="espp::XiaoEsp32S3Sense::CameraPins"><span class="n"><span class="pre">CameraPins</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">camera_pins</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp16XiaoEsp32S3Sense11camera_pinsEv" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Get the documented camera pin mapping. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The camera pin mapping for the XIAO ESP32S3 Sense. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp16XiaoEsp32S3Sense15microphone_pinsEv">
+<span id="_CPPv3NK4espp16XiaoEsp32S3Sense15microphone_pinsEv"></span><span id="_CPPv2NK4espp16XiaoEsp32S3Sense15microphone_pinsEv"></span><span id="espp::XiaoEsp32S3Sense::microphone_pinsC"></span><span class="target" id="classespp_1_1XiaoEsp32S3Sense_1a8f7fc36453336cd2f23d1dcbd3baf572"></span><a class="reference internal" href="#_CPPv4N4espp16XiaoEsp32S3Sense14MicrophonePinsE" title="espp::XiaoEsp32S3Sense::MicrophonePins"><span class="n"><span class="pre">MicrophonePins</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">microphone_pins</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp16XiaoEsp32S3Sense15microphone_pinsEv" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Get the documented PDM microphone pin mapping. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The microphone pin mapping for the XIAO ESP32S3 Sense. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp16XiaoEsp32S3Sense12sd_card_pinsEv">
+<span id="_CPPv3NK4espp16XiaoEsp32S3Sense12sd_card_pinsEv"></span><span id="_CPPv2NK4espp16XiaoEsp32S3Sense12sd_card_pinsEv"></span><span id="espp::XiaoEsp32S3Sense::sd_card_pinsC"></span><span class="target" id="classespp_1_1XiaoEsp32S3Sense_1ad6697ddad1deb3fcbd73aeceaee2908a"></span><a class="reference internal" href="#_CPPv4N4espp16XiaoEsp32S3Sense10SdCardPinsE" title="espp::XiaoEsp32S3Sense::SdCardPins"><span class="n"><span class="pre">SdCardPins</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">sd_card_pins</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp16XiaoEsp32S3Sense12sd_card_pinsEv" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Get the documented SPI microSD pin mapping. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The microSD pin mapping for the XIAO ESP32S3 Sense. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp16XiaoEsp32S3Sense17initialize_sdcardEv">
+<span id="_CPPv3N4espp16XiaoEsp32S3Sense17initialize_sdcardEv"></span><span id="_CPPv2N4espp16XiaoEsp32S3Sense17initialize_sdcardEv"></span><span id="espp::XiaoEsp32S3Sense::initialize_sdcard"></span><span class="target" id="classespp_1_1XiaoEsp32S3Sense_1a48d3b5e7deb4140ccd1753142eca71f7"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">initialize_sdcard</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp16XiaoEsp32S3Sense17initialize_sdcardEv" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Initialize the microSD card and mount it at mount_point. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>True if the card was initialized and mounted successfully; false otherwise. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp16XiaoEsp32S3Sense17initialize_sdcardERK12SdCardConfig">
+<span id="_CPPv3N4espp16XiaoEsp32S3Sense17initialize_sdcardERK12SdCardConfig"></span><span id="_CPPv2N4espp16XiaoEsp32S3Sense17initialize_sdcardERK12SdCardConfig"></span><span id="espp::XiaoEsp32S3Sense::initialize_sdcard__SdCardConfigCR"></span><span class="target" id="classespp_1_1XiaoEsp32S3Sense_1a43967f9d2f7a423d820cc2d56fc2eed9"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">initialize_sdcard</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp16XiaoEsp32S3Sense12SdCardConfigE" title="espp::XiaoEsp32S3Sense::SdCardConfig"><span class="n"><span class="pre">SdCardConfig</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">config</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp16XiaoEsp32S3Sense17initialize_sdcardERK12SdCardConfig" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Initialize the microSD card and mount it at mount_point. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>config</strong> – Mount configuration for the card. </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if the card was initialized and mounted successfully; false otherwise. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp16XiaoEsp32S3Sense6sdcardEv">
+<span id="_CPPv3NK4espp16XiaoEsp32S3Sense6sdcardEv"></span><span id="_CPPv2NK4espp16XiaoEsp32S3Sense6sdcardEv"></span><span id="espp::XiaoEsp32S3Sense::sdcardC"></span><span class="target" id="classespp_1_1XiaoEsp32S3Sense_1afb1cfebf31720051de70512f44044455"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">sdmmc_card_t</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">sdcard</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp16XiaoEsp32S3Sense6sdcardEv" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Get the microSD card handle. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>nullptr until <a class="reference internal" href="#classespp_1_1XiaoEsp32S3Sense_1a48d3b5e7deb4140ccd1753142eca71f7"><span class="std std-ref">initialize_sdcard()</span></a> succeeded. The card stays valid while its volume is unmounted (<a class="reference internal" href="#classespp_1_1XiaoEsp32S3Sense_1afbe4dacdaef13ce7918ebaad19d6d820"><span class="std std-ref">sdcard_component()</span></a>-&gt;unmount()), e.g. to hand it to a USB host through <a class="reference internal" href="../../buses/usb_cdc.html#classespp_1_1UsbDevice"><span class="std std-ref">espp::UsbDevice</span></a>’s MSC function. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Pointer to the card, or <code class="docutils literal notranslate"><span class="pre">nullptr</span></code> if the card has not been initialized successfully. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp16XiaoEsp32S3Sense16sdcard_componentEv">
+<span id="_CPPv3NK4espp16XiaoEsp32S3Sense16sdcard_componentEv"></span><span id="_CPPv2NK4espp16XiaoEsp32S3Sense16sdcard_componentEv"></span><span id="espp::XiaoEsp32S3Sense::sdcard_componentC"></span><span class="target" id="classespp_1_1XiaoEsp32S3Sense_1afbe4dacdaef13ce7918ebaad19d6d820"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../../storage/sdcard.html#_CPPv4N4espp6SdCardE" title="espp::SdCard"><span class="n"><span class="pre">SdCard</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">sdcard_component</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp16XiaoEsp32S3Sense16sdcard_componentEv" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Get the SD card component: mount() / unmount() (e.g. to hand the card to a USB host with the usb_device MSC function), format(), card_info(), volume_info(), … </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The component, or nullptr until <a class="reference internal" href="#classespp_1_1XiaoEsp32S3Sense_1a48d3b5e7deb4140ccd1753142eca71f7"><span class="std std-ref">initialize_sdcard()</span></a> succeeded </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp16XiaoEsp32S3Sense14initialize_ledEf">
+<span id="_CPPv3N4espp16XiaoEsp32S3Sense14initialize_ledEf"></span><span id="_CPPv2N4espp16XiaoEsp32S3Sense14initialize_ledEf"></span><span id="espp::XiaoEsp32S3Sense::initialize_led__float"></span><span class="target" id="classespp_1_1XiaoEsp32S3Sense_1aef24f36efb33be2f1f657399887bb9ac"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">initialize_led</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">breathing_period</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">3.5f</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp16XiaoEsp32S3Sense14initialize_ledEf" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Initialize the user LED. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>breathing_period</strong> – The period of the LED breathing effect in seconds. </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if the LED was successfully initialized, false otherwise. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp16XiaoEsp32S3Sense19start_led_breathingEv">
+<span id="_CPPv3N4espp16XiaoEsp32S3Sense19start_led_breathingEv"></span><span id="_CPPv2N4espp16XiaoEsp32S3Sense19start_led_breathingEv"></span><span id="espp::XiaoEsp32S3Sense::start_led_breathing"></span><span class="target" id="classespp_1_1XiaoEsp32S3Sense_1a824ddca6b34ad30c88831ca08d27b0f0"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">start_led_breathing</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp16XiaoEsp32S3Sense19start_led_breathingEv" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Start the user-LED breathing effect. </p>
+<p>Logs an error and does nothing if the LED helper has not been initialized yet. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp16XiaoEsp32S3Sense18stop_led_breathingEv">
+<span id="_CPPv3N4espp16XiaoEsp32S3Sense18stop_led_breathingEv"></span><span id="_CPPv2N4espp16XiaoEsp32S3Sense18stop_led_breathingEv"></span><span id="espp::XiaoEsp32S3Sense::stop_led_breathing"></span><span class="target" id="classespp_1_1XiaoEsp32S3Sense_1a4288d0fb3cac25a1e17d72c2db3f47b5"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">stop_led_breathing</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp16XiaoEsp32S3Sense18stop_led_breathingEv" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Stop the user-LED breathing effect. </p>
+<p>Logs an error and does nothing if the LED helper has not been initialized yet. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp16XiaoEsp32S3Sense18set_led_brightnessEf">
+<span id="_CPPv3N4espp16XiaoEsp32S3Sense18set_led_brightnessEf"></span><span id="_CPPv2N4espp16XiaoEsp32S3Sense18set_led_brightnessEf"></span><span id="espp::XiaoEsp32S3Sense::set_led_brightness__float"></span><span class="target" id="classespp_1_1XiaoEsp32S3Sense_1a94e6319fc76af463174f1559a7033e2c"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_led_brightness</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">brightness</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp16XiaoEsp32S3Sense18set_led_brightnessEf" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Set the user-LED brightness. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The LED brightness can only be set while the breathing task is stopped. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>brightness</strong> – The brightness of the LED, in the range [0, 1]. </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if the LED brightness was successfully set, false otherwise. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp16XiaoEsp32S3Sense18get_led_brightnessEv">
+<span id="_CPPv3N4espp16XiaoEsp32S3Sense18get_led_brightnessEv"></span><span id="_CPPv2N4espp16XiaoEsp32S3Sense18get_led_brightnessEv"></span><span id="espp::XiaoEsp32S3Sense::get_led_brightness"></span><span class="target" id="classespp_1_1XiaoEsp32S3Sense_1a5a5f6d9320e132e7006c35c564a1fc4a"></span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_led_brightness</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp16XiaoEsp32S3Sense18get_led_brightnessEv" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Get the user-LED brightness. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The brightness of the LED, in the range [0, 1]. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp16XiaoEsp32S3Sense24set_led_breathing_periodEf">
+<span id="_CPPv3N4espp16XiaoEsp32S3Sense24set_led_breathing_periodEf"></span><span id="_CPPv2N4espp16XiaoEsp32S3Sense24set_led_breathing_periodEf"></span><span id="espp::XiaoEsp32S3Sense::set_led_breathing_period__float"></span><span class="target" id="classespp_1_1XiaoEsp32S3Sense_1aa5cd7cc311dfddc7a219c31e29ed53f6"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_led_breathing_period</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">period</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp16XiaoEsp32S3Sense24set_led_breathing_periodEf" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Set the user-LED breathing period. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>period</strong> – The period of the LED breathing effect in seconds. </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if the LED breathing period was successfully set, false otherwise. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp16XiaoEsp32S3Sense24get_led_breathing_periodEv">
+<span id="_CPPv3N4espp16XiaoEsp32S3Sense24get_led_breathing_periodEv"></span><span id="_CPPv2N4espp16XiaoEsp32S3Sense24get_led_breathing_periodEv"></span><span id="espp::XiaoEsp32S3Sense::get_led_breathing_period"></span><span class="target" id="classespp_1_1XiaoEsp32S3Sense_1ad9a039347965587753f1942e15f3c0f5"></span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_led_breathing_period</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp16XiaoEsp32S3Sense24get_led_breathing_periodEv" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Get the user-LED breathing period. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The period of the LED breathing effect in seconds. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp16XiaoEsp32S3Sense3ledEv">
+<span id="_CPPv3N4espp16XiaoEsp32S3Sense3ledEv"></span><span id="_CPPv2N4espp16XiaoEsp32S3Sense3ledEv"></span><span id="espp::XiaoEsp32S3Sense::led"></span><span class="target" id="classespp_1_1XiaoEsp32S3Sense_1a316ed4a3be381351a5eb2ee28854e046"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">shared_ptr</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../../leds/led.html#_CPPv4N4espp3LedE" title="espp::Led"><span class="n"><span class="pre">Led</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">led</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp16XiaoEsp32S3Sense3ledEv" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Get the user LED. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A shared pointer to the LED. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp16XiaoEsp32S3Sense8gaussianEv">
+<span id="_CPPv3N4espp16XiaoEsp32S3Sense8gaussianEv"></span><span id="_CPPv2N4espp16XiaoEsp32S3Sense8gaussianEv"></span><span id="espp::XiaoEsp32S3Sense::gaussian"></span><span class="target" id="classespp_1_1XiaoEsp32S3Sense_1a891d14a680dbe69cce8a34e730e63162"></span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../../math/gaussian.html#_CPPv4N4espp8GaussianE" title="espp::Gaussian"><span class="n"><span class="pre">Gaussian</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="n"><span class="pre">gaussian</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp16XiaoEsp32S3Sense8gaussianEv" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Get the <a class="reference internal" href="../../math/gaussian.html#classespp_1_1Gaussian"><span class="std std-ref">Gaussian</span></a> waveform used for the LED breathing effect. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A reference to the <a class="reference internal" href="../../math/gaussian.html#classespp_1_1Gaussian"><span class="std std-ref">Gaussian</span></a> waveform. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp16XiaoEsp32S3Sense23microphone_clock_configE8uint32_t">
+<span id="_CPPv3NK4espp16XiaoEsp32S3Sense23microphone_clock_configE8uint32_t"></span><span id="_CPPv2NK4espp16XiaoEsp32S3Sense23microphone_clock_configE8uint32_t"></span><span id="espp::XiaoEsp32S3Sense::microphone_clock_config__uint32_tC"></span><span class="target" id="classespp_1_1XiaoEsp32S3Sense_1aba70b0ebf65b419bae6fed7e209005ff"></span><span class="n"><span class="pre">i2s_pdm_rx_clk_config_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">microphone_clock_config</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">sample_rate_hz</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp16XiaoEsp32S3Sense33microphone_default_sample_rate_hzEv" title="espp::XiaoEsp32S3Sense::microphone_default_sample_rate_hz"><span class="n"><span class="pre">microphone_default_sample_rate_hz</span></span></a><span class="p"><span class="pre">(</span></span><span class="p"><span class="pre">)</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp16XiaoEsp32S3Sense23microphone_clock_configE8uint32_t" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Get a default PDM RX clock configuration for the onboard microphone. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>sample_rate_hz</strong> – The desired microphone sample rate in Hz. </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The default ESP-IDF PDM RX clock configuration. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp16XiaoEsp32S3Sense22microphone_slot_configE15i2s_slot_mode_t">
+<span id="_CPPv3NK4espp16XiaoEsp32S3Sense22microphone_slot_configE15i2s_slot_mode_t"></span><span id="_CPPv2NK4espp16XiaoEsp32S3Sense22microphone_slot_configE15i2s_slot_mode_t"></span><span id="espp::XiaoEsp32S3Sense::microphone_slot_config__i2s_slot_mode_tC"></span><span class="target" id="classespp_1_1XiaoEsp32S3Sense_1a3e1d7cd0335e8bdfa92d329c36878653"></span><span class="n"><span class="pre">i2s_pdm_rx_slot_config_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">microphone_slot_config</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">i2s_slot_mode_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">slot_mode</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">I2S_SLOT_MODE_MONO</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp16XiaoEsp32S3Sense22microphone_slot_configE15i2s_slot_mode_t" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Get a default PDM RX slot configuration for the onboard microphone. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>slot_mode</strong> – The microphone slot mode. </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The default ESP-IDF PDM RX slot configuration. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp16XiaoEsp32S3Sense22microphone_gpio_configEb">
+<span id="_CPPv3NK4espp16XiaoEsp32S3Sense22microphone_gpio_configEb"></span><span id="_CPPv2NK4espp16XiaoEsp32S3Sense22microphone_gpio_configEb"></span><span id="espp::XiaoEsp32S3Sense::microphone_gpio_config__bC"></span><span class="target" id="classespp_1_1XiaoEsp32S3Sense_1ace5d91d99d1d4f50a8ed1eb357c77040"></span><span class="n"><span class="pre">i2s_pdm_rx_gpio_config_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">microphone_gpio_config</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">clock_inverted</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">false</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp16XiaoEsp32S3Sense22microphone_gpio_configEb" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Get a default PDM RX GPIO configuration for the onboard microphone. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>clock_inverted</strong> – Whether to invert the generated PDM clock. </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The default ESP-IDF PDM RX GPIO configuration. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp16XiaoEsp32S3Sense17microphone_configE8uint32_t15i2s_slot_mode_tb">
+<span id="_CPPv3NK4espp16XiaoEsp32S3Sense17microphone_configE8uint32_t15i2s_slot_mode_tb"></span><span id="_CPPv2NK4espp16XiaoEsp32S3Sense17microphone_configE8uint32_t15i2s_slot_mode_tb"></span><span id="espp::XiaoEsp32S3Sense::microphone_config__uint32_t.i2s_slot_mode_t.bC"></span><span class="target" id="classespp_1_1XiaoEsp32S3Sense_1a10ab70e7cbbf7f47d15e12e085d8fdbc"></span><span class="n"><span class="pre">i2s_pdm_rx_config_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">microphone_config</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">sample_rate_hz</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp16XiaoEsp32S3Sense33microphone_default_sample_rate_hzEv" title="espp::XiaoEsp32S3Sense::microphone_default_sample_rate_hz"><span class="n"><span class="pre">microphone_default_sample_rate_hz</span></span></a><span class="p"><span class="pre">(</span></span><span class="p"><span class="pre">)</span></span>, <span class="n"><span class="pre">i2s_slot_mode_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">slot_mode</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">I2S_SLOT_MODE_MONO</span></span>, <span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">clock_inverted</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">false</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp16XiaoEsp32S3Sense17microphone_configE8uint32_t15i2s_slot_mode_tb" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Get a complete default PDM RX configuration for the onboard microphone. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>sample_rate_hz</strong> – The desired microphone sample rate in Hz. </p></li>
+<li><p><strong>slot_mode</strong> – The microphone slot mode. </p></li>
+<li><p><strong>clock_inverted</strong> – Whether to invert the generated PDM clock. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The default ESP-IDF PDM RX configuration. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp16XiaoEsp32S3Sense8get_nameEv">
+<span id="_CPPv3NK4espp16XiaoEsp32S3Sense8get_nameEv"></span><span id="_CPPv2NK4espp16XiaoEsp32S3Sense8get_nameEv"></span><span id="espp::XiaoEsp32S3Sense::get_nameC"></span><span class="target" id="classespp_1_1BaseComponent_1ad3813fa0c9c026e217163c4e2fdfc4a2"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="n"><span class="pre">get_name</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp16XiaoEsp32S3Sense8get_nameEv" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Get the name of the component </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is the tag of the logger </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A const reference to the name of the component </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4I0EN4espp16XiaoEsp32S3Sense11set_log_tagEvRKNSt11string_viewE">
+<span id="_CPPv3I0EN4espp16XiaoEsp32S3Sense11set_log_tagERKNSt11string_viewE"></span><span id="_CPPv2I0EN4espp16XiaoEsp32S3Sense11set_log_tagERKNSt11string_viewE"></span><span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">T</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="classespp_1_1BaseComponent_1a53b5136f13021e3b7e288926506626f7"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_log_tag</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string_view</span></span><span class="p"><span class="pre">&amp;</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4I0EN4espp16XiaoEsp32S3Sense11set_log_tagEvRKNSt11string_viewE" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Not available: the tag is fixed at construction (pass it to the constructor). Enable CONFIG_ESPP_LOGGER_MUTABLE_TAG (menuconfig: ESPP <a class="reference internal" href="../../core/logger.html#classespp_1_1Logger"><span class="std std-ref">Logger</span></a> -&gt; Mutable tag) to change it afterwards. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp16XiaoEsp32S3Sense13get_log_levelEv">
+<span id="_CPPv3NK4espp16XiaoEsp32S3Sense13get_log_levelEv"></span><span id="_CPPv2NK4espp16XiaoEsp32S3Sense13get_log_levelEv"></span><span id="espp::XiaoEsp32S3Sense::get_log_levelC"></span><span class="target" id="classespp_1_1BaseComponent_1a54f34a70b117486a7055e4a6f1d4d7a8"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../../core/logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../../core/logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_log_level</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp16XiaoEsp32S3Sense13get_log_levelEv" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Get the log level for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../../core/logger.html#classespp_1_1Logger_1ac6c63313236b0ae6ff44f3f94a6f99cb"><span class="std std-ref">Logger::Verbosity</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../../core/logger.html#classespp_1_1Logger_1aa8c260085619fd42e17b92c41a638741"><span class="std std-ref">Logger::set_verbosity</span></a></p>
+</div>
+</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The verbosity level of the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp16XiaoEsp32S3Sense13set_log_levelEN4espp6Logger9VerbosityE">
+<span id="_CPPv3N4espp16XiaoEsp32S3Sense13set_log_levelEN4espp6Logger9VerbosityE"></span><span id="_CPPv2N4espp16XiaoEsp32S3Sense13set_log_levelEN4espp6Logger9VerbosityE"></span><span id="espp::XiaoEsp32S3Sense::set_log_level__espp::Logger::Verbosity"></span><span class="target" id="classespp_1_1BaseComponent_1a3159df4e466f93ebb6cca7e685d27243"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_log_level</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../../core/logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../../core/logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">level</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp16XiaoEsp32S3Sense13set_log_levelEN4espp6Logger9VerbosityE" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Set the log level for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../../core/logger.html#classespp_1_1Logger_1ac6c63313236b0ae6ff44f3f94a6f99cb"><span class="std std-ref">Logger::Verbosity</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../../core/logger.html#classespp_1_1Logger_1aa8c260085619fd42e17b92c41a638741"><span class="std std-ref">Logger::set_verbosity</span></a></p>
+</div>
+</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>level</strong> – The verbosity level to use for the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp16XiaoEsp32S3Sense17set_log_verbosityEN4espp6Logger9VerbosityE">
+<span id="_CPPv3N4espp16XiaoEsp32S3Sense17set_log_verbosityEN4espp6Logger9VerbosityE"></span><span id="_CPPv2N4espp16XiaoEsp32S3Sense17set_log_verbosityEN4espp6Logger9VerbosityE"></span><span id="espp::XiaoEsp32S3Sense::set_log_verbosity__espp::Logger::Verbosity"></span><span class="target" id="classespp_1_1BaseComponent_1abb459bcd55b41471e201475fbf1a1b1f"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_log_verbosity</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../../core/logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../../core/logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">level</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp16XiaoEsp32S3Sense17set_log_verbosityEN4espp6Logger9VerbosityE" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Set the log verbosity for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../../wireless/sx126x.html#classespp_1_1BaseComponent_1a3159df4e466f93ebb6cca7e685d27243"><span class="std std-ref">set_log_level</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../../core/logger.html#classespp_1_1Logger_1ac6c63313236b0ae6ff44f3f94a6f99cb"><span class="std std-ref">Logger::Verbosity</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../../core/logger.html#classespp_1_1Logger_1aa8c260085619fd42e17b92c41a638741"><span class="std std-ref">Logger::set_verbosity</span></a></p>
+</div>
+</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is a convenience method that calls set_log_level </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>level</strong> – The verbosity level to use for the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp16XiaoEsp32S3Sense17get_log_verbosityEv">
+<span id="_CPPv3NK4espp16XiaoEsp32S3Sense17get_log_verbosityEv"></span><span id="_CPPv2NK4espp16XiaoEsp32S3Sense17get_log_verbosityEv"></span><span id="espp::XiaoEsp32S3Sense::get_log_verbosityC"></span><span class="target" id="classespp_1_1BaseComponent_1ac9cda1ea5d5321040ca13a827057ff79"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../../core/logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../../core/logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_log_verbosity</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp16XiaoEsp32S3Sense17get_log_verbosityEv" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Get the log verbosity for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../../wireless/sx126x.html#classespp_1_1BaseComponent_1a54f34a70b117486a7055e4a6f1d4d7a8"><span class="std std-ref">get_log_level</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../../core/logger.html#classespp_1_1Logger_1ac6c63313236b0ae6ff44f3f94a6f99cb"><span class="std std-ref">Logger::Verbosity</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../../core/logger.html#classespp_1_1Logger_1a6ed0028b750b3e4aae21d2ecb3670c55"><span class="std std-ref">Logger::get_verbosity</span></a></p>
+</div>
+</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is a convenience method that calls get_log_level </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The verbosity level of the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp16XiaoEsp32S3Sense18set_log_rate_limitENSt6chrono8durationIfEE">
+<span id="_CPPv3N4espp16XiaoEsp32S3Sense18set_log_rate_limitENSt6chrono8durationIfEE"></span><span id="_CPPv2N4espp16XiaoEsp32S3Sense18set_log_rate_limitENSt6chrono8durationIfEE"></span><span id="espp::XiaoEsp32S3Sense::set_log_rate_limit__std::chrono::duration:float:"></span><span class="target" id="classespp_1_1BaseComponent_1a8b95d7a8a87f22a989f3654a238774a0"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_log_rate_limit</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">chrono</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">duration</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">float</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">rate_limit</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp16XiaoEsp32S3Sense18set_log_rate_limitENSt6chrono8durationIfEE" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Set the rate limit for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../../core/logger.html#classespp_1_1Logger_1a9ce0c51e1bf43e63235c6ddf3280b15d"><span class="std std-ref">Logger::set_rate_limit</span></a></p>
+</div>
+</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Only calls to the logger that have _rate_limit suffix will be rate limited </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>rate_limit</strong> – The rate limit to use for the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-static-functions">Public Static Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp16XiaoEsp32S3Sense3getEv">
+<span id="_CPPv3N4espp16XiaoEsp32S3Sense3getEv"></span><span id="_CPPv2N4espp16XiaoEsp32S3Sense3getEv"></span><span id="espp::XiaoEsp32S3Sense::get"></span><span class="target" id="classespp_1_1XiaoEsp32S3Sense_1ac4449383fe958b3c1ae15c37da1f8d45"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp16XiaoEsp32S3SenseE" title="espp::XiaoEsp32S3Sense"><span class="n"><span class="pre">XiaoEsp32S3Sense</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="n"><span class="pre">get</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp16XiaoEsp32S3Sense3getEv" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Access the singleton instance of the <a class="reference internal" href="#classespp_1_1XiaoEsp32S3Sense"><span class="std std-ref">XiaoEsp32S3Sense</span></a> class. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Reference to the singleton instance of the <a class="reference internal" href="#classespp_1_1XiaoEsp32S3Sense"><span class="std std-ref">XiaoEsp32S3Sense</span></a> class. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp16XiaoEsp32S3Sense19camera_xclk_freq_hzEv">
+<span id="_CPPv3N4espp16XiaoEsp32S3Sense19camera_xclk_freq_hzEv"></span><span id="_CPPv2N4espp16XiaoEsp32S3Sense19camera_xclk_freq_hzEv"></span><span id="espp::XiaoEsp32S3Sense::camera_xclk_freq_hz"></span><span class="target" id="classespp_1_1XiaoEsp32S3Sense_1a7cf2a0debcc50ebba56c3cbcfd8ee4ba"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">camera_xclk_freq_hz</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp16XiaoEsp32S3Sense19camera_xclk_freq_hzEv" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Get the recommended camera XCLK frequency in Hz. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The camera XCLK frequency in Hz. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp16XiaoEsp32S3Sense33microphone_default_sample_rate_hzEv">
+<span id="_CPPv3N4espp16XiaoEsp32S3Sense33microphone_default_sample_rate_hzEv"></span><span id="_CPPv2N4espp16XiaoEsp32S3Sense33microphone_default_sample_rate_hzEv"></span><span id="espp::XiaoEsp32S3Sense::microphone_default_sample_rate_hz"></span><span class="target" id="classespp_1_1XiaoEsp32S3Sense_1a7df75766d1a23c328cb8996263ee1a90"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">microphone_default_sample_rate_hz</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp16XiaoEsp32S3Sense33microphone_default_sample_rate_hzEv" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Get the default microphone sample rate in Hz. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The default microphone sample rate in Hz. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp16XiaoEsp32S3Sense12user_led_pinEv">
+<span id="_CPPv3N4espp16XiaoEsp32S3Sense12user_led_pinEv"></span><span id="_CPPv2N4espp16XiaoEsp32S3Sense12user_led_pinEv"></span><span id="espp::XiaoEsp32S3Sense::user_led_pin"></span><span class="target" id="classespp_1_1XiaoEsp32S3Sense_1ab20e8800fdab8fe4a3d54e9e4b3fe45c"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">gpio_num_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">user_led_pin</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp16XiaoEsp32S3Sense12user_led_pinEv" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Get the user LED pin on the XIAO ESP32S3 module. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The user LED GPIO. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp16XiaoEsp32S3Sense15sd_card_clk_pinEv">
+<span id="_CPPv3N4espp16XiaoEsp32S3Sense15sd_card_clk_pinEv"></span><span id="_CPPv2N4espp16XiaoEsp32S3Sense15sd_card_clk_pinEv"></span><span id="espp::XiaoEsp32S3Sense::sd_card_clk_pin"></span><span class="target" id="classespp_1_1XiaoEsp32S3Sense_1a8d1f2e85e7515b7ee6a6fdbf8338a157"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">gpio_num_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">sd_card_clk_pin</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp16XiaoEsp32S3Sense15sd_card_clk_pinEv" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Get the microSD SPI clock pin on the Sense expansion board. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The microSD SPI clock GPIO. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp16XiaoEsp32S3Sense16sd_card_mosi_pinEv">
+<span id="_CPPv3N4espp16XiaoEsp32S3Sense16sd_card_mosi_pinEv"></span><span id="_CPPv2N4espp16XiaoEsp32S3Sense16sd_card_mosi_pinEv"></span><span id="espp::XiaoEsp32S3Sense::sd_card_mosi_pin"></span><span class="target" id="classespp_1_1XiaoEsp32S3Sense_1a3f07485e15466ddfee9682bae1e2ed55"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">gpio_num_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">sd_card_mosi_pin</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp16XiaoEsp32S3Sense16sd_card_mosi_pinEv" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Get the microSD SPI MOSI pin on the Sense expansion board. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The microSD SPI MOSI GPIO. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp16XiaoEsp32S3Sense16sd_card_miso_pinEv">
+<span id="_CPPv3N4espp16XiaoEsp32S3Sense16sd_card_miso_pinEv"></span><span id="_CPPv2N4espp16XiaoEsp32S3Sense16sd_card_miso_pinEv"></span><span id="espp::XiaoEsp32S3Sense::sd_card_miso_pin"></span><span class="target" id="classespp_1_1XiaoEsp32S3Sense_1a09fe968c86872bc5151e4d977bb32e80"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">gpio_num_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">sd_card_miso_pin</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp16XiaoEsp32S3Sense16sd_card_miso_pinEv" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Get the microSD SPI MISO pin on the Sense expansion board. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The microSD SPI MISO GPIO. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp16XiaoEsp32S3Sense14sd_card_cs_pinEv">
+<span id="_CPPv3N4espp16XiaoEsp32S3Sense14sd_card_cs_pinEv"></span><span id="_CPPv2N4espp16XiaoEsp32S3Sense14sd_card_cs_pinEv"></span><span id="espp::XiaoEsp32S3Sense::sd_card_cs_pin"></span><span class="target" id="classespp_1_1XiaoEsp32S3Sense_1a71b6f0bcecd91e4ad5f47ea46b2438cb"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">gpio_num_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">sd_card_cs_pin</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp16XiaoEsp32S3Sense14sd_card_cs_pinEv" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Get the default microSD card CS pin on the Sense expansion board. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The microSD card chip select pin. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp16XiaoEsp32S3Sense15camera_pwdn_pinEv">
+<span id="_CPPv3N4espp16XiaoEsp32S3Sense15camera_pwdn_pinEv"></span><span id="_CPPv2N4espp16XiaoEsp32S3Sense15camera_pwdn_pinEv"></span><span id="espp::XiaoEsp32S3Sense::camera_pwdn_pin"></span><span class="target" id="classespp_1_1XiaoEsp32S3Sense_1ab150e4f8867dc33b92d323309581d57c"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">gpio_num_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">camera_pwdn_pin</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp16XiaoEsp32S3Sense15camera_pwdn_pinEv" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Get the camera power down pin. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp16XiaoEsp32S3Sense16camera_reset_pinEv">
+<span id="_CPPv3N4espp16XiaoEsp32S3Sense16camera_reset_pinEv"></span><span id="_CPPv2N4espp16XiaoEsp32S3Sense16camera_reset_pinEv"></span><span id="espp::XiaoEsp32S3Sense::camera_reset_pin"></span><span class="target" id="classespp_1_1XiaoEsp32S3Sense_1af48b54f0c77185f507c3e6d99f68fea3"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">gpio_num_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">camera_reset_pin</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp16XiaoEsp32S3Sense16camera_reset_pinEv" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Get the camera reset pin. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp16XiaoEsp32S3Sense15camera_xclk_pinEv">
+<span id="_CPPv3N4espp16XiaoEsp32S3Sense15camera_xclk_pinEv"></span><span id="_CPPv2N4espp16XiaoEsp32S3Sense15camera_xclk_pinEv"></span><span id="espp::XiaoEsp32S3Sense::camera_xclk_pin"></span><span class="target" id="classespp_1_1XiaoEsp32S3Sense_1ae4f25557ce34c7ad1e9fc09cd1f75776"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">gpio_num_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">camera_xclk_pin</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp16XiaoEsp32S3Sense15camera_xclk_pinEv" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Get the camera XCLK pin. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp16XiaoEsp32S3Sense19camera_sccb_sda_pinEv">
+<span id="_CPPv3N4espp16XiaoEsp32S3Sense19camera_sccb_sda_pinEv"></span><span id="_CPPv2N4espp16XiaoEsp32S3Sense19camera_sccb_sda_pinEv"></span><span id="espp::XiaoEsp32S3Sense::camera_sccb_sda_pin"></span><span class="target" id="classespp_1_1XiaoEsp32S3Sense_1a6df9fa139b6bdb2aef3eaaef715509bb"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">gpio_num_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">camera_sccb_sda_pin</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp16XiaoEsp32S3Sense19camera_sccb_sda_pinEv" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Get the camera SCCB SDA pin. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp16XiaoEsp32S3Sense19camera_sccb_scl_pinEv">
+<span id="_CPPv3N4espp16XiaoEsp32S3Sense19camera_sccb_scl_pinEv"></span><span id="_CPPv2N4espp16XiaoEsp32S3Sense19camera_sccb_scl_pinEv"></span><span id="espp::XiaoEsp32S3Sense::camera_sccb_scl_pin"></span><span class="target" id="classespp_1_1XiaoEsp32S3Sense_1a2a32d1c749782f7edbca57dd2aae014c"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">gpio_num_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">camera_sccb_scl_pin</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp16XiaoEsp32S3Sense19camera_sccb_scl_pinEv" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Get the camera SCCB SCL pin. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp16XiaoEsp32S3Sense13camera_d7_pinEv">
+<span id="_CPPv3N4espp16XiaoEsp32S3Sense13camera_d7_pinEv"></span><span id="_CPPv2N4espp16XiaoEsp32S3Sense13camera_d7_pinEv"></span><span id="espp::XiaoEsp32S3Sense::camera_d7_pin"></span><span class="target" id="classespp_1_1XiaoEsp32S3Sense_1a6711d2b31a5c694f146292eec876adaf"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">gpio_num_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">camera_d7_pin</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp16XiaoEsp32S3Sense13camera_d7_pinEv" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Get the camera D7 / Y9 pin. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp16XiaoEsp32S3Sense13camera_d6_pinEv">
+<span id="_CPPv3N4espp16XiaoEsp32S3Sense13camera_d6_pinEv"></span><span id="_CPPv2N4espp16XiaoEsp32S3Sense13camera_d6_pinEv"></span><span id="espp::XiaoEsp32S3Sense::camera_d6_pin"></span><span class="target" id="classespp_1_1XiaoEsp32S3Sense_1a90063cf96017cd3e376fbad62d008cfb"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">gpio_num_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">camera_d6_pin</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp16XiaoEsp32S3Sense13camera_d6_pinEv" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Get the camera D6 / Y8 pin. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp16XiaoEsp32S3Sense13camera_d5_pinEv">
+<span id="_CPPv3N4espp16XiaoEsp32S3Sense13camera_d5_pinEv"></span><span id="_CPPv2N4espp16XiaoEsp32S3Sense13camera_d5_pinEv"></span><span id="espp::XiaoEsp32S3Sense::camera_d5_pin"></span><span class="target" id="classespp_1_1XiaoEsp32S3Sense_1aa07a8751524396d5f58b0e3b056eb272"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">gpio_num_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">camera_d5_pin</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp16XiaoEsp32S3Sense13camera_d5_pinEv" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Get the camera D5 / Y7 pin. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp16XiaoEsp32S3Sense13camera_d4_pinEv">
+<span id="_CPPv3N4espp16XiaoEsp32S3Sense13camera_d4_pinEv"></span><span id="_CPPv2N4espp16XiaoEsp32S3Sense13camera_d4_pinEv"></span><span id="espp::XiaoEsp32S3Sense::camera_d4_pin"></span><span class="target" id="classespp_1_1XiaoEsp32S3Sense_1a88cf06a838d749813e02a9c0c35eeaba"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">gpio_num_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">camera_d4_pin</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp16XiaoEsp32S3Sense13camera_d4_pinEv" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Get the camera D4 / Y6 pin. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp16XiaoEsp32S3Sense13camera_d3_pinEv">
+<span id="_CPPv3N4espp16XiaoEsp32S3Sense13camera_d3_pinEv"></span><span id="_CPPv2N4espp16XiaoEsp32S3Sense13camera_d3_pinEv"></span><span id="espp::XiaoEsp32S3Sense::camera_d3_pin"></span><span class="target" id="classespp_1_1XiaoEsp32S3Sense_1a199674dfd20cc05b1a78edc68c93f902"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">gpio_num_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">camera_d3_pin</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp16XiaoEsp32S3Sense13camera_d3_pinEv" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Get the camera D3 / Y5 pin. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp16XiaoEsp32S3Sense13camera_d2_pinEv">
+<span id="_CPPv3N4espp16XiaoEsp32S3Sense13camera_d2_pinEv"></span><span id="_CPPv2N4espp16XiaoEsp32S3Sense13camera_d2_pinEv"></span><span id="espp::XiaoEsp32S3Sense::camera_d2_pin"></span><span class="target" id="classespp_1_1XiaoEsp32S3Sense_1a4fc84471a29afa8ccb81990ac26c947b"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">gpio_num_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">camera_d2_pin</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp16XiaoEsp32S3Sense13camera_d2_pinEv" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Get the camera D2 / Y4 pin. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp16XiaoEsp32S3Sense13camera_d1_pinEv">
+<span id="_CPPv3N4espp16XiaoEsp32S3Sense13camera_d1_pinEv"></span><span id="_CPPv2N4espp16XiaoEsp32S3Sense13camera_d1_pinEv"></span><span id="espp::XiaoEsp32S3Sense::camera_d1_pin"></span><span class="target" id="classespp_1_1XiaoEsp32S3Sense_1ac5f20567e03701b4a2d8c11aa6e830c0"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">gpio_num_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">camera_d1_pin</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp16XiaoEsp32S3Sense13camera_d1_pinEv" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Get the camera D1 / Y3 pin. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp16XiaoEsp32S3Sense13camera_d0_pinEv">
+<span id="_CPPv3N4espp16XiaoEsp32S3Sense13camera_d0_pinEv"></span><span id="_CPPv2N4espp16XiaoEsp32S3Sense13camera_d0_pinEv"></span><span id="espp::XiaoEsp32S3Sense::camera_d0_pin"></span><span class="target" id="classespp_1_1XiaoEsp32S3Sense_1a97f422cc3f3b8669ff5ed0eceb03c441"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">gpio_num_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">camera_d0_pin</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp16XiaoEsp32S3Sense13camera_d0_pinEv" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Get the camera D0 / Y2 pin. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp16XiaoEsp32S3Sense16camera_vsync_pinEv">
+<span id="_CPPv3N4espp16XiaoEsp32S3Sense16camera_vsync_pinEv"></span><span id="_CPPv2N4espp16XiaoEsp32S3Sense16camera_vsync_pinEv"></span><span id="espp::XiaoEsp32S3Sense::camera_vsync_pin"></span><span class="target" id="classespp_1_1XiaoEsp32S3Sense_1a50453c631b8ff397d45d991a676db940"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">gpio_num_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">camera_vsync_pin</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp16XiaoEsp32S3Sense16camera_vsync_pinEv" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Get the camera VSYNC pin. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp16XiaoEsp32S3Sense15camera_href_pinEv">
+<span id="_CPPv3N4espp16XiaoEsp32S3Sense15camera_href_pinEv"></span><span id="_CPPv2N4espp16XiaoEsp32S3Sense15camera_href_pinEv"></span><span id="espp::XiaoEsp32S3Sense::camera_href_pin"></span><span class="target" id="classespp_1_1XiaoEsp32S3Sense_1a02c31df8984434177c23f51f2b2a8aca"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">gpio_num_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">camera_href_pin</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp16XiaoEsp32S3Sense15camera_href_pinEv" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Get the camera HREF pin. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp16XiaoEsp32S3Sense15camera_pclk_pinEv">
+<span id="_CPPv3N4espp16XiaoEsp32S3Sense15camera_pclk_pinEv"></span><span id="_CPPv2N4espp16XiaoEsp32S3Sense15camera_pclk_pinEv"></span><span id="espp::XiaoEsp32S3Sense::camera_pclk_pin"></span><span class="target" id="classespp_1_1XiaoEsp32S3Sense_1a3e1c92f2075b81da2124a2abbf853d52"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">gpio_num_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">camera_pclk_pin</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp16XiaoEsp32S3Sense15camera_pclk_pinEv" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Get the camera PCLK pin. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp16XiaoEsp32S3Sense18microphone_clk_pinEv">
+<span id="_CPPv3N4espp16XiaoEsp32S3Sense18microphone_clk_pinEv"></span><span id="_CPPv2N4espp16XiaoEsp32S3Sense18microphone_clk_pinEv"></span><span id="espp::XiaoEsp32S3Sense::microphone_clk_pin"></span><span class="target" id="classespp_1_1XiaoEsp32S3Sense_1a410380a30bfb1f827f83b9e8154e8b21"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">gpio_num_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">microphone_clk_pin</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp16XiaoEsp32S3Sense18microphone_clk_pinEv" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Get the microphone PDM clock pin. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp16XiaoEsp32S3Sense19microphone_data_pinEv">
+<span id="_CPPv3N4espp16XiaoEsp32S3Sense19microphone_data_pinEv"></span><span id="_CPPv2N4espp16XiaoEsp32S3Sense19microphone_data_pinEv"></span><span id="espp::XiaoEsp32S3Sense::microphone_data_pin"></span><span class="target" id="classespp_1_1XiaoEsp32S3Sense_1ad74a53bd0f6c7d52e5c445d2c3562cdd"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">gpio_num_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">microphone_data_pin</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp16XiaoEsp32S3Sense19microphone_data_pinEv" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Get the microphone PDM data pin. </p>
+</dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-static-attributes">Public Static Attributes</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp16XiaoEsp32S3Sense11mount_pointE">
+<span id="_CPPv3N4espp16XiaoEsp32S3Sense11mount_pointE"></span><span id="_CPPv2N4espp16XiaoEsp32S3Sense11mount_pointE"></span><span id="espp::XiaoEsp32S3Sense::mount_point__cA"></span><span class="target" id="classespp_1_1XiaoEsp32S3Sense_1a33f7b58cdcc791a6f3d9864cb3287696"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="kt"><span class="pre">char</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">mount_point</span></span></span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="s"><span class="pre">&quot;/sdcard&quot;</span></span><a class="headerlink" href="#_CPPv4N4espp16XiaoEsp32S3Sense11mount_pointE" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Mount point for the microSD card. </p>
+</dd></dl>
+
+</div>
+<dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp16XiaoEsp32S3Sense10CameraPinsE">
+<span id="_CPPv3N4espp16XiaoEsp32S3Sense10CameraPinsE"></span><span id="_CPPv2N4espp16XiaoEsp32S3Sense10CameraPinsE"></span><span id="espp::XiaoEsp32S3Sense::CameraPins"></span><span class="target" id="structespp_1_1XiaoEsp32S3Sense_1_1CameraPins"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">CameraPins</span></span></span><a class="headerlink" href="#_CPPv4N4espp16XiaoEsp32S3Sense10CameraPinsE" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Camera pin mapping for the Sense expansion board. </p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp16XiaoEsp32S3Sense10CameraPins4pwdnE">
+<span id="_CPPv3N4espp16XiaoEsp32S3Sense10CameraPins4pwdnE"></span><span id="_CPPv2N4espp16XiaoEsp32S3Sense10CameraPins4pwdnE"></span><span id="espp::XiaoEsp32S3Sense::CameraPins::pwdn__gpio_num_t"></span><span class="target" id="structespp_1_1XiaoEsp32S3Sense_1_1CameraPins_1ab2f37608cce5053f215928eb2b2bbbea"></span><span class="n"><span class="pre">gpio_num_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">pwdn</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="n"><span class="pre">GPIO_NUM_NC</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp16XiaoEsp32S3Sense10CameraPins4pwdnE" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Camera power down pin. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp16XiaoEsp32S3Sense10CameraPins5resetE">
+<span id="_CPPv3N4espp16XiaoEsp32S3Sense10CameraPins5resetE"></span><span id="_CPPv2N4espp16XiaoEsp32S3Sense10CameraPins5resetE"></span><span id="espp::XiaoEsp32S3Sense::CameraPins::reset__gpio_num_t"></span><span class="target" id="structespp_1_1XiaoEsp32S3Sense_1_1CameraPins_1af6c19e6a91ba1aec9f786c0c25ceef53"></span><span class="n"><span class="pre">gpio_num_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">reset</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="n"><span class="pre">GPIO_NUM_NC</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp16XiaoEsp32S3Sense10CameraPins5resetE" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Camera reset pin. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp16XiaoEsp32S3Sense10CameraPins4xclkE">
+<span id="_CPPv3N4espp16XiaoEsp32S3Sense10CameraPins4xclkE"></span><span id="_CPPv2N4espp16XiaoEsp32S3Sense10CameraPins4xclkE"></span><span id="espp::XiaoEsp32S3Sense::CameraPins::xclk__gpio_num_t"></span><span class="target" id="structespp_1_1XiaoEsp32S3Sense_1_1CameraPins_1a2ba210307d2b01366f17602e08053b85"></span><span class="n"><span class="pre">gpio_num_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">xclk</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="n"><span class="pre">GPIO_NUM_NC</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp16XiaoEsp32S3Sense10CameraPins4xclkE" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Camera external clock pin. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp16XiaoEsp32S3Sense10CameraPins8sccb_sdaE">
+<span id="_CPPv3N4espp16XiaoEsp32S3Sense10CameraPins8sccb_sdaE"></span><span id="_CPPv2N4espp16XiaoEsp32S3Sense10CameraPins8sccb_sdaE"></span><span id="espp::XiaoEsp32S3Sense::CameraPins::sccb_sda__gpio_num_t"></span><span class="target" id="structespp_1_1XiaoEsp32S3Sense_1_1CameraPins_1ab7a25b231862a29c10e0ad9bb5a66f3e"></span><span class="n"><span class="pre">gpio_num_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">sccb_sda</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="n"><span class="pre">GPIO_NUM_NC</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp16XiaoEsp32S3Sense10CameraPins8sccb_sdaE" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Camera SCCB SDA pin. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp16XiaoEsp32S3Sense10CameraPins8sccb_sclE">
+<span id="_CPPv3N4espp16XiaoEsp32S3Sense10CameraPins8sccb_sclE"></span><span id="_CPPv2N4espp16XiaoEsp32S3Sense10CameraPins8sccb_sclE"></span><span id="espp::XiaoEsp32S3Sense::CameraPins::sccb_scl__gpio_num_t"></span><span class="target" id="structespp_1_1XiaoEsp32S3Sense_1_1CameraPins_1a833f48a84a7cfdff89e612f99a1e7499"></span><span class="n"><span class="pre">gpio_num_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">sccb_scl</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="n"><span class="pre">GPIO_NUM_NC</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp16XiaoEsp32S3Sense10CameraPins8sccb_sclE" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Camera SCCB SCL pin. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp16XiaoEsp32S3Sense10CameraPins2d7E">
+<span id="_CPPv3N4espp16XiaoEsp32S3Sense10CameraPins2d7E"></span><span id="_CPPv2N4espp16XiaoEsp32S3Sense10CameraPins2d7E"></span><span id="espp::XiaoEsp32S3Sense::CameraPins::d7__gpio_num_t"></span><span class="target" id="structespp_1_1XiaoEsp32S3Sense_1_1CameraPins_1ae5bc8ebdb89cf6ed97832e5a6b428f2a"></span><span class="n"><span class="pre">gpio_num_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">d7</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="n"><span class="pre">GPIO_NUM_NC</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp16XiaoEsp32S3Sense10CameraPins2d7E" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Camera D7 / Y9 pin. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp16XiaoEsp32S3Sense10CameraPins2d6E">
+<span id="_CPPv3N4espp16XiaoEsp32S3Sense10CameraPins2d6E"></span><span id="_CPPv2N4espp16XiaoEsp32S3Sense10CameraPins2d6E"></span><span id="espp::XiaoEsp32S3Sense::CameraPins::d6__gpio_num_t"></span><span class="target" id="structespp_1_1XiaoEsp32S3Sense_1_1CameraPins_1a4f207d21fcb6145b714036b526b7be87"></span><span class="n"><span class="pre">gpio_num_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">d6</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="n"><span class="pre">GPIO_NUM_NC</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp16XiaoEsp32S3Sense10CameraPins2d6E" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Camera D6 / Y8 pin. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp16XiaoEsp32S3Sense10CameraPins2d5E">
+<span id="_CPPv3N4espp16XiaoEsp32S3Sense10CameraPins2d5E"></span><span id="_CPPv2N4espp16XiaoEsp32S3Sense10CameraPins2d5E"></span><span id="espp::XiaoEsp32S3Sense::CameraPins::d5__gpio_num_t"></span><span class="target" id="structespp_1_1XiaoEsp32S3Sense_1_1CameraPins_1aaed6b6aae111382ff3093eb0799b1869"></span><span class="n"><span class="pre">gpio_num_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">d5</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="n"><span class="pre">GPIO_NUM_NC</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp16XiaoEsp32S3Sense10CameraPins2d5E" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Camera D5 / Y7 pin. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp16XiaoEsp32S3Sense10CameraPins2d4E">
+<span id="_CPPv3N4espp16XiaoEsp32S3Sense10CameraPins2d4E"></span><span id="_CPPv2N4espp16XiaoEsp32S3Sense10CameraPins2d4E"></span><span id="espp::XiaoEsp32S3Sense::CameraPins::d4__gpio_num_t"></span><span class="target" id="structespp_1_1XiaoEsp32S3Sense_1_1CameraPins_1afddcc74ff26edd598c2b56eeb43eb498"></span><span class="n"><span class="pre">gpio_num_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">d4</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="n"><span class="pre">GPIO_NUM_NC</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp16XiaoEsp32S3Sense10CameraPins2d4E" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Camera D4 / Y6 pin. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp16XiaoEsp32S3Sense10CameraPins2d3E">
+<span id="_CPPv3N4espp16XiaoEsp32S3Sense10CameraPins2d3E"></span><span id="_CPPv2N4espp16XiaoEsp32S3Sense10CameraPins2d3E"></span><span id="espp::XiaoEsp32S3Sense::CameraPins::d3__gpio_num_t"></span><span class="target" id="structespp_1_1XiaoEsp32S3Sense_1_1CameraPins_1a4192828eaf56cf48bb97cab147544582"></span><span class="n"><span class="pre">gpio_num_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">d3</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="n"><span class="pre">GPIO_NUM_NC</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp16XiaoEsp32S3Sense10CameraPins2d3E" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Camera D3 / Y5 pin. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp16XiaoEsp32S3Sense10CameraPins2d2E">
+<span id="_CPPv3N4espp16XiaoEsp32S3Sense10CameraPins2d2E"></span><span id="_CPPv2N4espp16XiaoEsp32S3Sense10CameraPins2d2E"></span><span id="espp::XiaoEsp32S3Sense::CameraPins::d2__gpio_num_t"></span><span class="target" id="structespp_1_1XiaoEsp32S3Sense_1_1CameraPins_1a525323aa088b482df0f7c0c9a0c09f6b"></span><span class="n"><span class="pre">gpio_num_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">d2</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="n"><span class="pre">GPIO_NUM_NC</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp16XiaoEsp32S3Sense10CameraPins2d2E" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Camera D2 / Y4 pin. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp16XiaoEsp32S3Sense10CameraPins2d1E">
+<span id="_CPPv3N4espp16XiaoEsp32S3Sense10CameraPins2d1E"></span><span id="_CPPv2N4espp16XiaoEsp32S3Sense10CameraPins2d1E"></span><span id="espp::XiaoEsp32S3Sense::CameraPins::d1__gpio_num_t"></span><span class="target" id="structespp_1_1XiaoEsp32S3Sense_1_1CameraPins_1a62c0ad4a57ba5b628d768e66e7132e24"></span><span class="n"><span class="pre">gpio_num_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">d1</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="n"><span class="pre">GPIO_NUM_NC</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp16XiaoEsp32S3Sense10CameraPins2d1E" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Camera D1 / Y3 pin. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp16XiaoEsp32S3Sense10CameraPins2d0E">
+<span id="_CPPv3N4espp16XiaoEsp32S3Sense10CameraPins2d0E"></span><span id="_CPPv2N4espp16XiaoEsp32S3Sense10CameraPins2d0E"></span><span id="espp::XiaoEsp32S3Sense::CameraPins::d0__gpio_num_t"></span><span class="target" id="structespp_1_1XiaoEsp32S3Sense_1_1CameraPins_1a53fc834d776f128364966db414abd260"></span><span class="n"><span class="pre">gpio_num_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">d0</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="n"><span class="pre">GPIO_NUM_NC</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp16XiaoEsp32S3Sense10CameraPins2d0E" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Camera D0 / Y2 pin. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp16XiaoEsp32S3Sense10CameraPins5vsyncE">
+<span id="_CPPv3N4espp16XiaoEsp32S3Sense10CameraPins5vsyncE"></span><span id="_CPPv2N4espp16XiaoEsp32S3Sense10CameraPins5vsyncE"></span><span id="espp::XiaoEsp32S3Sense::CameraPins::vsync__gpio_num_t"></span><span class="target" id="structespp_1_1XiaoEsp32S3Sense_1_1CameraPins_1aecf6b7eacc86c5729925fba2faabc4d1"></span><span class="n"><span class="pre">gpio_num_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">vsync</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="n"><span class="pre">GPIO_NUM_NC</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp16XiaoEsp32S3Sense10CameraPins5vsyncE" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Camera VSYNC pin. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp16XiaoEsp32S3Sense10CameraPins4hrefE">
+<span id="_CPPv3N4espp16XiaoEsp32S3Sense10CameraPins4hrefE"></span><span id="_CPPv2N4espp16XiaoEsp32S3Sense10CameraPins4hrefE"></span><span id="espp::XiaoEsp32S3Sense::CameraPins::href__gpio_num_t"></span><span class="target" id="structespp_1_1XiaoEsp32S3Sense_1_1CameraPins_1a03143cf020cccbf62726348719a84218"></span><span class="n"><span class="pre">gpio_num_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">href</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="n"><span class="pre">GPIO_NUM_NC</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp16XiaoEsp32S3Sense10CameraPins4hrefE" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Camera HREF pin. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp16XiaoEsp32S3Sense10CameraPins4pclkE">
+<span id="_CPPv3N4espp16XiaoEsp32S3Sense10CameraPins4pclkE"></span><span id="_CPPv2N4espp16XiaoEsp32S3Sense10CameraPins4pclkE"></span><span id="espp::XiaoEsp32S3Sense::CameraPins::pclk__gpio_num_t"></span><span class="target" id="structespp_1_1XiaoEsp32S3Sense_1_1CameraPins_1a25e24786a0428943633394aae2c71e39"></span><span class="n"><span class="pre">gpio_num_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">pclk</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="n"><span class="pre">GPIO_NUM_NC</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp16XiaoEsp32S3Sense10CameraPins4pclkE" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Camera pixel clock pin. </p>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+<dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp16XiaoEsp32S3Sense14MicrophonePinsE">
+<span id="_CPPv3N4espp16XiaoEsp32S3Sense14MicrophonePinsE"></span><span id="_CPPv2N4espp16XiaoEsp32S3Sense14MicrophonePinsE"></span><span id="espp::XiaoEsp32S3Sense::MicrophonePins"></span><span class="target" id="structespp_1_1XiaoEsp32S3Sense_1_1MicrophonePins"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">MicrophonePins</span></span></span><a class="headerlink" href="#_CPPv4N4espp16XiaoEsp32S3Sense14MicrophonePinsE" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>PDM microphone pin mapping for the Sense expansion board. </p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp16XiaoEsp32S3Sense14MicrophonePins3clkE">
+<span id="_CPPv3N4espp16XiaoEsp32S3Sense14MicrophonePins3clkE"></span><span id="_CPPv2N4espp16XiaoEsp32S3Sense14MicrophonePins3clkE"></span><span id="espp::XiaoEsp32S3Sense::MicrophonePins::clk__gpio_num_t"></span><span class="target" id="structespp_1_1XiaoEsp32S3Sense_1_1MicrophonePins_1a03484562980c5679d7a74cb54e72471c"></span><span class="n"><span class="pre">gpio_num_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">clk</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="n"><span class="pre">GPIO_NUM_NC</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp16XiaoEsp32S3Sense14MicrophonePins3clkE" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>PDM clock output pin. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp16XiaoEsp32S3Sense14MicrophonePins4dataE">
+<span id="_CPPv3N4espp16XiaoEsp32S3Sense14MicrophonePins4dataE"></span><span id="_CPPv2N4espp16XiaoEsp32S3Sense14MicrophonePins4dataE"></span><span id="espp::XiaoEsp32S3Sense::MicrophonePins::data__gpio_num_t"></span><span class="target" id="structespp_1_1XiaoEsp32S3Sense_1_1MicrophonePins_1a59c866b32d7df87ab78db25a4ea50b71"></span><span class="n"><span class="pre">gpio_num_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">data</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="n"><span class="pre">GPIO_NUM_NC</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp16XiaoEsp32S3Sense14MicrophonePins4dataE" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>PDM data input pin. </p>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+<dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp16XiaoEsp32S3Sense10SdCardPinsE">
+<span id="_CPPv3N4espp16XiaoEsp32S3Sense10SdCardPinsE"></span><span id="_CPPv2N4espp16XiaoEsp32S3Sense10SdCardPinsE"></span><span id="espp::XiaoEsp32S3Sense::SdCardPins"></span><span class="target" id="structespp_1_1XiaoEsp32S3Sense_1_1SdCardPins"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">SdCardPins</span></span></span><a class="headerlink" href="#_CPPv4N4espp16XiaoEsp32S3Sense10SdCardPinsE" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>SPI microSD pin mapping for the Sense expansion board. </p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp16XiaoEsp32S3Sense10SdCardPins3clkE">
+<span id="_CPPv3N4espp16XiaoEsp32S3Sense10SdCardPins3clkE"></span><span id="_CPPv2N4espp16XiaoEsp32S3Sense10SdCardPins3clkE"></span><span id="espp::XiaoEsp32S3Sense::SdCardPins::clk__gpio_num_t"></span><span class="target" id="structespp_1_1XiaoEsp32S3Sense_1_1SdCardPins_1ab364ec1a62e2d56f16204b700a81bbdc"></span><span class="n"><span class="pre">gpio_num_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">clk</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="n"><span class="pre">GPIO_NUM_NC</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp16XiaoEsp32S3Sense10SdCardPins3clkE" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>SPI clock pin. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp16XiaoEsp32S3Sense10SdCardPins4mosiE">
+<span id="_CPPv3N4espp16XiaoEsp32S3Sense10SdCardPins4mosiE"></span><span id="_CPPv2N4espp16XiaoEsp32S3Sense10SdCardPins4mosiE"></span><span id="espp::XiaoEsp32S3Sense::SdCardPins::mosi__gpio_num_t"></span><span class="target" id="structespp_1_1XiaoEsp32S3Sense_1_1SdCardPins_1a1870503a04a76bae56c7be632b63774a"></span><span class="n"><span class="pre">gpio_num_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">mosi</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="n"><span class="pre">GPIO_NUM_NC</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp16XiaoEsp32S3Sense10SdCardPins4mosiE" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>SPI MOSI pin. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp16XiaoEsp32S3Sense10SdCardPins4misoE">
+<span id="_CPPv3N4espp16XiaoEsp32S3Sense10SdCardPins4misoE"></span><span id="_CPPv2N4espp16XiaoEsp32S3Sense10SdCardPins4misoE"></span><span id="espp::XiaoEsp32S3Sense::SdCardPins::miso__gpio_num_t"></span><span class="target" id="structespp_1_1XiaoEsp32S3Sense_1_1SdCardPins_1afbd82e12658386414a4a83178b875cfa"></span><span class="n"><span class="pre">gpio_num_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">miso</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="n"><span class="pre">GPIO_NUM_NC</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp16XiaoEsp32S3Sense10SdCardPins4misoE" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>SPI MISO pin. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp16XiaoEsp32S3Sense10SdCardPins2csE">
+<span id="_CPPv3N4espp16XiaoEsp32S3Sense10SdCardPins2csE"></span><span id="_CPPv2N4espp16XiaoEsp32S3Sense10SdCardPins2csE"></span><span id="espp::XiaoEsp32S3Sense::SdCardPins::cs__gpio_num_t"></span><span class="target" id="structespp_1_1XiaoEsp32S3Sense_1_1SdCardPins_1afb24d9cc113382a88e4efc18338c0766"></span><span class="n"><span class="pre">gpio_num_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">cs</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="n"><span class="pre">GPIO_NUM_NC</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp16XiaoEsp32S3Sense10SdCardPins2csE" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>SPI chip-select pin. </p>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+<dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp16XiaoEsp32S3Sense12SdCardConfigE">
+<span id="_CPPv3N4espp16XiaoEsp32S3Sense12SdCardConfigE"></span><span id="_CPPv2N4espp16XiaoEsp32S3Sense12SdCardConfigE"></span><span id="espp::XiaoEsp32S3Sense::SdCardConfig"></span><span class="target" id="structespp_1_1XiaoEsp32S3Sense_1_1SdCardConfig"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">SdCardConfig</span></span></span><a class="headerlink" href="#_CPPv4N4espp16XiaoEsp32S3Sense12SdCardConfigE" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Configuration for the microSD card. </p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp16XiaoEsp32S3Sense12SdCardConfig22format_if_mount_failedE">
+<span id="_CPPv3N4espp16XiaoEsp32S3Sense12SdCardConfig22format_if_mount_failedE"></span><span id="_CPPv2N4espp16XiaoEsp32S3Sense12SdCardConfig22format_if_mount_failedE"></span><span id="espp::XiaoEsp32S3Sense::SdCardConfig::format_if_mount_failed__b"></span><span class="target" id="structespp_1_1XiaoEsp32S3Sense_1_1SdCardConfig_1a0be8137693a6a74ca9ebfb05dbb2a365"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">format_if_mount_failed</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">false</span></span><a class="headerlink" href="#_CPPv4N4espp16XiaoEsp32S3Sense12SdCardConfig22format_if_mount_failedE" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Format the card if mount fails. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp16XiaoEsp32S3Sense12SdCardConfig9max_filesE">
+<span id="_CPPv3N4espp16XiaoEsp32S3Sense12SdCardConfig9max_filesE"></span><span id="_CPPv2N4espp16XiaoEsp32S3Sense12SdCardConfig9max_filesE"></span><span id="espp::XiaoEsp32S3Sense::SdCardConfig::max_files__i"></span><span class="target" id="structespp_1_1XiaoEsp32S3Sense_1_1SdCardConfig_1ab096bd4476b32cf35b89489d83783e71"></span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">max_files</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">5</span></span><a class="headerlink" href="#_CPPv4N4espp16XiaoEsp32S3Sense12SdCardConfig9max_filesE" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Maximum number of open files. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp16XiaoEsp32S3Sense12SdCardConfig20allocation_unit_sizeE">
+<span id="_CPPv3N4espp16XiaoEsp32S3Sense12SdCardConfig20allocation_unit_sizeE"></span><span id="_CPPv2N4espp16XiaoEsp32S3Sense12SdCardConfig20allocation_unit_sizeE"></span><span id="espp::XiaoEsp32S3Sense::SdCardConfig::allocation_unit_size__s"></span><span class="target" id="structespp_1_1XiaoEsp32S3Sense_1_1SdCardConfig_1a87039ebd09848e985a34b00bcf48eeee"></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">allocation_unit_size</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">2</span></span><span class="w"> </span><span class="o"><span class="pre">*</span></span><span class="w"> </span><span class="m"><span class="pre">1024</span></span><a class="headerlink" href="#_CPPv4N4espp16XiaoEsp32S3Sense12SdCardConfig20allocation_unit_sizeE" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>FAT allocation unit size in bytes. </p>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+</section>
+</section>
+
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="seeed_studio_round_display_example.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title">Seeed Studio Round Display Example</p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="xiao_esp32s3_sense_example.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">XIAO ESP32S3 Sense Example</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <dialog id="pst-secondary-sidebar-modal"></dialog>
+                <div id="pst-secondary-sidebar" class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item">
+<div
+    id="pst-page-navigation-heading-2"
+    class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> On this page
+  </div>
+  <nav id="pst-page-toc-nav" class="page-toc" aria-labelledby="pst-page-navigation-heading-2">
+    <ul class="pst-show_toc_level nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#id1">XIAO ESP32S3 Sense</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#api-reference">API Reference</a><ul class="pst-show_toc_level nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#header-file">Header File</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#classes">Classes</a></li>
+</ul>
+</li>
+</ul>
+  </nav></div>
+
+  <div class="sidebar-secondary-item">
+
+  
+  <div class="tocsection editthispage">
+    <a href="https://github.com/esp-cpp/espp/edit/main/doc/en/dev_boards/seeed/xiao_esp32s3_sense.rst">
+      <i class="fa-solid fa-pencil"></i>
+      
+      
+        
+          Edit on GitHub
+        
+      
+    </a>
+  </div>
+</div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../../_static/scripts/bootstrap.js?digest=55c26ed414f5f8a31ebb"></script>
+<script defer src="../../_static/scripts/pydata-sphinx-theme.js?digest=55c26ed414f5f8a31ebb"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright 2022 - 2026, William Emfinger.
+      <br/>
+    
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 7.1.2.
+    <br/>
+  </p>
+</div>
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.17.1.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>

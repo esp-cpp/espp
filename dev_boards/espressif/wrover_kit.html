@@ -1,0 +1,1299 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>ESP32-WROVER-KIT &#8212; espp</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../_static/styles/theme.css?digest=55c26ed414f5f8a31ebb" rel="stylesheet" />
+<link href="../../_static/styles/pydata-sphinx-theme.css?digest=55c26ed414f5f8a31ebb" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=03e43079" />
+    <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=949a1ff5" />
+    <link rel="stylesheet" type="text/css" href="../../_static/theme_overrides.css?v=851bd809" />
+    <link rel="stylesheet" type="text/css" href="../../_static/espp.css?v=a39a0385" />
+  
+  <!-- So that users can add custom icons -->
+  <script defer src="../../_static/scripts/fontawesome.js?digest=55c26ed414f5f8a31ebb"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=55c26ed414f5f8a31ebb" />
+<link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=55c26ed414f5f8a31ebb" />
+
+    <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js?v=d01aebe5"></script>
+    <script src="../../_static/doctools.js?v=888ff710"></script>
+    <script src="../../_static/sphinx_highlight.js?v=4825356b"></script>
+    <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../../_static/copybutton.js?v=ff8fa330"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'dev_boards/espressif/wrover_kit';</script>
+    <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
+    <link rel="icon" href="../../_static/favicon.png"/>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="Wrover-Kit Example" href="wrover_kit_example.html" />
+    <link rel="prev" title="ESP32-TIMER-CAM Example" href="esp32_timer_cam_example.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="master" />
+  
+    
+    <script src="../../_static/searchtools.js"></script>
+    <script src="../../_static/language_data.js"></script>
+    <script src="../../searchindex.js"></script>
+  
+  </head>
+  <body data-default-mode="">
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+  
+  
+  
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header id="pst-header" class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class=" navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../index.html">
+  
+  
+  
+  
+  
+    
+    
+      
+    
+    
+    <img src="../../_static/espp-logo.png" class="logo__image only-light" alt=""/>
+    <img src="../../_static/espp-logo.png" class="logo__image only-dark pst-js-only" alt=""/>
+  
+  
+    <p class="title logo__title">espp</p>
+  
+</a></div>
+    
+  </div>
+  
+  <div class=" navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../getting_started.html">
+    Getting Started
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../api_reference.html">
+    API Reference
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="../index.html">
+    Dev Boards (BSPs)
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../web_apps.html">
+    Web Apps
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../qemu.html">
+    Running espp in QEMU
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+      
+        <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/esp-cpp/espp" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://discord.gg/dvcQw37xAY" title="Discord" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-discord fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">Discord</span></a>
+        </li>
+</ul></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+    <button class="pst-navbar-icon sidebar-toggle secondary-toggle" aria-label="On this page">
+      <span class="fa-solid fa-outdent"></span>
+    </button>
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../getting_started.html">
+    Getting Started
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../api_reference.html">
+    API Reference
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="../index.html">
+    Dev Boards (BSPs)
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../web_apps.html">
+    Web Apps
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../qemu.html">
+    Running espp in QEMU
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+        
+          <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/esp-cpp/espp" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://discord.gg/dvcQw37xAY" title="Discord" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-discord fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">Discord</span></a>
+        </li>
+</ul></div>
+        
+      </div>
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item pst-sidebar-collapse"><button id="pst-collapse-sidebar-button" aria-expanded="true" aria-controls="pst-primary-sidebar"><svg class="pst-icon svg-inline--fa" role="img" aria-hidden="true" focusable="false" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
+    <path fill="currentColor" d="M3 15.5C2.36232 15.5 1.74874 15.2564 1.28478 14.8189C0.820828 14.3815 0.541576 13.7832 0.504167 13.1467L0.5 13L0.5 3C0.499965 2.36232 0.743605 1.74874 1.18107 1.28478C1.61854 0.820828 2.21676 0.541576 2.85333 0.504167L3 0.5L13 0.5C13.6377 0.499965 14.2513 0.743605 14.7152 1.18107C15.1792 1.61854 15.4584 2.21676 15.4958 2.85333L15.5 3L15.5 13C15.5 13.6377 15.2564 14.2513 14.8189 14.7152C14.3815 15.1792 13.7832 15.4584 13.1467 15.4958L13 15.5L3 15.5ZM3 13.8333L10.5 13.8333L10.5 2.16667L3 2.16667C2.79589 2.16669 2.59889 2.24163 2.44636 2.37726C2.29383 2.5129 2.19638 2.69979 2.1725 2.9025L2.16667 3L2.16667 13C2.16669 13.2041 2.24163 13.4011 2.37726 13.5536C2.5129 13.7062 2.69979 13.8036 2.9025 13.8275L3 13.8333ZM6.65583 10.325L6.5775 10.2558L4.91083 8.58917C4.76735 8.44567 4.68116 8.25476 4.66843 8.05223C4.65569 7.84971 4.71729 7.6495 4.84167 7.48917L4.91083 7.41083L6.5775 5.74417C6.72747 5.59471 6.9287 5.50794 7.14032 5.50148C7.35194 5.49502 7.55809 5.56935 7.7169 5.70937C7.8757 5.8494 7.97525 6.04463 7.99533 6.25539C8.01541 6.46616 7.95451 6.67667 7.825 6.84417L7.75583 6.9225L6.67917 8L7.75583 9.0775C7.89931 9.22099 7.98551 9.41191 7.99824 9.61443C8.01097 9.81695 7.94938 10.0172 7.825 10.1775L7.75583 10.2558C7.61234 10.3993 7.42142 10.4855 7.2189 10.4982C7.01638 10.511 6.81617 10.4494 6.65583 10.325Z"/>
+  </svg>
+  <span class="pst-collapse-sidebar-label">Collapse Sidebar</span>
+  <span class="pst-expand-sidebar-label">Expand Sidebar</span>
+</button></div>
+        <div class="sidebar-primary-item">
+
+<nav class="bd-docs-nav bd-links"
+     aria-label="Section Navigation">
+  <p class="bd-links__title" role="heading" aria-level="1">Section Navigation</p>
+  <div class="bd-toc-item navbar-nav"><ul class="current nav bd-sidenav">
+<li class="toctree-l1 current active has-children"><a class="reference internal" href="index.html">Espressif Boards</a><details open="open"><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul class="current">
+<li class="toctree-l2 has-children"><a class="reference internal" href="esp_box.html">ESP BOX</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="esp_box_example.html">ESP-BOX Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="esp32_ethernet_kit.html">ESP32-Ethernet-Kit A V1.2</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="esp32_ethernet_kit_example.html">ESP32-Ethernet-Kit Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="esp32_p4_function_ev_board.html">ESP32-P4 Function EV Board</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="esp32_p4_function_ev_board_example.html">ESP32-P4 Function EV Board Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="esp32_timer_cam.html">ESP32 TimerCam</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="esp32_timer_cam_example.html">ESP32-TIMER-CAM Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 current active has-children"><a class="current reference internal" href="#">ESP32-WROVER-KIT</a><details open="open"><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="wrover_kit_example.html">Wrover-Kit Example</a></li>
+</ul>
+</details></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../adafruit/index.html">Adafruit Boards</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../adafruit/qtpy.html">QtPy ESP32 Pico and QtPy ESP32-S3</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../adafruit/qtpy_example.html">QtPy Example</a></li>
+</ul>
+</details></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../lilygo/index.html">LilyGo Boards</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../lilygo/lilygo_t5_47.html">LilyGo T5 4.7” e-paper</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../lilygo/lilygo_t5_47_example.html">LilyGo T5 4.7” e-paper Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../lilygo/t_deck.html">LilyGo T-Deck</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../lilygo/t_deck_example.html">T-Deck Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../lilygo/t_dongle_s3.html">LilyGo T-Dongle S3</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../lilygo/t_dongle_s3_example.html">T-Dongle-S3 Example</a></li>
+</ul>
+</details></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../m5stack/index.html">M5Stack Boards</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../m5stack/m5stack_cardputer.html">M5Stack Cardputer</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../m5stack/m5stack_cardputer_example.html">M5Stack Cardputer Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../m5stack/m5stack_tab5.html">M5Stack Tab5</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../m5stack/m5stack_tab5_example.html">M5Stack Tab5 BSP Example</a></li>
+</ul>
+</details></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../motorgo/index.html">MotorGo Boards</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../motorgo/motorgo_axis.html">MotorGo Axis</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../motorgo/motorgo_axis_example.html">MotorGo Axis Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../motorgo/motorgo_mini.html">MotorGo Mini</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../motorgo/motorgo_mini_example.html">MotorGo-Mini Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../motorgo/motorgo_plink.html">MotorGo Plink</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../motorgo/motorgo_plink_example.html">MotorGo Plink Example</a></li>
+</ul>
+</details></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../seeed/index.html">Seeed Studio Boards</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../seeed/seeed_studio_round_display.html">Seeed Studio Round Display</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../seeed/seeed_studio_round_display_example.html">Seeed Studio Round Display Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../seeed/xiao_esp32s3_sense.html">XIAO ESP32S3 Sense</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../seeed/xiao_esp32s3_sense_example.html">XIAO ESP32S3 Sense Example</a></li>
+</ul>
+</details></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../waveshare/index.html">Waveshare Boards</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../waveshare/esp32_p4_eth.html">Waveshare ESP32-P4-ETH</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../waveshare/esp32_p4_eth_example.html">ESP32-P4-ETH Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../waveshare/esp32_p4_module_dev_kit.html">Waveshare ESP32-P4-Module-DEV-KIT</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../waveshare/esp32_p4_module_dev_kit_example.html">ESP32-P4-Module-DEV-KIT Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../waveshare/esp32_p4_nano.html">Waveshare ESP32-P4-NANO</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../waveshare/esp32_p4_nano_example.html">ESP32-P4-NANO Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../waveshare/esp32_p4_wifi6_dev_kit.html">Waveshare ESP32-P4-WIFI6-DEV-KIT</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../waveshare/esp32_p4_wifi6_dev_kit_example.html">ESP32-P4-WIFI6-DEV-KIT Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../waveshare/esp32_p4_wifi6_poe_eth.html">Waveshare ESP32-P4-WIFI6-POE-ETH</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../waveshare/esp32_p4_wifi6_poe_eth_example.html">ESP32-P4-WIFI6-POE-ETH Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../waveshare/ws_s3_geek.html">Waveshare ESP32-S3 GEEK</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../waveshare/ws_s3_geek_example.html">Waveshare ESP32-S3-GEEK Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../waveshare/ws_s3_lcd_1_47.html">Waveshare ESP32-S3 LCD 1.47”</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../waveshare/ws_s3_lcd_1_47_example.html">Waveshare ESP32-S3-LCD-1.47 Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../waveshare/ws_s3_touch.html">Waveshare ESP32-S3 TouchLCD</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../waveshare/ws_s3_touch_example.html">Waveshare ESP32-S3 TouchLCD Example</a></li>
+</ul>
+</details></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../other/index.html">Other Boards</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../other/byte90.html">ALXV Labs Byte90</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../other/byte90_example.html">Byte90 Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../other/qemu.html">QEMU (emulator)</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../other/qemu_example.html">QEMU Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../other/matouch_rotary_display.html">MaTouch Rotary Display</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../other/matouch_rotary_display_example.html">Matouch-Rotary-Display Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../other/smartpanlee_sc01_plus.html">Smart Panlee SC01 Plus</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../other/smartpanlee_sc01_plus_example.html">Smart Panlee SC01 Plus BSP Example</a></li>
+</ul>
+</details></li>
+</ul>
+</details></li>
+</ul>
+</div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../index.html" class="nav-link">Dev Boards (BSPs)</a></li>
+    
+    
+    <li class="breadcrumb-item"><a href="index.html" class="nav-link">Espressif Boards</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">ESP32-WROVER-KIT</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <section id="esp32-wrover-kit">
+<h1>ESP32-WROVER-KIT<a class="headerlink" href="#esp32-wrover-kit" title="Permalink to this heading">#</a></h1>
+<section id="wrover-kit">
+<h2>Wrover-Kit<a class="headerlink" href="#wrover-kit" title="Permalink to this heading">#</a></h2>
+<p>The ESP32-WROVER-KIT is a development board for the ESP32-WROVER module. It
+features a nice display and a lot of expansion headers.</p>
+<p>The <cite>espp::WroverKit</cite> component provides a singleton hardware abstraction for
+initializing the display subsystems.</p>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="wrover_kit_example.html">Wrover-Kit Example</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="wrover_kit_example.html#how-to-use-example">How to use example</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="wrover_kit_example.html#hardware-required">Hardware Required</a></li>
+<li class="toctree-l3"><a class="reference internal" href="wrover_kit_example.html#build-and-flash">Build and Flash</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="wrover_kit_example.html#example-output">Example Output</a></li>
+</ul>
+</li>
+</ul>
+</div>
+</section>
+<section id="api-reference">
+<h2>API Reference<a class="headerlink" href="#api-reference" title="Permalink to this heading">#</a></h2>
+<section id="header-file">
+<h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this heading">#</a></h3>
+<ul class="simple">
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/93b985d2/components/wrover-kit/include/wrover-kit.hpp">components/wrover-kit/include/wrover-kit.hpp</a></p></li>
+</ul>
+</section>
+<section id="classes">
+<h3>Classes<a class="headerlink" href="#classes" title="Permalink to this heading">#</a></h3>
+<dl class="cpp class">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9WroverKitE">
+<span id="_CPPv3N4espp9WroverKitE"></span><span id="_CPPv2N4espp9WroverKitE"></span><span id="espp::WroverKit"></span><span class="target" id="classespp_1_1WroverKit"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">WroverKit</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="k"><span class="pre">public</span></span><span class="w"> </span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../../core/base_component.html#_CPPv4N4espp13BaseComponentE" title="espp::BaseComponent"><span class="n"><span class="pre">BaseComponent</span></span></a><a class="headerlink" href="#_CPPv4N4espp9WroverKitE" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>The <a class="reference internal" href="#classespp_1_1WroverKit"><span class="std std-ref">WroverKit</span></a> class provides an interface to the ESP32-WROVER-KIT ESP32 development board.</p>
+<p>The class provides access to the following features:<ul class="simple">
+<li><p><a class="reference internal" href="../../display/display.html#classespp_1_1Display"><span class="std std-ref">Display</span></a></p></li>
+</ul>
+</p>
+<p>The class is a singleton and can be accessed using the <a class="reference internal" href="#classespp_1_1WroverKit_1aadf6494b4b3cbd0f7dcfca2f84dc24d1"><span class="std std-ref">get()</span></a> method.</p>
+<section id="classespp_1_1WroverKit_1wrover_kit_example">
+<h4>Example<a class="headerlink" href="#classespp_1_1WroverKit_1wrover_kit_example" title="Permalink to this heading">#</a></h4>
+<div class="highlight-cpp notranslate" id="classespp_1_1WroverKit_1wrover_kit_example"><div class="highlight"><pre><span></span><span class="w">  </span><span class="n">espp</span><span class="o">::</span><span class="n">WroverKit</span><span class="w"> </span><span class="o">&amp;</span><span class="n">wrover</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">WroverKit</span><span class="o">::</span><span class="n">get</span><span class="p">();</span>
+<span class="w">  </span><span class="n">wrover</span><span class="p">.</span><span class="n">set_log_level</span><span class="p">(</span><span class="n">espp</span><span class="o">::</span><span class="n">Logger</span><span class="o">::</span><span class="n">Verbosity</span><span class="o">::</span><span class="n">INFO</span><span class="p">);</span>
+
+<span class="w">  </span><span class="c1">// initialize the LCD</span>
+<span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">wrover</span><span class="p">.</span><span class="n">initialize_lcd</span><span class="p">())</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">error</span><span class="p">(</span><span class="s">"Failed to initialize LCD!"</span><span class="p">);</span>
+<span class="w">    </span><span class="k">return</span><span class="p">;</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="w">  </span><span class="c1">// set the pixel buffer to be 50 lines high</span>
+<span class="w">  </span><span class="k">static</span><span class="w"> </span><span class="k">constexpr</span><span class="w"> </span><span class="kt">size_t</span><span class="w"> </span><span class="n">pixel_buffer_size</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">wrover</span><span class="p">.</span><span class="n">lcd_width</span><span class="p">()</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="mi">50</span><span class="p">;</span>
+<span class="w">  </span><span class="c1">// initialize the LVGL display for the wrover-kit</span>
+<span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">wrover</span><span class="p">.</span><span class="n">initialize_display</span><span class="p">(</span><span class="n">pixel_buffer_size</span><span class="p">))</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">error</span><span class="p">(</span><span class="s">"Failed to initialize display!"</span><span class="p">);</span>
+<span class="w">    </span><span class="k">return</span><span class="p">;</span>
+<span class="w">  </span><span class="p">}</span>
+
+<span class="w">  </span><span class="c1">// create the GUI: builds the UI (label, circle layer) and starts the task</span>
+<span class="w">  </span><span class="c1">// which updates LVGL. All of its public methods are thread-safe, so the</span>
+<span class="w">  </span><span class="c1">// button callback and drawing loop below can call them directly.</span>
+<span class="w">  </span><span class="k">static</span><span class="w"> </span><span class="n">Gui</span><span class="w"> </span><span class="n">gui</span><span class="p">({.</span><span class="n">log_level</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Logger</span><span class="o">::</span><span class="n">Verbosity</span><span class="o">::</span><span class="n">INFO</span><span class="p">});</span>
+<span class="w">  </span><span class="n">gui</span><span class="p">.</span><span class="n">set_label_text</span><span class="p">(</span><span class="s">"Drawing circles to the screen."</span><span class="p">);</span>
+
+<span class="w">  </span><span class="c1">// initialize the button, which we'll use to cycle the rotation of the display</span>
+<span class="w">  </span><span class="n">espp</span><span class="o">::</span><span class="n">Button</span><span class="w"> </span><span class="n">button</span><span class="p">(</span><span class="n">espp</span><span class="o">::</span><span class="n">Button</span><span class="o">::</span><span class="n">Config</span><span class="p">{</span>
+<span class="w">      </span><span class="p">.</span><span class="n">name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">"Boot Button"</span><span class="p">,</span>
+<span class="w">      </span><span class="p">.</span><span class="n">interrupt_config</span><span class="w"> </span><span class="o">=</span>
+<span class="w">          </span><span class="n">espp</span><span class="o">::</span><span class="n">Interrupt</span><span class="o">::</span><span class="n">PinConfig</span><span class="p">{.</span><span class="n">gpio_num</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">GPIO_NUM_0</span><span class="p">,</span>
+<span class="w">                                     </span><span class="p">.</span><span class="n">callback</span><span class="w"> </span><span class="o">=</span>
+<span class="w">                                         </span><span class="p">[](</span><span class="k">const</span><span class="w"> </span><span class="k">auto</span><span class="w"> </span><span class="o">&amp;</span><span class="n">event</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                                           </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">event</span><span class="p">.</span><span class="n">active</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                                             </span><span class="n">gui</span><span class="p">.</span><span class="n">next_rotation</span><span class="p">();</span>
+<span class="w">                                           </span><span class="p">}</span>
+<span class="w">                                         </span><span class="p">},</span>
+<span class="w">                                     </span><span class="p">.</span><span class="n">active_level</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Interrupt</span><span class="o">::</span><span class="n">ActiveLevel</span><span class="o">::</span><span class="n">LOW</span><span class="p">,</span>
+<span class="w">                                     </span><span class="p">.</span><span class="n">interrupt_type</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Interrupt</span><span class="o">::</span><span class="n">Type</span><span class="o">::</span><span class="n">ANY_EDGE</span><span class="p">,</span>
+<span class="w">                                     </span><span class="p">.</span><span class="n">pullup_enabled</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">false</span><span class="p">,</span>
+<span class="w">                                     </span><span class="p">.</span><span class="n">pulldown_enabled</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">false</span><span class="p">},</span>
+<span class="w">  </span><span class="p">});</span>
+
+<span class="w">  </span><span class="c1">// set the display brightness to be 75%</span>
+<span class="w">  </span><span class="n">wrover</span><span class="p">.</span><span class="n">brightness</span><span class="p">(</span><span class="mf">75.0f</span><span class="p">);</span>
+
+<span class="w">  </span><span class="k">while</span><span class="w"> </span><span class="p">(</span><span class="nb">true</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">start</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">esp_timer_get_time</span><span class="p">();</span>
+<span class="w">    </span><span class="c1">// if there are 10 circles on the screen, clear them</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">gui</span><span class="p">.</span><span class="n">circle_count</span><span class="p">()</span><span class="w"> </span><span class="o">&gt;=</span><span class="w"> </span><span class="n">Gui</span><span class="o">::</span><span class="n">MAX_CIRCLES</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="n">gui</span><span class="p">.</span><span class="n">clear_circles</span><span class="p">();</span>
+<span class="w">    </span><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="c1">// draw a circle of circles on the screen (just draw the next circle)</span>
+<span class="w">      </span><span class="kt">int</span><span class="w"> </span><span class="n">middle_x</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">wrover</span><span class="p">.</span><span class="n">rotated_display_width</span><span class="p">()</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="mi">2</span><span class="p">;</span>
+<span class="w">      </span><span class="kt">int</span><span class="w"> </span><span class="n">middle_y</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">wrover</span><span class="p">.</span><span class="n">rotated_display_height</span><span class="p">()</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="mi">2</span><span class="p">;</span>
+<span class="w">      </span><span class="k">static</span><span class="w"> </span><span class="k">constexpr</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">radius</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">50</span><span class="p">;</span>
+<span class="w">      </span><span class="kt">float</span><span class="w"> </span><span class="n">angle</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">gui</span><span class="p">.</span><span class="n">circle_count</span><span class="p">()</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="mf">2.0f</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">numbers</span><span class="o">::</span><span class="n">pi_v</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="n">Gui</span><span class="o">::</span><span class="n">MAX_CIRCLES</span><span class="p">;</span>
+<span class="w">      </span><span class="kt">int</span><span class="w"> </span><span class="n">x</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">middle_x</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">radius</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">cos</span><span class="p">(</span><span class="n">angle</span><span class="p">);</span>
+<span class="w">      </span><span class="kt">int</span><span class="w"> </span><span class="n">y</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">middle_y</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">radius</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">sin</span><span class="p">(</span><span class="n">angle</span><span class="p">);</span>
+<span class="w">      </span><span class="n">gui</span><span class="p">.</span><span class="n">draw_circle</span><span class="p">(</span><span class="n">x</span><span class="p">,</span><span class="w"> </span><span class="n">y</span><span class="p">,</span><span class="w"> </span><span class="mi">10</span><span class="p">);</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">end</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">esp_timer_get_time</span><span class="p">();</span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">elapsed</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">end</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">start</span><span class="p">;</span>
+<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">this_thread</span><span class="o">::</span><span class="n">sleep_for</span><span class="p">(</span><span class="mi">100</span><span class="n">ms</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">chrono</span><span class="o">::</span><span class="n">microseconds</span><span class="p">(</span><span class="n">elapsed</span><span class="p">));</span>
+<span class="w">  </span><span class="p">}</span>
+</pre></div>
+</div>
+</section>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-types">Public Types</p>
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9WroverKit5PixelE">
+<span id="_CPPv3N4espp9WroverKit5PixelE"></span><span id="_CPPv2N4espp9WroverKit5PixelE"></span><span class="target" id="classespp_1_1WroverKit_1a1bd8f3f6021a794b33a1fc122a2266ba"></span><span class="k"><span class="pre">using</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Pixel</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">lv_color16_t</span></span><a class="headerlink" href="#_CPPv4N4espp9WroverKit5PixelE" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Alias for the pixel type used by the wrover-kit display. </p>
+</dd></dl>
+
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9WroverKit13DisplayDriverE">
+<span id="_CPPv3N4espp9WroverKit13DisplayDriverE"></span><span id="_CPPv2N4espp9WroverKit13DisplayDriverE"></span><span class="target" id="classespp_1_1WroverKit_1a1b45f91b06cb8a7766e7833dcecff921"></span><span class="k"><span class="pre">using</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">DisplayDriver</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../../display/display_drivers.html#_CPPv4N4espp7Ili9341E" title="espp::Ili9341"><span class="n"><span class="pre">Ili9341</span></span></a><a class="headerlink" href="#_CPPv4N4espp9WroverKit13DisplayDriverE" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Alias for the display driver. </p>
+</dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9WroverKit14initialize_lcdEv">
+<span id="_CPPv3N4espp9WroverKit14initialize_lcdEv"></span><span id="_CPPv2N4espp9WroverKit14initialize_lcdEv"></span><span id="espp::WroverKit::initialize_lcd"></span><span class="target" id="classespp_1_1WroverKit_1a3e28994cd115a138e284a62983410906"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">initialize_lcd</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp9WroverKit14initialize_lcdEv" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Initialize the LCD (low level display driver) </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>true if the LCD was successfully initialized, false otherwise </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9WroverKit18initialize_displayE6size_t">
+<span id="_CPPv3N4espp9WroverKit18initialize_displayE6size_t"></span><span id="_CPPv2N4espp9WroverKit18initialize_displayE6size_t"></span><span id="espp::WroverKit::initialize_display__s"></span><span class="target" id="classespp_1_1WroverKit_1a90fcb5295b0a486be484861ef3c95f77"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">initialize_display</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">pixel_buffer_size</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp9WroverKit18initialize_displayE6size_t" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Initialize the display (lvgl display driver) </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This will also allocate two full frame buffers in the SPIRAM </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>pixel_buffer_size</strong> – The size of the pixel buffer </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>true if the display was successfully initialized, false otherwise </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp9WroverKit21rotated_display_widthEv">
+<span id="_CPPv3NK4espp9WroverKit21rotated_display_widthEv"></span><span id="_CPPv2NK4espp9WroverKit21rotated_display_widthEv"></span><span id="espp::WroverKit::rotated_display_widthC"></span><span class="target" id="classespp_1_1WroverKit_1ac4f4213e8a94173a0beb1792d0afa751"></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">rotated_display_width</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp9WroverKit21rotated_display_widthEv" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Get the display width in pixels, according to the current orientation </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The display width in pixels, according to the current orientation </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp9WroverKit22rotated_display_heightEv">
+<span id="_CPPv3NK4espp9WroverKit22rotated_display_heightEv"></span><span id="_CPPv2NK4espp9WroverKit22rotated_display_heightEv"></span><span id="espp::WroverKit::rotated_display_heightC"></span><span class="target" id="classespp_1_1WroverKit_1a0ef054637c05c5498cc4a96cee235c30"></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">rotated_display_height</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp9WroverKit22rotated_display_heightEv" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Get the display height in pixels, according to the current orientation </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The display height in pixels, according to the current orientation </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp9WroverKit7displayEv">
+<span id="_CPPv3NK4espp9WroverKit7displayEv"></span><span id="_CPPv2NK4espp9WroverKit7displayEv"></span><span id="espp::WroverKit::displayC"></span><span class="target" id="classespp_1_1WroverKit_1a978e36d8d64b7905e37379beafc68356"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">shared_ptr</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="../../display/display.html#_CPPv4I0EN4espp7DisplayE" title="espp::Display"><span class="n"><span class="pre">Display</span></span></a><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4N4espp9WroverKit5PixelE" title="espp::WroverKit::Pixel"><span class="n"><span class="pre">Pixel</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">display</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp9WroverKit7displayEv" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Get a shared pointer to the display </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A shared pointer to the display </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp9WroverKit14display_driverEv">
+<span id="_CPPv3NK4espp9WroverKit14display_driverEv"></span><span id="_CPPv2NK4espp9WroverKit14display_driverEv"></span><span id="espp::WroverKit::display_driverC"></span><span class="target" id="classespp_1_1WroverKit_1aaf903eea688290814585f13bcde7d53e"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">shared_ptr</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4N4espp9WroverKit13DisplayDriverE" title="espp::WroverKit::DisplayDriver"><span class="n"><span class="pre">DisplayDriver</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="n"><span class="pre">display_driver</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp9WroverKit14display_driverEv" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Get a shared pointer to the low-level display driver </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A shared pointer to the display driver </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9WroverKit10brightnessEf">
+<span id="_CPPv3N4espp9WroverKit10brightnessEf"></span><span id="_CPPv2N4espp9WroverKit10brightnessEf"></span><span id="espp::WroverKit::brightness__float"></span><span class="target" id="classespp_1_1WroverKit_1a9c77f117e7672c63ff04b8aa4749711d"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">brightness</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">brightness</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp9WroverKit10brightnessEf" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Set the brightness of the backlight </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This function will only work after <a class="reference internal" href="#classespp_1_1WroverKit_1a3e28994cd115a138e284a62983410906"><span class="std std-ref">initialize_lcd()</span></a> has been called </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>brightness</strong> – The brightness of the backlight as a percentage (0 - 100) </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp9WroverKit10brightnessEv">
+<span id="_CPPv3NK4espp9WroverKit10brightnessEv"></span><span id="_CPPv2NK4espp9WroverKit10brightnessEv"></span><span id="espp::WroverKit::brightnessC"></span><span class="target" id="classespp_1_1WroverKit_1ad12af2163e0f84661fa774263adbbfb4"></span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">brightness</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp9WroverKit10brightnessEv" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Get the brightness of the backlight </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This function will only work after <a class="reference internal" href="#classespp_1_1WroverKit_1a3e28994cd115a138e284a62983410906"><span class="std std-ref">initialize_lcd()</span></a> has been called </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The brightness of the backlight as a percentage (0 - 100) </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp9WroverKit5vram0Ev">
+<span id="_CPPv3NK4espp9WroverKit5vram0Ev"></span><span id="_CPPv2NK4espp9WroverKit5vram0Ev"></span><span id="espp::WroverKit::vram0C"></span><span class="target" id="classespp_1_1WroverKit_1a280db25abc1f3cd7192cd1c0f0e15cb6"></span><a class="reference internal" href="#_CPPv4N4espp9WroverKit5PixelE" title="espp::WroverKit::Pixel"><span class="n"><span class="pre">Pixel</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">vram0</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp9WroverKit5vram0Ev" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Get the VRAM 0 pointer (DMA memory used by LVGL) </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is the memory used by LVGL for rendering </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is null unless <a class="reference internal" href="#classespp_1_1WroverKit_1a90fcb5295b0a486be484861ef3c95f77"><span class="std std-ref">initialize_display()</span></a> has been called </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The VRAM 0 pointer </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp9WroverKit5vram1Ev">
+<span id="_CPPv3NK4espp9WroverKit5vram1Ev"></span><span id="_CPPv2NK4espp9WroverKit5vram1Ev"></span><span id="espp::WroverKit::vram1C"></span><span class="target" id="classespp_1_1WroverKit_1ac2edfde1019aa1c780ed9b931d65bf8e"></span><a class="reference internal" href="#_CPPv4N4espp9WroverKit5PixelE" title="espp::WroverKit::Pixel"><span class="n"><span class="pre">Pixel</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">vram1</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp9WroverKit5vram1Ev" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Get the VRAM 1 pointer (DMA memory used by LVGL) </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is the memory used by LVGL for rendering </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is null unless <a class="reference internal" href="#classespp_1_1WroverKit_1a90fcb5295b0a486be484861ef3c95f77"><span class="std std-ref">initialize_display()</span></a> has been called </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The VRAM 1 pointer </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp9WroverKit13frame_buffer0Ev">
+<span id="_CPPv3NK4espp9WroverKit13frame_buffer0Ev"></span><span id="_CPPv2NK4espp9WroverKit13frame_buffer0Ev"></span><span id="espp::WroverKit::frame_buffer0C"></span><span class="target" id="classespp_1_1WroverKit_1aca8b47afd62b77a8d89a7180caaaaf19"></span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">frame_buffer0</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp9WroverKit13frame_buffer0Ev" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Get the frame buffer 0 pointer </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This memory is designed to be used by the application developer and is provided as a convenience. It is not used by the display driver. </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is null unless <a class="reference internal" href="#classespp_1_1WroverKit_1a90fcb5295b0a486be484861ef3c95f77"><span class="std std-ref">initialize_display()</span></a> has been called </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The frame buffer 0 pointer </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp9WroverKit13frame_buffer1Ev">
+<span id="_CPPv3NK4espp9WroverKit13frame_buffer1Ev"></span><span id="_CPPv2NK4espp9WroverKit13frame_buffer1Ev"></span><span id="espp::WroverKit::frame_buffer1C"></span><span class="target" id="classespp_1_1WroverKit_1afb4059002bed017da55e5dcdbe68af68"></span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">frame_buffer1</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp9WroverKit13frame_buffer1Ev" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Get the frame buffer 1 pointer </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This memory is designed to be used by the application developer and is provided as a convenience. It is not used by the display driver. </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is null unless <a class="reference internal" href="#classespp_1_1WroverKit_1a90fcb5295b0a486be484861ef3c95f77"><span class="std std-ref">initialize_display()</span></a> has been called </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The frame buffer 1 pointer </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9WroverKit15write_lcd_frameEK8uint16_tK8uint16_tK8uint16_tK8uint16_tP7uint8_t">
+<span id="_CPPv3N4espp9WroverKit15write_lcd_frameEK8uint16_tK8uint16_tK8uint16_tK8uint16_tP7uint8_t"></span><span id="_CPPv2N4espp9WroverKit15write_lcd_frameEK8uint16_tK8uint16_tK8uint16_tK8uint16_tP7uint8_t"></span><span id="espp::WroverKit::write_lcd_frame__uint16_tC.uint16_tC.uint16_tC.uint16_tC.uint8_tP"></span><span class="target" id="classespp_1_1WroverKit_1aa96ed0c6d518b82ec45bd9366f9dae3f"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">write_lcd_frame</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">uint16_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">x</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">uint16_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">y</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">uint16_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">width</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">uint16_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">height</span></span>, <span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">data</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp9WroverKit15write_lcd_frameEK8uint16_tK8uint16_tK8uint16_tK8uint16_tP7uint8_t" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Write a frame to the LCD </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This method queues the data to be written to the LCD, only blocking if there is an ongoing SPI transaction </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x</strong> – The x coordinate </p></li>
+<li><p><strong>y</strong> – The y coordinate </p></li>
+<li><p><strong>width</strong> – The width of the frame, in pixels </p></li>
+<li><p><strong>height</strong> – The height of the frame, in pixels </p></li>
+<li><p><strong>data</strong> – The data to write </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9WroverKit15write_lcd_linesEiiiiPK7uint8_t8uint32_t">
+<span id="_CPPv3N4espp9WroverKit15write_lcd_linesEiiiiPK7uint8_t8uint32_t"></span><span id="_CPPv2N4espp9WroverKit15write_lcd_linesEiiiiPK7uint8_t8uint32_t"></span><span id="espp::WroverKit::write_lcd_lines__i.i.i.i.uint8_tCP.uint32_t"></span><span class="target" id="classespp_1_1WroverKit_1a0bb5098a76e8dac531db2a4f7b510c8d"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">write_lcd_lines</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">xs</span></span>, <span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">ys</span></span>, <span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">xe</span></span>, <span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">ye</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">data</span></span>, <span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">user_data</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp9WroverKit15write_lcd_linesEiiiiPK7uint8_t8uint32_t" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Write lines to the LCD </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This method queues the panel transfer asynchronously and may return before the write has completed. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>xs</strong> – The x start coordinate </p></li>
+<li><p><strong>ys</strong> – The y start coordinate </p></li>
+<li><p><strong>xe</strong> – The x end coordinate </p></li>
+<li><p><strong>ye</strong> – The y end coordinate </p></li>
+<li><p><strong>data</strong> – The data to write </p></li>
+<li><p><strong>user_data</strong> – User data to pass to the SPI transaction callback </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp9WroverKit8get_nameEv">
+<span id="_CPPv3NK4espp9WroverKit8get_nameEv"></span><span id="_CPPv2NK4espp9WroverKit8get_nameEv"></span><span id="espp::WroverKit::get_nameC"></span><span class="target" id="classespp_1_1BaseComponent_1ad3813fa0c9c026e217163c4e2fdfc4a2"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="n"><span class="pre">get_name</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp9WroverKit8get_nameEv" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Get the name of the component </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is the tag of the logger </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A const reference to the name of the component </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4I0EN4espp9WroverKit11set_log_tagEvRKNSt11string_viewE">
+<span id="_CPPv3I0EN4espp9WroverKit11set_log_tagERKNSt11string_viewE"></span><span id="_CPPv2I0EN4espp9WroverKit11set_log_tagERKNSt11string_viewE"></span><span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">T</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="classespp_1_1BaseComponent_1a53b5136f13021e3b7e288926506626f7"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_log_tag</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string_view</span></span><span class="p"><span class="pre">&amp;</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4I0EN4espp9WroverKit11set_log_tagEvRKNSt11string_viewE" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Not available: the tag is fixed at construction (pass it to the constructor). Enable CONFIG_ESPP_LOGGER_MUTABLE_TAG (menuconfig: ESPP <a class="reference internal" href="../../core/logger.html#classespp_1_1Logger"><span class="std std-ref">Logger</span></a> -&gt; Mutable tag) to change it afterwards. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp9WroverKit13get_log_levelEv">
+<span id="_CPPv3NK4espp9WroverKit13get_log_levelEv"></span><span id="_CPPv2NK4espp9WroverKit13get_log_levelEv"></span><span id="espp::WroverKit::get_log_levelC"></span><span class="target" id="classespp_1_1BaseComponent_1a54f34a70b117486a7055e4a6f1d4d7a8"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../../core/logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../../core/logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_log_level</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp9WroverKit13get_log_levelEv" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Get the log level for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../../core/logger.html#classespp_1_1Logger_1ac6c63313236b0ae6ff44f3f94a6f99cb"><span class="std std-ref">Logger::Verbosity</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../../core/logger.html#classespp_1_1Logger_1aa8c260085619fd42e17b92c41a638741"><span class="std std-ref">Logger::set_verbosity</span></a></p>
+</div>
+</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The verbosity level of the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9WroverKit13set_log_levelEN4espp6Logger9VerbosityE">
+<span id="_CPPv3N4espp9WroverKit13set_log_levelEN4espp6Logger9VerbosityE"></span><span id="_CPPv2N4espp9WroverKit13set_log_levelEN4espp6Logger9VerbosityE"></span><span id="espp::WroverKit::set_log_level__espp::Logger::Verbosity"></span><span class="target" id="classespp_1_1BaseComponent_1a3159df4e466f93ebb6cca7e685d27243"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_log_level</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../../core/logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../../core/logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">level</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp9WroverKit13set_log_levelEN4espp6Logger9VerbosityE" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Set the log level for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../../core/logger.html#classespp_1_1Logger_1ac6c63313236b0ae6ff44f3f94a6f99cb"><span class="std std-ref">Logger::Verbosity</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../../core/logger.html#classespp_1_1Logger_1aa8c260085619fd42e17b92c41a638741"><span class="std std-ref">Logger::set_verbosity</span></a></p>
+</div>
+</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>level</strong> – The verbosity level to use for the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9WroverKit17set_log_verbosityEN4espp6Logger9VerbosityE">
+<span id="_CPPv3N4espp9WroverKit17set_log_verbosityEN4espp6Logger9VerbosityE"></span><span id="_CPPv2N4espp9WroverKit17set_log_verbosityEN4espp6Logger9VerbosityE"></span><span id="espp::WroverKit::set_log_verbosity__espp::Logger::Verbosity"></span><span class="target" id="classespp_1_1BaseComponent_1abb459bcd55b41471e201475fbf1a1b1f"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_log_verbosity</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../../core/logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../../core/logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">level</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp9WroverKit17set_log_verbosityEN4espp6Logger9VerbosityE" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Set the log verbosity for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../../wireless/sx126x.html#classespp_1_1BaseComponent_1a3159df4e466f93ebb6cca7e685d27243"><span class="std std-ref">set_log_level</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../../core/logger.html#classespp_1_1Logger_1ac6c63313236b0ae6ff44f3f94a6f99cb"><span class="std std-ref">Logger::Verbosity</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../../core/logger.html#classespp_1_1Logger_1aa8c260085619fd42e17b92c41a638741"><span class="std std-ref">Logger::set_verbosity</span></a></p>
+</div>
+</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is a convenience method that calls set_log_level </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>level</strong> – The verbosity level to use for the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp9WroverKit17get_log_verbosityEv">
+<span id="_CPPv3NK4espp9WroverKit17get_log_verbosityEv"></span><span id="_CPPv2NK4espp9WroverKit17get_log_verbosityEv"></span><span id="espp::WroverKit::get_log_verbosityC"></span><span class="target" id="classespp_1_1BaseComponent_1ac9cda1ea5d5321040ca13a827057ff79"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../../core/logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../../core/logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_log_verbosity</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp9WroverKit17get_log_verbosityEv" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Get the log verbosity for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../../wireless/sx126x.html#classespp_1_1BaseComponent_1a54f34a70b117486a7055e4a6f1d4d7a8"><span class="std std-ref">get_log_level</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../../core/logger.html#classespp_1_1Logger_1ac6c63313236b0ae6ff44f3f94a6f99cb"><span class="std std-ref">Logger::Verbosity</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../../core/logger.html#classespp_1_1Logger_1a6ed0028b750b3e4aae21d2ecb3670c55"><span class="std std-ref">Logger::get_verbosity</span></a></p>
+</div>
+</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is a convenience method that calls get_log_level </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The verbosity level of the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9WroverKit18set_log_rate_limitENSt6chrono8durationIfEE">
+<span id="_CPPv3N4espp9WroverKit18set_log_rate_limitENSt6chrono8durationIfEE"></span><span id="_CPPv2N4espp9WroverKit18set_log_rate_limitENSt6chrono8durationIfEE"></span><span id="espp::WroverKit::set_log_rate_limit__std::chrono::duration:float:"></span><span class="target" id="classespp_1_1BaseComponent_1a8b95d7a8a87f22a989f3654a238774a0"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_log_rate_limit</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">chrono</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">duration</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">float</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">rate_limit</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp9WroverKit18set_log_rate_limitENSt6chrono8durationIfEE" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Set the rate limit for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../../core/logger.html#classespp_1_1Logger_1a9ce0c51e1bf43e63235c6ddf3280b15d"><span class="std std-ref">Logger::set_rate_limit</span></a></p>
+</div>
+</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Only calls to the logger that have _rate_limit suffix will be rate limited </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>rate_limit</strong> – The rate limit to use for the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-static-functions">Public Static Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9WroverKit3getEv">
+<span id="_CPPv3N4espp9WroverKit3getEv"></span><span id="_CPPv2N4espp9WroverKit3getEv"></span><span id="espp::WroverKit::get"></span><span class="target" id="classespp_1_1WroverKit_1aadf6494b4b3cbd0f7dcfca2f84dc24d1"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp9WroverKitE" title="espp::WroverKit"><span class="n"><span class="pre">WroverKit</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="n"><span class="pre">get</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp9WroverKit3getEv" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Access the singleton instance of the <a class="reference internal" href="#classespp_1_1WroverKit"><span class="std std-ref">WroverKit</span></a> class. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Reference to the singleton instance of the <a class="reference internal" href="#classespp_1_1WroverKit"><span class="std std-ref">WroverKit</span></a> class </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9WroverKit9lcd_widthEv">
+<span id="_CPPv3N4espp9WroverKit9lcd_widthEv"></span><span id="_CPPv2N4espp9WroverKit9lcd_widthEv"></span><span id="espp::WroverKit::lcd_width"></span><span class="target" id="classespp_1_1WroverKit_1af9126d8269f9eb42f16f4c21f120bf18"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">lcd_width</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp9WroverKit9lcd_widthEv" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Get the width of the LCD in pixels </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The width of the LCD in pixels </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9WroverKit10lcd_heightEv">
+<span id="_CPPv3N4espp9WroverKit10lcd_heightEv"></span><span id="_CPPv2N4espp9WroverKit10lcd_heightEv"></span><span id="espp::WroverKit::lcd_height"></span><span class="target" id="classespp_1_1WroverKit_1a375b5b83a409c5792fed985b807c915b"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">lcd_height</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp9WroverKit10lcd_heightEv" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Get the height of the LCD in pixels </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The height of the LCD in pixels </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9WroverKit15get_lcd_dc_gpioEv">
+<span id="_CPPv3N4espp9WroverKit15get_lcd_dc_gpioEv"></span><span id="_CPPv2N4espp9WroverKit15get_lcd_dc_gpioEv"></span><span id="espp::WroverKit::get_lcd_dc_gpio"></span><span class="target" id="classespp_1_1WroverKit_1acc64bafc79f3483e504a791d248f3b21"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">auto</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_lcd_dc_gpio</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp9WroverKit15get_lcd_dc_gpioEv" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Get the GPIO pin for the LCD data/command signal </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The GPIO pin for the LCD data/command signal </p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-static-attributes">Public Static Attributes</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9WroverKit22SPI_MAX_TRANSFER_BYTESE">
+<span id="_CPPv3N4espp9WroverKit22SPI_MAX_TRANSFER_BYTESE"></span><span id="_CPPv2N4espp9WroverKit22SPI_MAX_TRANSFER_BYTESE"></span><span id="espp::WroverKit::SPI_MAX_TRANSFER_BYTES__s"></span><span class="target" id="classespp_1_1WroverKit_1a501af398670f415bfc52aeb869eeefab"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">SPI_MAX_TRANSFER_BYTES</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">SPI_LL_DMA_MAX_BIT_LEN</span></span><span class="w"> </span><span class="o"><span class="pre">/</span></span><span class="w"> </span><span class="m"><span class="pre">8</span></span><a class="headerlink" href="#_CPPv4N4espp9WroverKit22SPI_MAX_TRANSFER_BYTESE" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Maximum number of bytes that can be transferred in a single SPI transaction to the <a class="reference internal" href="../../display/display.html#classespp_1_1Display"><span class="std std-ref">Display</span></a>. 2MB on ESP32. </p>
+</dd></dl>
+
+</div>
+<dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9WroverKit12TouchpadDataE">
+<span id="_CPPv3N4espp9WroverKit12TouchpadDataE"></span><span id="_CPPv2N4espp9WroverKit12TouchpadDataE"></span><span id="espp::WroverKit::TouchpadData"></span><span class="target" id="structespp_1_1WroverKit_1_1TouchpadData"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">TouchpadData</span></span></span><a class="headerlink" href="#_CPPv4N4espp9WroverKit12TouchpadDataE" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>The data structure for the touchpad. </p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp9WroverKit12TouchpadDataeqERK12TouchpadData">
+<span id="_CPPv3NK4espp9WroverKit12TouchpadDataeqERK12TouchpadData"></span><span id="_CPPv2NK4espp9WroverKit12TouchpadDataeqERK12TouchpadData"></span><span id="espp::WroverKit::TouchpadData::eq-operator__TouchpadDataCRC"></span><span class="target" id="structespp_1_1WroverKit_1_1TouchpadData_1a647a428ef8b5c8e47ae5ff601f762dc0"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">==</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp9WroverKit12TouchpadDataE" title="espp::WroverKit::TouchpadData"><span class="n"><span class="pre">TouchpadData</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">rhs</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">default</span></span><a class="headerlink" href="#_CPPv4NK4espp9WroverKit12TouchpadDataeqERK12TouchpadData" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Compare two <a class="reference internal" href="#structespp_1_1WroverKit_1_1TouchpadData"><span class="std std-ref">TouchpadData</span></a> objects for equality. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>rhs</strong> – The right hand side of the comparison </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>true if the two <a class="reference internal" href="#structespp_1_1WroverKit_1_1TouchpadData"><span class="std std-ref">TouchpadData</span></a> objects are equal, false otherwise </p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9WroverKit12TouchpadData16num_touch_pointsE">
+<span id="_CPPv3N4espp9WroverKit12TouchpadData16num_touch_pointsE"></span><span id="_CPPv2N4espp9WroverKit12TouchpadData16num_touch_pointsE"></span><span id="espp::WroverKit::TouchpadData::num_touch_points__uint8_t"></span><span class="target" id="structespp_1_1WroverKit_1_1TouchpadData_1a4dfced3f4e7946d604cc2103631ab8d6"></span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">num_touch_points</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N4espp9WroverKit12TouchpadData16num_touch_pointsE" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>The number of touch points. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9WroverKit12TouchpadData1xE">
+<span id="_CPPv3N4espp9WroverKit12TouchpadData1xE"></span><span id="_CPPv2N4espp9WroverKit12TouchpadData1xE"></span><span id="espp::WroverKit::TouchpadData::x__uint16_t"></span><span class="target" id="structespp_1_1WroverKit_1_1TouchpadData_1a16d965639b6cc46414b4481277f9272d"></span><span class="n"><span class="pre">uint16_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">x</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N4espp9WroverKit12TouchpadData1xE" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>The x coordinate. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9WroverKit12TouchpadData1yE">
+<span id="_CPPv3N4espp9WroverKit12TouchpadData1yE"></span><span id="_CPPv2N4espp9WroverKit12TouchpadData1yE"></span><span id="espp::WroverKit::TouchpadData::y__uint16_t"></span><span class="target" id="structespp_1_1WroverKit_1_1TouchpadData_1a62394e20cef4f5a413cb68b282b27390"></span><span class="n"><span class="pre">uint16_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">y</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N4espp9WroverKit12TouchpadData1yE" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>The y coordinate. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9WroverKit12TouchpadData9btn_stateE">
+<span id="_CPPv3N4espp9WroverKit12TouchpadData9btn_stateE"></span><span id="_CPPv2N4espp9WroverKit12TouchpadData9btn_stateE"></span><span id="espp::WroverKit::TouchpadData::btn_state__uint8_t"></span><span class="target" id="structespp_1_1WroverKit_1_1TouchpadData_1afab474909f1b9d494fb133b53856029e"></span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">btn_state</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N4espp9WroverKit12TouchpadData9btn_stateE" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>The button state (0 = button released, 1 = button pressed). </p>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+</section>
+</section>
+
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="esp32_timer_cam_example.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title">ESP32-TIMER-CAM Example</p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="wrover_kit_example.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">Wrover-Kit Example</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <dialog id="pst-secondary-sidebar-modal"></dialog>
+                <div id="pst-secondary-sidebar" class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item">
+<div
+    id="pst-page-navigation-heading-2"
+    class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> On this page
+  </div>
+  <nav id="pst-page-toc-nav" class="page-toc" aria-labelledby="pst-page-navigation-heading-2">
+    <ul class="pst-show_toc_level nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#wrover-kit">Wrover-Kit</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#api-reference">API Reference</a><ul class="pst-show_toc_level nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#header-file">Header File</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#classes">Classes</a></li>
+</ul>
+</li>
+</ul>
+  </nav></div>
+
+  <div class="sidebar-secondary-item">
+
+  
+  <div class="tocsection editthispage">
+    <a href="https://github.com/esp-cpp/espp/edit/main/doc/en/dev_boards/espressif/wrover_kit.rst">
+      <i class="fa-solid fa-pencil"></i>
+      
+      
+        
+          Edit on GitHub
+        
+      
+    </a>
+  </div>
+</div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../../_static/scripts/bootstrap.js?digest=55c26ed414f5f8a31ebb"></script>
+<script defer src="../../_static/scripts/pydata-sphinx-theme.js?digest=55c26ed414f5f8a31ebb"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright 2022 - 2026, William Emfinger.
+      <br/>
+    
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 7.1.2.
+    <br/>
+  </p>
+</div>
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.17.1.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>
