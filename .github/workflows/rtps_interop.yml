@@ -12,6 +12,8 @@ on:
       - "components/cdr/**"
       - "lib/espp.cmake"
       - "pc/tests/rtps_*"
+      - "python/rtps_*"
+      - "lib/python_bindings/**"
       - ".github/workflows/rtps_interop.yml"
   workflow_dispatch:
 

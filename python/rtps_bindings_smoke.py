@@ -7,6 +7,7 @@ demo needs multicast discovery and lives in the dockerised interop harness (see
 python/rtps_rpc_demo.py). Catches a dropped/renamed binding after a build change.
 """
 
+import re
 import sys
 
 import espp
@@ -42,6 +43,23 @@ missing = [m for m in methods if not hasattr(p, m)] + [c for c in classes if not
 for cls, method_names in class_methods.items():
     handle = getattr(p, cls, None)
     missing += [f"{cls}.{m}" for m in method_names if handle is None or not hasattr(handle, m)]
+
+# Keyword arguments added later (pybind11 puts the signature in the docstring).
+kwargs = {
+    "Config": ["receive_workers", "receive_worker_task", "reactor_task", "job_retry_task",
+               "protocol_task", "reply_hold_task"],
+    "add_action_server": ["max_goals_in_flight", "execute_workers", "execute_task"],
+    "add_native_action_server": ["max_goals_in_flight", "execute_workers", "execute_task"],
+}
+for name, args in kwargs.items():
+    target = p.Config.__init__ if name == "Config" else getattr(p, name, None)
+    doc = (target.__doc__ if target is not None else None) or ""
+    # pybind11 renders the signature on the first line, "name: type = default"
+    # per argument (none of these is overloaded, which would list one
+    # signature per line instead); the prose below it may mention an argument
+    # that was dropped from the signature, so only the signature counts.
+    signature = doc.splitlines()[0] if doc else ""
+    missing += [f"{name}({a}=)" for a in args if re.search(rf"\b{a}:", signature) is None]
 
 if missing:
     print("espp RTPS binding surface INCOMPLETE, missing:", missing, file=sys.stderr)
