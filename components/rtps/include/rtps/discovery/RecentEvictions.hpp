@@ -24,6 +24,7 @@ This file is part of the espp embeddedRTPS port.
 
 #include "rtps/common/types.hpp"
 
+#include <algorithm>
 #include <array>
 #include <chrono>
 #include <cstddef>
@@ -64,12 +65,10 @@ public:
 
   //! Remember that `prefix` was evicted at `now` (refreshes an existing entry,
   //! else takes the ring's next slot).
-  void note(const GuidPrefix_t &prefix, time_point now) {
-    for (auto &entry : m_entries) {
-      if (entry.valid && entry.prefix == prefix) {
-        entry.at = now;
-        return;
-      }
+  void note(const GuidPrefix_t &prefix, const time_point &now) {
+    if (auto *entry = find(prefix); entry != nullptr) {
+      entry->at = now;
+      return;
     }
     auto &slot = m_entries[m_next];
     slot.prefix = prefix;
@@ -80,18 +79,14 @@ public:
 
   //! When `prefix` was last evicted, if the ring still remembers it.
   std::optional<time_point> lastEviction(const GuidPrefix_t &prefix) const {
-    for (const auto &entry : m_entries) {
-      if (entry.valid && entry.prefix == prefix) {
-        return entry.at;
-      }
-    }
-    return std::nullopt;
+    const auto *entry = find(prefix);
+    return entry != nullptr ? std::optional<time_point>{entry->at} : std::nullopt;
   }
 
   //! Whether an eviction may be made for `newcomer` at `now`, given the time
   //! of the last eviction (`lastEvictionAt`, a default time_point when none
   //! happened yet), the per-period `cooldown` and the readmission `holdoff`.
-  Gate gate(const GuidPrefix_t &newcomer, time_point now, time_point lastEvictionAt,
+  Gate gate(const GuidPrefix_t &newcomer, const time_point &now, const time_point &lastEvictionAt,
             std::chrono::milliseconds cooldown, std::chrono::milliseconds holdoff) const {
     const auto evictedAt = lastEviction(newcomer);
     if (!evictedAt) {
@@ -116,6 +111,16 @@ private:
   };
   std::array<Entry, N> m_entries{};
   std::size_t m_next{0};
+
+  const Entry *find(const GuidPrefix_t &prefix) const {
+    const auto it = std::find_if(m_entries.begin(), m_entries.end(), [&prefix](const Entry &e) {
+      return e.valid && e.prefix == prefix;
+    });
+    return it != m_entries.end() ? &*it : nullptr;
+  }
+  Entry *find(const GuidPrefix_t &prefix) {
+    return const_cast<Entry *>(static_cast<const RecentEvictions &>(*this).find(prefix));
+  }
 };
 
 } // namespace rtps
