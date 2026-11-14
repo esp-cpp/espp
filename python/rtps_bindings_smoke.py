@@ -43,6 +43,19 @@ for cls, method_names in class_methods.items():
     handle = getattr(p, cls, None)
     missing += [f"{cls}.{m}" for m in method_names if handle is None or not hasattr(handle, m)]
 
+# Keyword arguments added later (pybind11 puts the signature in the docstring).
+kwargs = {
+    "Config": ["receive_workers", "receive_worker_task", "reactor_task", "job_retry_task",
+               "protocol_task", "reply_hold_task"],
+    "add_action_server": ["max_goals_in_flight", "execute_workers", "execute_task"],
+    "add_native_action_server": ["max_goals_in_flight", "execute_workers", "execute_task"],
+}
+for name, args in kwargs.items():
+    doc = (getattr(getattr(p, name, None), "__init__", None) or getattr(p, name, None)).__doc__ or ""
+    if name == "Config":
+        doc = p.Config.__init__.__doc__ or ""
+    missing += [f"{name}({a}=)" for a in args if a not in doc]
+
 if missing:
     print("espp RTPS binding surface INCOMPLETE, missing:", missing, file=sys.stderr)
     sys.exit(1)

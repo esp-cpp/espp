@@ -20,11 +20,13 @@
 #include <vector>
 
 #include <chrono>
+#include <optional>
 #include <pybind11/functional.h>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 
 #include "rtps_participant.hpp"
+#include "task.hpp"
 
 namespace py = pybind11;
 using Rtps = espp::RtpsParticipant;
@@ -166,6 +168,14 @@ struct PyRtpsConfig {
   bool enable_dedicated_endpoint_ports{true};
   uint8_t max_prioritized_endpoint_ports{4};
   int service_reply_match_timeout_ms{1000};
+  // The participant's tasks (Rtps::Config::Tasks): an unset entry keeps the
+  // compile-time default, as in C++.
+  std::size_t receive_workers{0};
+  std::optional<espp::Task::BaseConfig> receive_worker_task{};
+  std::optional<espp::Task::BaseConfig> reactor_task{};
+  std::optional<espp::Task::BaseConfig> job_retry_task{};
+  std::optional<espp::Task::BaseConfig> protocol_task{};
+  std::optional<espp::Task::BaseConfig> reply_hold_task{};
 };
 
 Rtps::Config to_config(const PyRtpsConfig &pc) {
@@ -180,7 +190,34 @@ Rtps::Config to_config(const PyRtpsConfig &pc) {
       .enable_dedicated_endpoint_ports = pc.enable_dedicated_endpoint_ports,
       .max_prioritized_endpoint_ports = pc.max_prioritized_endpoint_ports,
       .service_reply_match_timeout = std::chrono::milliseconds(pc.service_reply_match_timeout_ms),
+      .tasks =
+          {
+              .receive_workers = pc.receive_workers,
+              .receive_worker = pc.receive_worker_task,
+              .reactor = pc.reactor_task,
+              .job_retry = pc.job_retry_task,
+              .protocol = pc.protocol_task,
+              .reply_hold = pc.reply_hold_task,
+          },
   };
+}
+
+// The action server's execute-worker settings (Rtps::ActionConfig), shared by
+// the ROS 2 and the native server bindings.
+Rtps::ActionConfig action_config(const std::string &action, const std::string &type_name,
+                                 espp::QosBand band, std::optional<espp::Dscp> dscp,
+                                 std::size_t max_goals_in_flight, std::size_t execute_workers,
+                                 const std::optional<espp::Task::BaseConfig> &execute_task) {
+  Rtps::ActionConfig config{.action = action,
+                            .type_name = type_name,
+                            .band = band,
+                            .dscp = dscp,
+                            .max_goals_in_flight = max_goals_in_flight,
+                            .execute_workers = execute_workers};
+  if (execute_task) {
+    config.execute_task = *execute_task;
+  }
+  return config;
 }
 
 py::function as_function(const py::object &obj) {
@@ -208,7 +245,13 @@ void py_init_rtps(py::module &m) {
                        const py::object &on_subscriber_matched, espp::Logger::Verbosity log_level,
                        espp::QosBand metatraffic_band, espp::QosBand user_traffic_band,
                        bool enable_dedicated_endpoint_ports, uint8_t max_prioritized_endpoint_ports,
-                       std::string interface_netmask, int service_reply_match_timeout_ms) {
+                       std::string interface_netmask, int service_reply_match_timeout_ms,
+                       std::size_t receive_workers,
+                       std::optional<espp::Task::BaseConfig> receive_worker_task,
+                       std::optional<espp::Task::BaseConfig> reactor_task,
+                       std::optional<espp::Task::BaseConfig> job_retry_task,
+                       std::optional<espp::Task::BaseConfig> protocol_task,
+                       std::optional<espp::Task::BaseConfig> reply_hold_task) {
              PyRtpsConfig c;
              c.interface_address = std::move(interface_address);
              c.interface_netmask = std::move(interface_netmask);
@@ -220,6 +263,12 @@ void py_init_rtps(py::module &m) {
              c.enable_dedicated_endpoint_ports = enable_dedicated_endpoint_ports;
              c.max_prioritized_endpoint_ports = max_prioritized_endpoint_ports;
              c.service_reply_match_timeout_ms = service_reply_match_timeout_ms;
+             c.receive_workers = receive_workers;
+             c.receive_worker_task = std::move(receive_worker_task);
+             c.reactor_task = std::move(reactor_task);
+             c.job_retry_task = std::move(job_retry_task);
+             c.protocol_task = std::move(protocol_task);
+             c.reply_hold_task = std::move(reply_hold_task);
              return c;
            }),
            py::arg("interface_address") = std::string{},
@@ -231,13 +280,20 @@ void py_init_rtps(py::module &m) {
            py::arg("enable_dedicated_endpoint_ports") = true,
            py::arg("max_prioritized_endpoint_ports") = 4,
            py::arg("interface_netmask") = std::string{},
-           py::arg("service_reply_match_timeout_ms") = 1000,
+           py::arg("service_reply_match_timeout_ms") = 1000, py::arg("receive_workers") = 0,
+           py::arg("receive_worker_task") = py::none(), py::arg("reactor_task") = py::none(),
+           py::arg("job_retry_task") = py::none(), py::arg("protocol_task") = py::none(),
+           py::arg("reply_hold_task") = py::none(),
            "interface_address: IPv4 address of the interface to use (empty: auto-detect).\n"
            "interface_netmask: its netmask (\"255.255.128.0\") or prefix length (\"17\"), "
            "which decides which of a multi-homed peer's locators is on our network; empty: "
            "the netmask of the interface that owns interface_address.\n"
            "service_reply_match_timeout_ms: how long a service reply is held for the "
-           "requester's reply reader to be matched before it is written anyway (0: never held).")
+           "requester's reply reader to be matched before it is written anyway (0: never held).\n"
+           "receive_workers: the transport's receive worker tasks (0: the default, 2).\n"
+           "receive_worker_task / reactor_task / job_retry_task / protocol_task / "
+           "reply_hold_task: an espp.Task.BaseConfig (stack size, priority, core id) for "
+           "that task; None keeps the compile-time default (menuconfig RTPS -> Tasks).")
       .def_readwrite("interface_address", &PyRtpsConfig::interface_address)
       .def_readwrite("interface_netmask", &PyRtpsConfig::interface_netmask)
       .def_readwrite("on_publisher_matched", &PyRtpsConfig::on_publisher_matched)
@@ -250,7 +306,13 @@ void py_init_rtps(py::module &m) {
       .def_readwrite("max_prioritized_endpoint_ports",
                      &PyRtpsConfig::max_prioritized_endpoint_ports)
       .def_readwrite("service_reply_match_timeout_ms",
-                     &PyRtpsConfig::service_reply_match_timeout_ms);
+                     &PyRtpsConfig::service_reply_match_timeout_ms)
+      .def_readwrite("receive_workers", &PyRtpsConfig::receive_workers)
+      .def_readwrite("receive_worker_task", &PyRtpsConfig::receive_worker_task)
+      .def_readwrite("reactor_task", &PyRtpsConfig::reactor_task)
+      .def_readwrite("job_retry_task", &PyRtpsConfig::job_retry_task)
+      .def_readwrite("protocol_task", &PyRtpsConfig::protocol_task)
+      .def_readwrite("reply_hold_task", &PyRtpsConfig::reply_hold_task);
 
   rtps.def(py::init([](const PyRtpsConfig &config) { return new Rtps(to_config(config)); }),
            py::arg("config") = PyRtpsConfig{})
@@ -564,12 +626,14 @@ void py_init_rtps(py::module &m) {
       "add_action_server",
       [](Rtps &self, const std::string &action, const std::string &type_name,
          const py::function &on_goal, const py::function &execute, espp::QosBand band,
-         std::optional<espp::Dscp> dscp) {
+         std::optional<espp::Dscp> dscp, std::size_t max_goals_in_flight,
+         std::size_t execute_workers, const std::optional<espp::Task::BaseConfig> &execute_task) {
         auto og = make_gil_safe_holder(on_goal);
         auto ex = make_gil_safe_holder(execute);
         py::gil_scoped_release rel;
         return self.add_action_server(
-            {action, type_name, band, dscp},
+            action_config(action, type_name, band, dscp, max_goals_in_flight, execute_workers,
+                          execute_task),
             [og](const Rtps::GoalId &, std::span<const uint8_t> goal) -> bool {
               py::gil_scoped_acquire gil;
               try {
@@ -590,7 +654,12 @@ void py_init_rtps(py::module &m) {
       },
       py::arg("action"), py::arg("type_name"), py::arg("on_goal"), py::arg("execute"),
       py::arg("band") = espp::QosBand::Normal, py::arg("dscp") = py::none(),
-      "Add a ROS 2 action server. on_goal(goal_bytes)->bool; execute(ActionGoalHandle).");
+      py::arg("max_goals_in_flight") = 8, py::arg("execute_workers") = 1,
+      py::arg("execute_task") = py::none(),
+      "Add a ROS 2 action server. on_goal(goal_bytes)->bool; execute(ActionGoalHandle), which\n"
+      "runs on one of execute_workers tasks the server owns (configured by execute_task, an\n"
+      "espp.Task.BaseConfig; goals beyond the workers wait in acceptance order). A goal beyond\n"
+      "max_goals_in_flight (running or waiting; 0: unlimited) is rejected before on_goal.");
   rtps.def(
       "add_action_client",
       [](Rtps &self, const std::string &action, const std::string &type_name, espp::QosBand band,
@@ -763,7 +832,9 @@ void py_init_rtps(py::module &m) {
           "add_native_action_server",
           [](Rtps &self, const std::string &action, const std::string &type_name,
              const py::function &on_goal, const py::function &execute, const py::object &on_cancel,
-             espp::QosBand band, std::optional<espp::Dscp> dscp) {
+             espp::QosBand band, std::optional<espp::Dscp> dscp, std::size_t max_goals_in_flight,
+             std::size_t execute_workers,
+             const std::optional<espp::Task::BaseConfig> &execute_task) {
             auto og = make_gil_safe_holder(on_goal);
             auto ex = make_gil_safe_holder(execute);
             Rtps::native_cancel_callback_t oc = nullptr;
@@ -781,7 +852,8 @@ void py_init_rtps(py::module &m) {
             }
             py::gil_scoped_release rel;
             return self.add_native_action_server(
-                {action, type_name, band, dscp},
+                action_config(action, type_name, band, dscp, max_goals_in_flight, execute_workers,
+                              execute_task),
                 [og](std::span<const uint8_t> goal) -> bool {
                   py::gil_scoped_acquire gil;
                   try {
@@ -803,7 +875,13 @@ void py_init_rtps(py::module &m) {
           },
           py::arg("action"), py::arg("type_name"), py::arg("on_goal"), py::arg("execute"),
           py::arg("on_cancel") = py::none(), py::arg("band") = espp::QosBand::Normal,
-          py::arg("dscp") = py::none())
+          py::arg("dscp") = py::none(), py::arg("max_goals_in_flight") = 8,
+          py::arg("execute_workers") = 1, py::arg("execute_task") = py::none(),
+          "Add a native action server. on_goal(goal_bytes)->bool; execute(NativeGoalHandle), "
+          "which\n"
+          "runs on one of execute_workers tasks the server owns (configured by execute_task, an\n"
+          "espp.Task.BaseConfig); a goal beyond max_goals_in_flight (running or waiting; 0:\n"
+          "unlimited) is rejected before on_goal; on_cancel(handle)->bool gates cancel requests.")
       .def(
           "add_native_action_client",
           [](Rtps &self, const std::string &action, const std::string &type_name,
