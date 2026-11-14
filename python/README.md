@@ -69,9 +69,10 @@ This section gives a brief overview of what the scripts in this folder do.
   (`Config(receive_workers=..., reactor_task=espp.Task.BaseConfig(...), ...)`) and
   an action server's execute workers (`add_action_server(..., execute_workers=2,
   execute_task=...)`) through the binding; run by the interop harness after the
-  demo. `rtps_rpc_timeouts_test.py`: the RPC timeout knobs - a service or
-  action client's `request_timeout` / `max_pending_requests` (ROS 2 and native
-  service clients, the ROS 2 action client) abandon an unanswered request, an
+  demo. `rtps_rpc_timeouts_test.py`: the RPC timeout knobs - a service
+  client's `request_timeout` / `max_pending_requests` (ROS 2 and native) and
+  the ROS 2 action client's `request_timeout` abandon an unanswered request
+  (also at `float('inf')` = never, which must not expire at once), a ROS 2
   action server's `result_timeout` / `unknown_goal_response` - also run by the
   harness. `rtps_bindings_smoke.py` (the binding surface and its keyword arguments)
   and `rtps_bindings_misuse_test.py` (construction, validation and misuse of the

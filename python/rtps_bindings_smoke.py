@@ -31,8 +31,8 @@ classes = [
 
 # Methods on the client / goal-handle classes (the full client call surface).
 class_methods = {
-    "ServiceClient": ["call", "call_async", "call_future"],
-    "NativeServiceClient": ["call", "call_async", "call_future"],
+    "ServiceClient": ["call", "call_async", "call_future", "pending_count", "server_count"],
+    "NativeServiceClient": ["call", "call_async", "call_future", "pending_count"],
     "ActionClient": ["send_goal", "cancel_goal"],
     "NativeActionClient": ["send_goal", "cancel_goal"],
     "ActionGoalHandle": ["goal", "publish_feedback", "succeed", "abort", "canceled", "is_canceling"],

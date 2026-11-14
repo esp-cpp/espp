@@ -178,6 +178,35 @@ def main():
     check(raises(TypeError, lambda: p.add_action_server("/a", "T", lambda g: True, lambda h: None,
                                                         result_timeout="60")),
           "a str result_timeout is a TypeError")
+    # huge timeouts are accepted (and mean never / keep forever: the facade
+    # saturates its deadlines - the functional test pins the behaviour); NaN is
+    # refused rather than read as 0
+    for huge in (float("inf"), 1e300, 1e10):
+        check(p.add_service_client("/s", "T", request_timeout=huge) is None,
+              f"add_service_client(request_timeout={huge}) is accepted")
+        check(p.add_native_service_client("/s", "T", request_timeout=huge) is None,
+              f"add_native_service_client(request_timeout={huge}) is accepted")
+        check(p.add_action_client("/a", "T", request_timeout=huge) is None,
+              f"add_action_client(request_timeout={huge}) is accepted")
+        check(not p.add_action_server("/a", "T", lambda g: True, lambda h: None, result_timeout=huge),
+              f"add_action_server(result_timeout={huge}) is accepted")
+    nan = float("nan")
+    check(raises(ValueError, lambda: p.add_service_client("/s", "T", request_timeout=nan)),
+          "add_service_client(request_timeout=nan) is a ValueError")
+    check(raises(ValueError, lambda: p.add_native_service_client("/s", "T", request_timeout=nan)),
+          "add_native_service_client(request_timeout=nan) is a ValueError")
+    check(raises(ValueError, lambda: p.add_action_client("/a", "T", request_timeout=nan)),
+          "add_action_client(request_timeout=nan) is a ValueError")
+    check(raises(ValueError, lambda: p.add_action_server("/a", "T", lambda g: True, lambda h: None,
+                                                         result_timeout=nan)),
+          "add_action_server(result_timeout=nan) is a ValueError")
+    # an unknown_goal_response that does not fit one DATA (the reply budget,
+    # 65391 bytes) is refused before the started check, so it shows here too:
+    # accepted, it would be dropped on every get_result for an unknown goal and
+    # a ROS 2 client asking for a retired goal would hang
+    check(not p.add_action_server("/a", "T", lambda g: True, lambda h: None,
+                                  unknown_goal_response=bytes(70000)),
+          "an oversize unknown_goal_response is refused")
     # knobs a protocol does not have are refused, not silently ignored
     check(raises(TypeError, lambda: p.add_native_action_server("/n", "T", lambda g: True, lambda h: None,
                                                                result_timeout=1.0)),
@@ -209,6 +238,30 @@ def main():
     sig = signature(Rtps.add_action_server)
     check(has_default(sig, "result_timeout", "60.0"), "add_action_server(result_timeout=...) defaults to 60.0")
     check(has_default(sig, "unknown_goal_response", "b''"), "add_action_server(unknown_goal_response=...) defaults to b''")
+
+    # 6. positional order frozen: the released leading arguments keep their
+    # places and every later addition is appended; an argument inserted in the
+    # middle would silently rebind positional callers, so the ORDER is pinned
+    def param_names(method):
+        first = signature(getattr(Rtps, method))
+        inner = first[first.index("(") + 1:first.rindex(")")]
+        return [part.split(":")[0].strip() for part in re.split(r",(?![^\[\]]*\])", inner)
+                if part.strip() and not part.strip().startswith("*") and part.split(":")[0].strip() != "self"]
+
+    expected = {
+        "add_service_client": ["service", "type_name", "band", "dscp", "request_timeout", "max_pending_requests"],
+        "add_native_service_client": ["service", "type_name", "band", "dscp", "request_timeout",
+                                      "max_pending_requests"],
+        "add_action_client": ["action", "type_name", "band", "dscp", "request_timeout"],
+        "add_native_action_client": ["action", "type_name", "band", "dscp"],
+        "add_action_server": ["action", "type_name", "on_goal", "execute", "band", "dscp", "max_goals_in_flight",
+                              "execute_workers", "execute_task", "result_timeout", "unknown_goal_response"],
+        "add_native_action_server": ["action", "type_name", "on_goal", "execute", "on_cancel", "band", "dscp",
+                                     "max_goals_in_flight", "execute_workers", "execute_task"],
+    }
+    for method, names in expected.items():
+        got = param_names(method)
+        check(got == names, f"{method} parameter order is {got}, expected {names}")
 
     print("PASS")
     return 0

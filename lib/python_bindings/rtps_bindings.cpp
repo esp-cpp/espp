@@ -20,6 +20,7 @@
 #include <vector>
 
 #include <chrono>
+#include <cmath>
 #include <optional>
 #include <pybind11/functional.h>
 #include <pybind11/pybind11.h>
@@ -129,10 +130,15 @@ Rtps::service_handler_t wrap_service_handler(const py::function &fn) {
 }
 
 // A Python timeout in seconds as milliseconds: anything that is not positive
-// clamps to 0, and anything beyond what a 64-bit millisecond count can hold
-// (about 2.9e8 years) clamps to milliseconds::max() instead of overflowing.
+// clamps to 0 (the facade's "never" / "at once" sentinel), and anything beyond
+// what a 64-bit millisecond count can hold (about 2.9e8 years, float('inf')
+// included) clamps to milliseconds::max(), which the facade takes as no
+// deadline. NaN is neither: it is refused rather than read as 0.
 static std::chrono::milliseconds seconds_to_ms(double seconds) {
   using ms = std::chrono::milliseconds;
+  if (std::isnan(seconds)) {
+    throw py::value_error("a timeout cannot be NaN");
+  }
   if (!(seconds > 0.0)) {
     return ms{0};
   }
@@ -441,7 +447,7 @@ void py_init_rtps(py::module &m) {
             std::optional<std::vector<uint8_t>> r;
             {
               py::gil_scoped_release rel;
-              r = self.call(req, std::chrono::milliseconds(static_cast<long>(timeout * 1000)));
+              r = self.call(req, seconds_to_ms(timeout));
             }
             return r ? py::object(to_bytes(*r)) : py::none();
           },
@@ -542,7 +548,10 @@ void py_init_rtps(py::module &m) {
           py::arg("dscp") = py::none(), py::arg("request_timeout") = 30.0,
           py::arg("max_pending_requests") = 64,
           "Add a ROS 2 service client. A request unanswered for request_timeout seconds is\n"
-          "abandoned (0 = never); at most max_pending_requests wait at once (0 = unlimited).");
+          "abandoned - call()/call_future() give None, on_abandon runs if given, on_reply never\n"
+          "does (0 or negative = never) - checked when the client next sends, counts its pending\n"
+          "requests, or stops, so a reply landing between the expiry and that moment still runs\n"
+          "on_reply; at most max_pending_requests wait at once (0 = unlimited).");
 
   // ---- Actions (AMI, ROS 2-interoperable) ---------------------------------
   py::class_<Rtps::ActionGoalHandle>(
@@ -710,7 +719,8 @@ void py_init_rtps(py::module &m) {
       "retires it as soon as its result was delivered (a result nobody fetches then stays).\n"
       "unknown_goal_response is the complete CDR GetResult_Response (status UNKNOWN + a\n"
       "default Result) sent for a goal this server does not know; b'' sends status UNKNOWN\n"
-      "with no result body, which only parses for an empty Result type.");
+      "with no result body, which only parses for an empty Result type. It must fit one DATA\n"
+      "like every service reply (65391 bytes): bigger, the server is refused (False).");
   rtps.def(
       "add_action_client",
       [](Rtps &self, const std::string &action, const std::string &type_name, espp::QosBand band,
@@ -726,10 +736,11 @@ void py_init_rtps(py::module &m) {
       py::arg("dscp") = py::none(), py::arg("request_timeout") = 30.0,
       "Add a ROS 2 action client. request_timeout (seconds; 0 or negative = never) bounds the\n"
       "send_goal and cancel_goal requests: a goal whose send_goal request is unanswered that\n"
-      "long ends with on_result(6 ABORTED, b'') - the same as a rejection - and an unanswered\n"
-      "cancel_goal never calls on_response. The get_result request is never timed out: it\n"
-      "waits for the whole goal, however long it runs. (The native action client has no such\n"
-      "knob: its goal and cancel requests use the native service default of 30 s.)");
+      "long ends with on_result(6 ABORTED, b'') - the same as a rejection - reported when the\n"
+      "client's pending table is next touched (the next send_goal / cancel_goal, or stop()),\n"
+      "and an unanswered cancel_goal never calls on_response. The get_result request is never\n"
+      "timed out: it waits for the whole goal, however long it runs. (The native action client\n"
+      "has no such knob, see add_native_action_client.)");
 
   // ---- Native (espp<->espp) services + actions ----------------------------
   py::class_<Rtps::NativeServiceClient, std::shared_ptr<Rtps::NativeServiceClient>>(
@@ -742,7 +753,7 @@ void py_init_rtps(py::module &m) {
             std::optional<std::vector<uint8_t>> r;
             {
               py::gil_scoped_release rel;
-              r = self.call(req, std::chrono::milliseconds(static_cast<long>(timeout * 1000)));
+              r = self.call(req, seconds_to_ms(timeout));
             }
             return r ? py::object(to_bytes(*r)) : py::none();
           },
@@ -902,8 +913,9 @@ void py_init_rtps(py::module &m) {
           py::arg("max_pending_requests") = 64,
           "Add a native service client. A request unanswered for request_timeout seconds is\n"
           "abandoned - call()/call_future() give None, on_abandon runs if given, on_reply never\n"
-          "does (0 or negative = never); at most max_pending_requests wait at once (0 =\n"
-          "unlimited), one more is refused.")
+          "does (0 or negative = never) - checked when the client next sends, counts its pending\n"
+          "requests, or stops; at most max_pending_requests wait at once (0 = unlimited), one\n"
+          "more is refused.")
       .def(
           "add_native_action_server",
           [](Rtps &self, const std::string &action, const std::string &type_name,
@@ -969,7 +981,11 @@ void py_init_rtps(py::module &m) {
             return self.add_native_action_client({action, type_name, band, dscp});
           },
           py::arg("action"), py::arg("type_name"), py::arg("band") = espp::QosBand::Normal,
-          py::arg("dscp") = py::none());
+          py::arg("dscp") = py::none(),
+          "Add a native action client. Its goal and cancel requests use the native service\n"
+          "defaults (30 s, 64 pending): a send_goal request unanswered that long is dropped\n"
+          "WITHOUT a callback (no on_result), unlike the ROS 2 action client; there is no\n"
+          "request_timeout knob here.");
 
   py::class_<Rtps::NativeGoalHandle>(rtps, "NativeGoalHandle",
                                      "Server-side handle to a running native goal.")
