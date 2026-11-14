@@ -28,6 +28,20 @@ on:
       - "lib/espp.cmake"
       - "pc/tests/rtps_interop_*"
       - ".github/workflows/rtps_qemu.yml"
+  # On main as well, for the same paths: a main run's memory numbers are the
+  # baseline the next pull requests' reports show their deltas against (the
+  # memory job fetches the latest successful main run's rtps-memory artifact).
+  push:
+    branches: [main]
+    paths:
+      - "components/rtps/**"
+      - "components/qemu/**"
+      - "components/ethernet/**"
+      - "components/socket/**"
+      - "components/cdr/**"
+      - "lib/espp.cmake"
+      - "pc/tests/rtps_interop_*"
+      - ".github/workflows/rtps_qemu.yml"
   workflow_dispatch:
 
 concurrency:
@@ -118,6 +132,8 @@ jobs:
       # pull_request event GitHub checks the pull-requests permission for it
       issues: write
       pull-requests: write
+      # to list main's runs and download the baseline's rtps-memory artifact
+      actions: read
     steps:
       - uses: actions/checkout@v7
         with:
@@ -126,6 +142,31 @@ jobs:
         with:
           pattern: qemu-flash-*
           path: components/rtps/interop/qemu/images
+      - name: Fetch the baseline (the latest successful run on main)
+        # The report compares every number against main's latest run of this
+        # workflow (its rtps-memory artifact): a pull request's cost reads as
+        # a delta, not as another absolute figure. On a push to main the
+        # baseline is the previous main run, so the merge's own delta shows in
+        # the step summary. No baseline (the first run, an expired artifact):
+        # the report says so and prints the absolute numbers.
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          # any successful run on main: a push, or a manual dispatch (what seeds the first one)
+          run_id=$(gh run list --workflow "${{ github.workflow }}" --branch main --status success \
+                     --limit 1 --json databaseId --jq '.[0].databaseId // empty')
+          [ -n "$run_id" ] || { echo "no successful run of this workflow on main yet: no baseline"; exit 0; }
+          sha=$(gh run view "$run_id" --json headSha --jq '.headSha[0:9]')
+          mkdir -p baseline
+          if gh run download "$run_id" -n rtps-memory -D baseline; then
+            echo "baseline: main @ $sha, run $run_id"
+            echo "RTPS_MEMORY_BASELINE=$PWD/baseline/rtps-memory.json" >> "$GITHUB_ENV"
+            echo "RTPS_MEMORY_BASELINE_LABEL=main @ $sha ([run ${run_id}](${{ github.server_url }}/${{ github.repository }}/actions/runs/${run_id}))" >> "$GITHUB_ENV"
+          else
+            echo "the rtps-memory artifact of run $run_id is gone (expired?): no baseline"
+          fi
       - name: Run the memory suite on every limits profile
         # The embedded firmware runs the host-driven steps as well; the other
         # profiles boot for their sizeof and stage markers only.
@@ -147,7 +188,11 @@ jobs:
         run: |
           cd components/rtps/interop/qemu
           rm -f rtps-memory-report.md
-          python3 memory_report.py --summary rtps-memory-report.md --json rtps-memory.json \
+          baseline_args=()
+          if [ -n "${RTPS_MEMORY_BASELINE:-}" ] && [ -s "$RTPS_MEMORY_BASELINE" ]; then
+            baseline_args=(--baseline "$RTPS_MEMORY_BASELINE" --baseline-label "$RTPS_MEMORY_BASELINE_LABEL")
+          fi
+          python3 memory_report.py --summary rtps-memory-report.md --json rtps-memory.json "${baseline_args[@]}" \
             $(for p in embedded host host_large; do d="images/qemu-flash-$p"; echo "$p:$d/memory.json:$d/size-components.json"; done)
           cat rtps-memory-report.md >> "${GITHUB_STEP_SUMMARY:-/dev/null}"
       - name: Post the report on the pull request
