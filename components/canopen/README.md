@@ -35,6 +35,12 @@ SDO transactions are blocking with a configurable timeout; `process_frame()`
 must be called from a different task than the one performing SDO transfers
 (automatic with `espp::Twai`, whose `on_receive` runs in its own task).
 
+With `espp::Twai`, set `Config::tx_retry_count = -1` (as the example does). An
+SDO request (COB-ID `0x600 + node`) loses arbitration to every node's responses
+and PDOs, and the default single-shot transmit drops a frame that loses
+arbitration, so `send` fails and the SDO reports `io_error` (see the twai
+README).
+
 The wire core (`include/detail/canopen_core.hpp`) is host-buildable pure C++23
 with no ESP dependencies, and is covered by golden-frame unit tests in
 `test/canopen_host_test.cpp`.

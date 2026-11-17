@@ -72,8 +72,8 @@ but inert on the firmware tested, which keeps one ramp per axis.
 
 ## Example
 
-The [example](./example) brings up an `espp::Twai` transport and an
-`espp::CanopenClient`, NMT-starts the node, reads telemetry, configures the M1
+The [example](./example) brings up an `espp::Twai` transport (with
+`tx_retry_count = -1`; see the canopen README) and an `espp::CanopenClient`, NMT-starts the node, reads telemetry, configures the M1
 position loop, and runs a small profile-position sequence.
 
 ## Web console: `Mcp266Service` + `mcp266_protocol.hpp`

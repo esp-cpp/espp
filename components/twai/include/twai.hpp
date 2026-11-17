@@ -158,7 +158,18 @@ public:
      *  frame is dropped and transmit() reports the failure -- the behaviour
      *  espp::Twai has always had), 1..15 = that many retries, -1 = retransmit
      *  until it succeeds (standard CAN behaviour; transmit() bounds the wait
-     *  with its timeout). */
+     *  with its timeout).
+     *  \warning Only the TWAI-FD controller (ESP32-C5, ESP32-H4) has a
+     *  retransmission limit. On the SJA1000-style controller of the other
+     *  targets (ESP32, -S2, -S3, -C3, -C6, -H2, -H21, -P4) ESP-IDF's
+     *  twai_hal_v1.c sets single shot for every value but -1, so 1..15 behave
+     *  exactly like 0 (espressif/esp-idf#19195).
+     *  \note Single shot drops a frame that loses arbitration, which is
+     *  routine on a bus where other nodes transmit: a CANopen master's SDO
+     *  request (COB-ID 0x600 + node) loses to any node's lower-ID response or
+     *  PDO. Use -1 for such buses (CanopenClient turns every dropped request
+     *  into an SDO io_error); without an ACK the completion wait still times
+     *  out and Config::auto_abort_on_timeout drops the frame. */
     int8_t tx_retry_count{0};
     /** What transmit() does with a frame the controller has not finished with
      *  when the completion wait times out (typically: tx_retry_count = -1 and
@@ -649,9 +660,11 @@ protected:
     node_cfg.io_cfg.bus_off_indicator = GPIO_NUM_NC;
     node_cfg.bit_timing.bitrate = config_.baudrate;
     node_cfg.tx_queue_depth = config_.tx_queue_depth;
-    // NOTE: the driver treats every value but -1 as a bounded retry count with
-    // the controller's single-shot bit set; a frame that exhausts it arrives in
-    // on_tx_done with is_tx_success == false, which transmit() reports.
+    // NOTE: on the SJA1000-style controller (every target but the TWAI-FD
+    // ones) the driver sets the single-shot bit for every value but -1, so a
+    // bounded count is one attempt there (see Config::tx_retry_count); a frame
+    // that fails it arrives in on_tx_done with is_tx_success == false, which
+    // transmit() reports.
     node_cfg.fail_retry_cnt = config_.tx_retry_count;
     switch (config_.mode) {
     case Mode::NORMAL:

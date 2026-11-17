@@ -51,7 +51,22 @@ A frame for which `transmit()` returns `true` was acknowledged by another node
 in `Mode::NORMAL` (in `Mode::LOOPBACK` the self-test flag waives the
 acknowledgement, so it only means the frame went out). The default single
 attempt suits time-critical data that must not be delivered late; set
-`tx_retry_count` to a retry count, or -1, when a frame must get through.
+`tx_retry_count` to -1 when a frame must get through.
+
+A retry count of 1..15 is honoured only by the TWAI-FD controller (ESP32-C5,
+ESP32-H4). On every other target (ESP32, -S2, -S3, -C3, -C6, -H2, -H21, -P4)
+ESP-IDF's `twai_hal_v1.c` sets single shot for every value but -1, so 1..15
+behave like 0 (espressif/esp-idf#19195).
+
+Single shot drops a frame that loses arbitration, which is normal whenever other
+nodes transmit. A CANopen master is the common case: its SDO requests
+(COB-ID `0x600 + node`) lose to every node's responses (`0x580 + node`) and
+PDOs. On an ESP32-P4 at 1 Mbit/s with two Basicmicro MCP266 nodes answering
+about 1,800 SDO requests a second, `tx_retry_count` 0, 3 or 15 failed about 1.6
+frames a second (`io_error`; the error counters showed only arbitration-lost
+events), and -1 failed 2 in 120 s. So use `tx_retry_count = -1`
+under `espp::CanopenClient`. With nothing on the bus to acknowledge, the
+completion wait still times out and `auto_abort_on_timeout` drops the frame.
 
 ## Pending transmissions: `flush()` and `abort_pending()`
 
