@@ -196,22 +196,45 @@ run_matrix() {
 # the previous incarnation - as that incarnation - on its first announce
 # cycles, so the peers drop the old one at once instead of holding it for the
 # lease.
-# Results: restart_<tag>_rediscovered_by_ros2_sub (the ROS 2 subscriber
+# This runs ONCE, with BOTH a FastDDS and a CycloneDDS peer watching the single
+# restart, so each stack is proven to honour the dispose without a second device
+# reboot. Recreating the espp participant in-process is how the device "reboots"
+# here (a chip reset trips a QEMU startup bug); that recreate frees and
+# reallocates the engine's FreeRTOS task stacks in internal RAM, which fragments
+# it - the FIRST recreate is reliable, a SECOND one eventually fails a stack
+# allocation and the device aborts (a teardown/fragmentation follow-up). So the
+# restart is done exactly once and both RMW stacks observe it together.
+# Results: restart_<tag>_rediscovered_by_ros2_sub (that stack's subscriber
 # receives the restarted publisher's first samples, "qemu 0".."qemu 9", well
-# inside the old lease), restart_<tag>_device_sub_receives (the ROS 2
-# publisher's samples reach the rebooted device),
-# restart_<tag>_old_incarnation_dropped (the ROS 2 daemon, a participant that
-# was up throughout, counts ONE publisher on the device's topic again within
-# 15 s of the restart - without the dispose it holds both for 30 s), and
-# restart_previous_incarnation_remembered (the new Domain found the previous
-# incarnation in the RTC record; once, on the FastDDS pass).
-device_restart_case() { # prefix log-tag
-  local p="$1" t="$2" m rc=0 n=0 n0=0 i
-  timeout 90 ros2 topic echo /qemu_tx std_msgs/msg/String > "/tmp/${t}_restart_echo.log" 2>&1 &
-  local echo_pid=$!
-  timeout 90 ros2 topic pub -r 5 /qemu_rx std_msgs/msg/String "data: 'across restart'" > /dev/null 2>&1 &
+# inside the old 30 s lease - daemon-independent proof the new incarnation is
+# accepted at once), restart_<tag>_old_incarnation_dropped (that stack's ROS 2
+# daemon, up throughout, counts ONE publisher on the device's topic again
+# within ~15 s - without the dispose it would hold two for the full lease),
+# restart_device_sub_receives (the ROS 2 publisher's samples reach the rebooted
+# device), restart_previous_incarnation_remembered (the new Domain found the
+# previous incarnation in the RTC record).
+device_restart_case() { # (args unused; runs once, watching both stacks)
+  local m rc=0 n=0 i t0
+  # CycloneDDS peers get the same discovery config the cyclone pass uses, and
+  # its daemon is warmed so its topic-info view of /qemu_tx is populated (the
+  # FastDDS daemon is already warm from this pass). Both echoes run across the
+  # restart; the cyclone echo discovers the device directly, independent of its
+  # daemon, so the rediscovery proof does not depend on the daemon at all.
+  local cyc='<CycloneDDS><Domain><Discovery><MaxAutoParticipantIndex>60</MaxAutoParticipantIndex></Discovery></Domain></CycloneDDS>'
+  RMW_IMPLEMENTATION=rmw_cyclonedds_cpp CYCLONEDDS_URI="$cyc" ros2 daemon start > /dev/null 2>&1
+  timeout 150 ros2 topic echo /qemu_tx std_msgs/msg/String > "/tmp/fastdds_restart_echo.log" 2>&1 &
+  local echo_fd=$!
+  RMW_IMPLEMENTATION=rmw_cyclonedds_cpp CYCLONEDDS_URI="$cyc" \
+    timeout 150 ros2 topic echo /qemu_tx std_msgs/msg/String > "/tmp/cyclone_restart_echo.log" 2>&1 &
+  local echo_cy=$!
+  timeout 150 ros2 topic pub -r 5 /qemu_rx std_msgs/msg/String "data: 'across restart'" > /dev/null 2>&1 &
   local pub=$!
-  sleep 10 # both matched and flowing, and the daemon knows the device
+  sleep 15 # both stacks matched and flowing, and both daemons know the device
+  local fd_pre cy_pre
+  fd_pre=$(timeout 10 ros2 topic info -v /qemu_tx 2>/dev/null | grep -c 'Endpoint type: PUBLISHER')
+  cy_pre=$(RMW_IMPLEMENTATION=rmw_cyclonedds_cpp CYCLONEDDS_URI="$cyc" \
+    timeout 10 ros2 topic info -v /qemu_tx 2>/dev/null | grep -c 'Endpoint type: PUBLISHER')
+  echo "  before the restart: FastDDS daemon sees ${fd_pre:-?} publisher(s), CycloneDDS daemon sees ${cy_pre:-?}"
   m=$(mark)
   # Trigger the restart through the already-matched service (a topic sample to
   # a freshly-matched reliable reader is not reliably delivered on every RMW);
@@ -225,36 +248,44 @@ device_restart_case() { # prefix log-tag
   if [ $rc -eq 0 ] && ! wait_for_marker_since "$boot" "RTPSTEST ready" 60; then
     echo "  the device's new participant did not come up"; rc=1
   fi
-  local pubs=2 t0
+  local n_fd=0 n_cy=0 pubs_fd=2 pubs_cy=2
   if [ $rc -eq 0 ]; then
-    # the restarted publisher counts from 0 again: its first samples at the ROS 2
+    # the restarted publisher counts from 0 again: its first samples at each
     # subscriber are the proof it was rediscovered (the old lease is 30 s)
     t0=$(date +%s)
-    for i in $(seq 1 25); do
-      n0=$(grep -c -E '^data: qemu [0-9]$' "/tmp/${t}_restart_echo.log")
-      [ "$n0" -ge 3 ] && break
+    for i in $(seq 1 30); do
+      n_fd=$(grep -c -E '^data: qemu [0-9]$' "/tmp/fastdds_restart_echo.log")
+      n_cy=$(grep -c -E '^data: qemu [0-9]$' "/tmp/cyclone_restart_echo.log")
+      [ "$n_fd" -ge 3 ] && [ "$n_cy" -ge 3 ] && break
       sleep 1
     done
-    echo "  ROS 2 subscriber got $n0 of the restarted publisher's first samples after $(( $(date +%s) - t0 )) s"
+    echo "  $(( $(date +%s) - t0 )) s after the restart, first samples reached: FastDDS sub $n_fd, CycloneDDS sub $n_cy"
     n=$(count_since "$boot" "RTPSTEST rx across restart"); echo "  rebooted device received $n from the ROS 2 publisher"
-    # the daemon's view: publishers of /qemu_tx; two while it still holds the
-    # old incarnation, one once the dispose (or the lease, 30 s) took it
-    for i in $(seq 1 15); do
-      pubs=$(timeout 10 ros2 topic info -v /qemu_tx 2>/dev/null | grep -c 'Endpoint type: PUBLISHER')
-      [ "${pubs:-2}" -le 1 ] && break
+    since "$boot" | grep -o "RTPSTEST incarnation.*" | head -1 | sed 's/^/  /'
+    since "$boot" | grep -q "RTPSTEST incarnation cur=[0-9a-f]* prev=[0-9a-f]"
+    result "restart_previous_incarnation_remembered" $?
+    # each daemon's view of /qemu_tx: two publishers while it still holds the old
+    # incarnation, one once the dispose took it. Kept well under the 30 s lease
+    # (short query timeouts, <=12 rounds) so a lingering old one still reads two.
+    for i in $(seq 1 12); do
+      pubs_fd=$(timeout 6 ros2 topic info -v /qemu_tx 2>/dev/null | grep -c 'Endpoint type: PUBLISHER')
+      pubs_cy=$(RMW_IMPLEMENTATION=rmw_cyclonedds_cpp CYCLONEDDS_URI="$cyc" \
+        timeout 6 ros2 topic info -v /qemu_tx 2>/dev/null | grep -c 'Endpoint type: PUBLISHER')
+      [ "${pubs_fd:-2}" -le 1 ] && [ "${pubs_cy:-2}" -le 1 ] && break
       sleep 1
     done
-    echo "  daemon counts ${pubs:-?} publisher(s) on /qemu_tx $(( $(date +%s) - t0 )) s after the reboot"
-    since "$boot" | grep -o "RTPSTEST incarnation.*" | head -1 | sed 's/^/  /'
-    if [ "$t" = fastdds ]; then
-      since "$boot" | grep -q "RTPSTEST incarnation cur=[0-9a-f]* prev=[0-9a-f]"
-      result "restart_previous_incarnation_remembered" $?
-    fi
+    echo "  $(( $(date +%s) - t0 )) s after the restart: FastDDS daemon counts ${pubs_fd:-?} publisher(s), CycloneDDS daemon ${pubs_cy:-?}"
   fi
-  stop_pids $echo_pid $pub
-  [ $rc -eq 0 ] && [ "$n0" -ge 3 ]; result "restart_${t}_rediscovered_by_ros2_sub" $?
-  [ $rc -eq 0 ] && [ "$n" -ge 5 ]; result "restart_${t}_device_sub_receives" $?
-  [ $rc -eq 0 ] && [ "${pubs:-2}" -le 1 ]; result "restart_${t}_old_incarnation_dropped" $?
+  stop_pids $echo_fd $echo_cy $pub
+  RMW_IMPLEMENTATION=rmw_cyclonedds_cpp CYCLONEDDS_URI="$cyc" ros2 daemon stop > /dev/null 2>&1
+  [ $rc -eq 0 ] && [ "$n_fd" -ge 3 ]; result "restart_fastdds_rediscovered_by_ros2_sub" $?
+  [ $rc -eq 0 ] && [ "$n_cy" -ge 3 ]; result "restart_cyclone_rediscovered_by_ros2_sub" $?
+  [ $rc -eq 0 ] && [ "$n" -ge 5 ]; result "restart_device_sub_receives" $?
+  # the dispose proof needs the daemon to have had a baseline (it saw the live
+  # publisher before the restart); require that too so a daemon that never
+  # discovered cannot read as a trivial pass.
+  [ $rc -eq 0 ] && [ "${fd_pre:-0}" -ge 1 ] && [ "${pubs_fd:-2}" -le 1 ]; result "restart_fastdds_old_incarnation_dropped" $?
+  [ $rc -eq 0 ] && [ "${cy_pre:-0}" -ge 1 ] && [ "${pubs_cy:-2}" -le 1 ]; result "restart_cyclone_old_incarnation_dropped" $?
 }
 wait_for_marker_since() { # mark marker timeout_s
   local i
@@ -312,20 +343,19 @@ ros2_cases() { # prefix log-tag
   tail -2 "/tmp/${t}_srv.log"; result "${p}ros2_client->device_service" $rc
   settle
 
-  # Restart the device's participant once on EACH rmw pass (FastDDS and
-  # CycloneDDS), so a real peer of each stack is proven to honour the dispose
-  # the restarted device sends. Recreating the espp participant in-process is
-  # how the device "reboots" here (a chip reset trips a QEMU startup bug - see
-  # device_restart_case). That recreate frees and reallocates the engine's
-  # FreeRTOS task stacks in internal RAM, which fragments it; two recreates in
-  # one boot are stable, but more are not yet (a stack allocation eventually
-  # fails and the device aborts - a separate teardown/fragmentation follow-up).
-  # So the two rmw passes get one restart each and no third is done (the
-  # espp-host engine's handling of a restarted peer is covered by
-  # pc/tests/rtps_participant_restart.cpp).
-  note "${p}the device restarts within its lease: the ROS 2 peers drop the old incarnation and talk to the new one"
-  device_restart_case "${p}" "${t}"
-  settle
+  # Restart the device's participant ONCE for the whole run, on the FastDDS
+  # pass, with BOTH a FastDDS and a CycloneDDS peer watching that single restart
+  # (device_restart_case), so each stack is proven to honour the dispose without
+  # a second in-process recreate - which is not yet reliable, because recreating
+  # the espp participant fragments internal RAM and a later stack allocation
+  # eventually fails (a teardown/fragmentation follow-up). The espp-host engine's
+  # own handling of a restarted peer is covered by
+  # pc/tests/rtps_participant_restart.cpp.
+  if [ "$t" = fastdds ]; then
+    note "${p}the device restarts within its lease: both the FastDDS and the CycloneDDS peer drop the old incarnation and talk to the new one"
+    device_restart_case
+    settle
+  fi
 
   note "${p}twelve other participants on the domain, then the publisher the device needs joins last"
   local crowd=() i
