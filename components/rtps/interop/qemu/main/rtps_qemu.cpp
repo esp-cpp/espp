@@ -18,7 +18,7 @@
 //                                    after a software reset (esp_timer interrupt
 //                                    allocation), so the participant restarts, as an
 //                                    application recreating its Domain would. Ignored,
-//                                    with a marker, in the first 20 s of a participant.
+//                                    with a marker, in the first 5 s of a participant.
 //   RTPSTEST pub_matched/sub_matched a writer / reader gained a remote peer
 //   RTPSTEST tx <n>                  reliable publisher sent "qemu <n>"
 //   RTPSTEST rx <data>               reliable subscriber received <data>
@@ -247,11 +247,11 @@ static void run_participant(espp::Logger &logger, const std::string &interface_a
                                // harness repeats the sample for a few seconds so a
                                // just-matched writer gets it through; copies that
                                // reach the NEW participant are ignored for its
-                               // first 20 s.
+                               // first 5 s.
                                const auto up_s = std::chrono::duration_cast<std::chrono::seconds>(
                                                      std::chrono::steady_clock::now() - boot_time)
                                                      .count();
-                               if (up_s < 20) {
+                               if (up_s < 5) {
                                  logger.info("RTPSTEST restart ignored (participant {} s old)",
                                              up_s);
                                } else if (!restart_requested.exchange(true)) {
