@@ -1,15 +1,15 @@
 // A peer that restarts is rediscovered at once, not when its lease runs out.
 //
 // The GUID prefix of an embedded participant is built from the board's MAC,
-// so a board that reboots within its lease comes back with a prefix its
-// peers still hold - and every one of its writers numbers its samples from 1
-// again. A best-effort reader ignores a sequence number below the next it
-// expects (RTPS 2.5 8.4.12.1), and the SPDP reader is one of those: the
-// restarted peer's announcements were dropped too, so nothing happened until
-// the lease sweep forgot the old incarnation (5 s for an ESP peer, 100 s for a
-// host one), and the peer was deaf and mute to us the whole time. Three
-// mechanisms close that window; this test drives all of them with hand-crafted
-// datagrams fed to a real participant, as the dispose tests do:
+// so a board that rebooted within its lease used to come back with the prefix
+// its peers still held - and every one of its writers numbering its samples
+// from 1 again. Its announcements only refreshed the known participant's
+// lease, the stateful readers kept waiting for the old numbers and a
+// best-effort reader ignored the restarted writer (RTPS 2.5 8.4.12.1), so
+// nothing moved until the lease sweep forgot the old incarnation (5 s for an
+// ESP peer, 100 s for a host one). This test drives the receiving side of the
+// fix with hand-crafted datagrams fed to a real participant, as the dispose
+// tests do:
 //
 //  1. Restart detection: an announcement from a known participant numbered
 //     far below its highest (SPDPAgent::isRestart) forgets the participant
@@ -18,11 +18,13 @@
 //  2. A reordered or duplicated announcement (last - 1) is NOT a restart:
 //     nothing is forgotten, a sample numbered after the ones delivered still
 //     arrives.
-//  3. Incarnation: a peer whose prefix differs only in the incarnation bytes
-//     (10-11) may dispose the old incarnation - the dispose is honoured as the
-//     participant's own, the old one goes at once, the new one is discovered.
-//     A dispose naming a participant from an unrelated prefix is still
-//     refused, and so is one from the same board but another participant id.
+//  3. Incarnation: a rebooted board of this engine comes back with new
+//     incarnation bytes (10-11) and first disposes its previous incarnation
+//     AS that incarnation (old prefix, its SPDP writer, a sequence number
+//     above anything it sent): the old participant goes at once, the new one
+//     is discovered, and a stale announcement of the old one still in flight
+//     is ignored. A dispose naming a participant from any other prefix is
+//     refused, as before.
 //
 // Exits 0 on success, 1 on the first failed check.
 
@@ -32,6 +34,7 @@
 #include <cstdint>
 #include <cstdio>
 #include <cstring>
+#include <limits>
 #include <thread>
 #include <vector>
 
@@ -43,7 +46,7 @@
 namespace {
 
 constexpr rtps::Ip4AddressBytes kIp{127, 0, 0, 1};
-constexpr std::array<uint8_t, 2> kVendor{0x01, 0x0f}; // Fast DDS, as the other dispose tests
+const std::array<uint8_t, 2> kVendor = rtps::Config::VENDOR_ID.vendorId; // an espp-shaped peer
 
 #define CHECK(cond, msg)                                                                           \
   do {                                                                                             \
@@ -203,7 +206,7 @@ std::vector<uint8_t> data_message(const rtps::GuidPrefix_t &prefix, const rtps::
 
 // Inline QoS of a participant dispose: the key hash of the disposed
 // participant and STATUS_INFO disposed|unregistered, as Fast DDS writes it and
-// as this engine's SPDPAgent::disposePreviousIncarnation does.
+// as this engine's SPDPAgent::sendPreviousIncarnationDispose does.
 std::vector<uint8_t> participant_dispose_qos(const rtps::GuidPrefix_t &disposed) {
   using rtps::SMElement::ParameterId;
   std::vector<uint8_t> q;
@@ -271,11 +274,10 @@ struct Peer {
     feed(part, data_message(prefix, writer_guid().entityId, rtps::ENTITYID_UNKNOWN, ++data_sn, {},
                             sample_payload(value)));
   }
-  // Dispose `disposed` from this peer's SPDP writer (the dispose a restarted
-  // board sends for its previous incarnation).
-  void dispose(rtps::Participant *part, const rtps::GuidPrefix_t &disposed) {
+  // Dispose `disposed` from this peer's SPDP writer, numbered `sn`.
+  void dispose(rtps::Participant *part, const rtps::GuidPrefix_t &disposed, uint32_t sn) {
     feed(part, data_message(prefix, rtps::ENTITYID_SPDP_BUILTIN_PARTICIPANT_WRITER,
-                            rtps::ENTITYID_SPDP_BUILTIN_PARTICIPANT_READER, ++spdp_sn,
+                            rtps::ENTITYID_SPDP_BUILTIN_PARTICIPANT_READER, sn,
                             participant_dispose_qos(disposed), {}));
   }
   // The peer rebooted: every writer starts at 1 again.
@@ -350,41 +352,29 @@ bool run_checks() {
   CHECK(g_received == 11, "rebooted peer: its samples 1..3 delivered");
   CHECK(g_last_value == 23, "rebooted peer: the last one is sample 3 of the new stream");
 
-  // --- 3. a new incarnation disposes the old one --------------------------------------------
+  // --- 3. the board reboots into a new incarnation and disposes the old one -----------------
+  // What a rebooted board of this engine sends first (SPDPAgent::
+  // sendPreviousIncarnationDispose): a dispose of the OLD participant, as the
+  // old participant - its prefix, its SPDP writer - with a sequence number
+  // above anything that writer reached. Then the new incarnation announces.
   Peer next = peer;
   next.reboot();
   next.prefix.id[10] = 0x33; // the incarnation bytes change, nothing else
   next.prefix.id[11] = 0x44;
-  // a dispose from an unrelated prefix naming the peer: refused
+  // a dispose from an unrelated prefix naming the peer: refused, as always
   Peer stranger{{{0x24, 0x6f, 0x28, 0x01, 0x02, 0x03, 0, vid[0], vid[1], 0, 0x11, 0x22}}};
-  // ... and from another vendor's prefix that happens to differ in bytes 10-11
-  // only (Fast DDS keeps its in-process participant id there): refused
-  Peer foreign = next;
-  foreign.prefix.id[7] = kVendor[0];
-  foreign.prefix.id[8] = kVendor[1];
-  Peer foreign_old = peer;
-  foreign_old.prefix.id[7] = kVendor[0];
-  foreign_old.prefix.id[8] = kVendor[1];
-  foreign_old.announce(part);
-  CHECK(part->getRemoteParticipantCount() == 2, "a foreign-vendor participant discovered");
-  foreign.dispose(part, foreign_old.prefix);
-  CHECK(part->getRemoteParticipantCount() == 2,
-        "dispose across bytes 10-11 of a foreign prefix: refused");
-  foreign_old.dispose(part, foreign_old.prefix); // its own: honoured, as before
-  CHECK(part->getRemoteParticipantCount() == 1, "a foreign participant's own dispose: honoured");
-  stranger.dispose(part, peer.prefix);
+  stranger.dispose(part, peer.prefix, 1);
   CHECK(part->getRemoteParticipantCount() == 1, "dispose from a stranger: refused");
-  // from the same board, another participant id: refused too
-  Peer sibling = next;
-  sibling.prefix.id[6] = 1;
-  sibling.dispose(part, peer.prefix);
-  CHECK(part->getRemoteParticipantCount() == 1, "dispose from another participant id: refused");
+  // ... and from the next incarnation's own writer naming the old one: another
+  // prefix is another participant, refused too (the engine does not send that)
+  next.dispose(part, peer.prefix, 1);
+  CHECK(part->getRemoteParticipantCount() == 1, "dispose from another prefix: refused");
   CHECK(reader->getProxiesCount() == 1, "refused disposes change nothing");
-  // from the next incarnation: honoured, the old one goes at once
-  next.dispose(part, peer.prefix); // the new SPDP writer's first change (SN 1)
-  CHECK(part->getRemoteParticipantCount() == 0, "dispose from the next incarnation: honoured");
-  CHECK(reader->getProxiesCount() == 0, "next incarnation: the old writer proxy is gone");
-  next.announce(part); // SN 2
+  // the old incarnation's own dispose, numbered beyond its last announcement
+  peer.dispose(part, peer.prefix, std::numeric_limits<uint32_t>::max());
+  CHECK(part->getRemoteParticipantCount() == 0, "the previous incarnation's dispose: honoured");
+  CHECK(reader->getProxiesCount() == 0, "previous incarnation: the old writer proxy is gone");
+  next.announce(part);
   CHECK(part->getRemoteParticipantCount() == 1, "next incarnation discovered");
   next.announce_writer(part);
   CHECK(reader->getProxiesCount() == 1, "next incarnation: its writer matched");
@@ -393,9 +383,9 @@ bool run_checks() {
   }
   CHECK(g_received == 14 && g_last_value == 33, "next incarnation: samples delivered");
   // a stale announcement of the old incarnation still in flight (a delayed
-  // datagram) must not bring the dead participant back next to the new one:
-  // the dispose is remembered as newer than anything the old one numbered
-  peer.announce_with(part, 2);
+  // datagram, numbered below the dispose) must not bring the dead participant
+  // back next to the new one
+  peer.announce_with(part, 9);
   CHECK(part->getRemoteParticipantCount() == 1, "stale old-incarnation announcement: ignored");
   CHECK(reader->getProxiesCount() == 1, "stale old-incarnation announcement: new proxy kept");
   next.publish(part, 34);

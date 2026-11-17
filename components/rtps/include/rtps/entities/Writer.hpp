@@ -150,7 +150,6 @@ protected:
   SequenceNumber_t m_nextSequenceNumberToSend;
 
   friend class SEDPAgent;
-  friend class SPDPAgent; // disposePreviousIncarnation: a DATA with inline QoS
   virtual const CacheChange *newChange(ChangeKind_t kind, const uint8_t *data, DataSize_t size,
                                        bool inLineQoS, bool markDisposedAfterWrite,
                                        bool hasRelatedSampleIdentity = false,

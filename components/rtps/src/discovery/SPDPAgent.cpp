@@ -25,11 +25,15 @@ Author: i11 - Embedded Software, RWTH Aachen University
 
 #include "rtps/discovery/SPDPAgent.hpp"
 
+#include "rtps/communication/EsppTransport.hpp"
 #include "rtps/discovery/ParticipantProxyData.hpp"
 #include "rtps/entities/Participant.hpp"
 #include "rtps/entities/Reader.hpp"
+#include "rtps/entities/StatelessWriter.hpp"
 #include "rtps/entities/Writer.hpp"
+#include "rtps/messages/MessageFactory.hpp"
 #include "rtps/messages/MessageTypes.hpp"
+#include "rtps/storages/PayloadBuffer.hpp"
 #include "rtps/utils/Log.hpp"
 #include "rtps/utils/udpUtils.hpp"
 #include <algorithm>
@@ -54,79 +58,91 @@ void SPDPAgent::init(Participant &participant, BuiltInEndpoints &endpoints) {
 
   addParticipantParameters();
   if (participant.m_hasPreviousIncarnation) {
-    disposePreviousIncarnation(participant.m_previousIncarnationPrefix);
+    m_previousIncarnationDisposesLeft = PREVIOUS_INCARNATION_DISPOSES;
   }
   initialized = true;
 }
 
-void SPDPAgent::disposePreviousIncarnation(const GuidPrefix_t &prefix) {
-  // The form Fast DDS, Cyclone DDS and this engine's receiver all understand
-  // (handleSPDPPackage below): a DATA whose inline QoS carries the key hash of
-  // the disposed participant and PID_STATUS_INFO disposed|unregistered, with
-  // a payload that names the participant GUID for a peer that reads the key
-  // from the payload. Queued before the first announcement, so it goes out
-  // first (the stateless writer sends in sequence-number order).
-  std::array<uint8_t, 96> buffer{};
-  CdrSink sink{asWritableBytes(buffer.data(), buffer.size())};
-  CdrWriter writer(sink);
-  // inline QoS
-  writer.write<uint16_t>(ParameterId::PID_KEY_HASH);
-  writer.write<uint16_t>(16);
-  writeBytes(writer, prefix.id.data(), sizeof(GuidPrefix_t::id));
-  writeBytes(writer, ENTITYID_BUILD_IN_PARTICIPANT.entityKey.data(), sizeof(EntityId_t::entityKey));
-  writer.write<uint8_t>(static_cast<uint8_t>(ENTITYID_BUILD_IN_PARTICIPANT.entityKind));
-  writer.write<uint16_t>(ParameterId::PID_STATUS_INFO);
-  writer.write<uint16_t>(4);
-  writer.write<uint8_t>(0);
-  writer.write<uint8_t>(0);
-  writer.write<uint8_t>(0);
-  writer.write<uint8_t>(3); // disposed | unregistered, as Fast DDS writes it
-  endCurrentList(writer);
-  // payload
-  writeBytes(writer, rtps::SMElement::SCHEME_PL_CDR_LE.data(),
-             rtps::SMElement::SCHEME_PL_CDR_LE.size());
-  writer.write<uint16_t>(0); // options
-  writer.write<uint16_t>(ParameterId::PID_PARTICIPANT_GUID);
-  writer.write<uint16_t>(16);
-  writeBytes(writer, prefix.id.data(), sizeof(GuidPrefix_t::id));
-  writeBytes(writer, ENTITYID_BUILD_IN_PARTICIPANT.entityKey.data(), sizeof(EntityId_t::entityKey));
-  writer.write<uint8_t>(static_cast<uint8_t>(ENTITYID_BUILD_IN_PARTICIPANT.entityKind));
-  endCurrentList(writer);
-
-  const auto *change = m_buildInEndpoints.spdpWriter->newChange(
-      ChangeKind_t::ALIVE, buffer.data(), static_cast<DataSize_t>(sink.size()),
-      /*inLineQoS=*/true, /*markDisposedAfterWrite=*/false);
-  if (change == nullptr) {
-    logger_.warn("Could not queue the dispose of the previous incarnation {:02x}{:02x}; peers "
-                 "that still hold it forget it when its lease runs out",
-                 prefix.id[10], prefix.id[11]);
+void SPDPAgent::sendPreviousIncarnationDispose() {
+  if (mp_participant == nullptr || !mp_participant->m_hasPreviousIncarnation) {
     return;
   }
-  logger_.info("Disposing the previous incarnation {:02x}{:02x} of this participant (now "
-               "{:02x}{:02x}) before the first announcement",
-               prefix.id[10], prefix.id[11], mp_participant->m_guidPrefix.id[10],
+  auto *writer = static_cast<StatelessWriter *>(m_buildInEndpoints.spdpWriter);
+  EsppTransport *transport = writer ? writer->getTransport() : nullptr;
+  if (transport == nullptr) {
+    return;
+  }
+  const GuidPrefix_t &old = mp_participant->m_previousIncarnationPrefix;
+
+  // The change: inline QoS (the old participant's key hash, STATUS_INFO
+  // disposed|unregistered as Fast DDS writes it) and a PL_CDR payload naming
+  // the same GUID, for a peer that reads the key from the payload.
+  PayloadBuffer change;
+  {
+    std::array<uint8_t, 96> buffer{};
+    CdrSink sink{asWritableBytes(buffer.data(), buffer.size())};
+    CdrWriter cdr(sink);
+    cdr.write<uint16_t>(ParameterId::PID_KEY_HASH);
+    cdr.write<uint16_t>(16);
+    writeBytes(cdr, old.id.data(), sizeof(GuidPrefix_t::id));
+    writeBytes(cdr, ENTITYID_BUILD_IN_PARTICIPANT.entityKey.data(), sizeof(EntityId_t::entityKey));
+    cdr.write<uint8_t>(static_cast<uint8_t>(ENTITYID_BUILD_IN_PARTICIPANT.entityKind));
+    cdr.write<uint16_t>(ParameterId::PID_STATUS_INFO);
+    cdr.write<uint16_t>(4);
+    cdr.write<uint8_t>(0);
+    cdr.write<uint8_t>(0);
+    cdr.write<uint8_t>(0);
+    cdr.write<uint8_t>(3);
+    endCurrentList(cdr);
+    writeBytes(cdr, rtps::SMElement::SCHEME_PL_CDR_LE.data(),
+               rtps::SMElement::SCHEME_PL_CDR_LE.size());
+    cdr.write<uint16_t>(0); // options
+    cdr.write<uint16_t>(ParameterId::PID_PARTICIPANT_GUID);
+    cdr.write<uint16_t>(16);
+    writeBytes(cdr, old.id.data(), sizeof(GuidPrefix_t::id));
+    writeBytes(cdr, ENTITYID_BUILD_IN_PARTICIPANT.entityKey.data(), sizeof(EntityId_t::entityKey));
+    cdr.write<uint8_t>(static_cast<uint8_t>(ENTITYID_BUILD_IN_PARTICIPANT.entityKind));
+    endCurrentList(cdr);
+    change.append(buffer.data(), static_cast<DataSize_t>(sink.size()));
+  }
+
+  // The message, as the old incarnation: its prefix in the header, its SPDP
+  // writer as the source, a number its writer cannot have reached (a
+  // best-effort reader rejects a number at or below the last it took from
+  // that writer), to the SPDP multicast locator every peer listens on.
+  PayloadBuffer message;
+  MessageFactory::addHeader(message, old);
+  MessageFactory::addSubMessageTimeStamp(message);
+  const SequenceNumber_t sn{std::numeric_limits<int32_t>::max(),
+                            std::numeric_limits<uint32_t>::max()};
+  MessageFactory::addSubMessageData(message, change, /*containsInlineQos=*/true, sn,
+                                    ENTITYID_SPDP_BUILTIN_PARTICIPANT_WRITER,
+                                    ENTITYID_SPDP_BUILTIN_PARTICIPANT_READER);
+
+  const LocatorIPv4 multicast(getBuiltInMulticastLocator());
+  PacketInfo info;
+  info.srcPort = writer->getSourcePort();
+  info.destAddr = multicast.getIp4AddressBytes();
+  info.destPort = static_cast<Ip4Port_t>(multicast.port);
+  info.payload = std::move(message.bytes);
+  transport->sendPacket(info);
+  logger_.info("Disposed the previous incarnation {:02x}{:02x} of this participant (now "
+               "{:02x}{:02x}), as that participant",
+               old.id[10], old.id[11], mp_participant->m_guidPrefix.id[10],
                mp_participant->m_guidPrefix.id[11]);
 }
 
 bool SPDPAgent::isRestart(const SequenceNumber_t &announced, const SequenceNumber_t &last) {
-  if (!(announced < last) || announced.high < 0) {
+  if (!(announced < last) || announced.high < 0 || last.high < 0) {
     return false;
   }
   const uint64_t a =
       (static_cast<uint64_t>(static_cast<uint32_t>(announced.high)) << 32) | announced.low;
   const uint64_t l = (static_cast<uint64_t>(static_cast<uint32_t>(last.high)) << 32) | last.low;
+  if (a == 0 || l < 3) {
+    return false; // 0 is not a sequence number; too few announcements to judge
+  }
   return a * 2 <= l;
-}
-
-bool SPDPAgent::isPreviousIncarnationOf(const GuidPrefix_t &disposed, const GuidPrefix_t &writer) {
-  // Only for prefixes in this engine's layout (MAC, participant id, VENDOR_ID
-  // at bytes 7-8, domain, incarnation): other stacks put something else in
-  // bytes 10-11 - Fast DDS its participant id within a process, so two of its
-  // participants in one process differ only there and must not be allowed to
-  // dispose each other.
-  return !(disposed == writer) && disposed.id[7] == Config::VENDOR_ID.vendorId[0] &&
-         disposed.id[8] == Config::VENDOR_ID.vendorId[1] &&
-         std::equal(disposed.id.begin(), disposed.id.begin() + 10, writer.id.begin());
 }
 
 void SPDPAgent::start() { m_running = true; }
@@ -139,6 +155,12 @@ void SPDPAgent::announce() {
   // here when this was a dedicated thread body).
   const DataSize_t size = static_cast<DataSize_t>(m_outputSize);
   const uint8_t *payload = m_outputBuffer.data();
+  if (m_previousIncarnationDisposesLeft > 0) {
+    // before our own announcement, so a peer that still holds the previous
+    // incarnation drops it first and discovers us as new
+    --m_previousIncarnationDisposesLeft;
+    sendPreviousIncarnationDispose();
+  }
   // StatelessWriter drops already-sent history; enqueue a fresh SPDP sample
   // for each announce cycle.
   m_buildInEndpoints.spdpWriter->newChange(ChangeKind_t::ALIVE, payload, size);
@@ -189,12 +211,11 @@ void SPDPAgent::handleSPDPPackage(const ReaderCacheChange &cacheChange) {
     // forget it now, with every proxy of its endpoints, instead of when its
     // lease runs out. The instance is named by the inline-QoS key hash; a
     // peer that leaves the hash out carries the GUID in the payload.
-    // Only the peer's own SPDP writer may dispose it, and only itself - or a
-    // previous incarnation of itself (the same board, participant id, vendor
-    // and domain with other incarnation bytes: what a restarted peer disposes
-    // first, see disposePreviousIncarnation). A DATA from another writer, or
-    // naming another participant, is malformed (or hostile) and must not
-    // remove anyone.
+    // Only the peer's own SPDP writer may dispose it, and only itself: a
+    // DATA from another writer, or naming another participant, is malformed
+    // (or hostile) and must not remove anyone. (A restarted board disposes
+    // its previous incarnation AS that incarnation - sendPreviousIncarnationDispose
+    // - so it passes this rule like any participant's own dispose.)
     if (!(cacheChange.writerGuid.entityId == ENTITYID_SPDP_BUILTIN_PARTICIPANT_WRITER)) {
       return;
     }
@@ -209,23 +230,14 @@ void SPDPAgent::handleSPDPPackage(const ReaderCacheChange &cacheChange) {
     if (prefix == GUIDPREFIX_UNKNOWN || prefix == mp_participant->m_guidPrefix) {
       return;
     }
-    if (!(prefix == cacheChange.writerGuid.prefix) &&
-        !isPreviousIncarnationOf(prefix, cacheChange.writerGuid.prefix)) {
+    if (!(prefix == cacheChange.writerGuid.prefix)) {
       logger_.warn("Participant dispose from {:02x}{:02x}{:02x}{:02x} names another participant, "
                    "ignored",
                    cacheChange.writerGuid.prefix.id[0], cacheChange.writerGuid.prefix.id[1],
                    cacheChange.writerGuid.prefix.id[2], cacheChange.writerGuid.prefix.id[3]);
       return;
     }
-    if (prefix == cacheChange.writerGuid.prefix) {
-      rememberDispose(prefix, cacheChange.sn);
-    } else {
-      // A previous incarnation is dead: whatever it still has in flight (its
-      // own numbering, unrelated to the new writer's) is stale, so remember
-      // the dispose as newer than anything it could announce.
-      rememberDispose(prefix, SequenceNumber_t{std::numeric_limits<int32_t>::max(),
-                                               std::numeric_limits<uint32_t>::max()});
-    }
+    rememberDispose(prefix, cacheChange.sn);
     if (mp_participant->findRemoteParticipant(prefix) == nullptr) {
       return; // never known, or already gone
     }
@@ -322,27 +334,25 @@ void SPDPAgent::processProxyData(const SequenceNumber_t &announcementSn) {
   SPDP_LOG("Message from GUID = {} {} {} {}", m_proxyDataBuffer.m_guid.prefix.id[4],
            m_proxyDataBuffer.m_guid.prefix.id[5], m_proxyDataBuffer.m_guid.prefix.id[6],
            m_proxyDataBuffer.m_guid.prefix.id[7]);
-  const rtps::ParticipantProxyData *remote_part;
-  remote_part = mp_participant->findRemoteParticipant(m_proxyDataBuffer.m_guid.prefix);
-  if (remote_part != nullptr) {
-    if (!isRestart(announcementSn, remote_part->m_lastSpdpSn)) {
-      SPDP_LOG("Not adding this participant");
-      mp_participant->refreshRemoteParticipantLiveliness(m_proxyDataBuffer.m_guid.prefix,
-                                                         announcementSn);
-      return; // Already in our list
-    }
-    // The peer restarted with the prefix we know it by (a board back within
-    // its lease, see isRestart): everything we hold of it - its builtin
-    // proxies, its endpoints and their proxies at our readers and writers -
-    // belongs to the old incarnation, whose writers' sequence numbers our
-    // proxies expect to continue. Forget it and discover it afresh below.
-    // Lock order as for a dispose: this agent's mutex, then the SEDP agent's
-    // and the participant's inside removeRemoteParticipant.
+  using Verdict = Participant::AnnouncementVerdict;
+  const Verdict verdict = mp_participant->noteRemoteParticipantAnnouncement(
+      m_proxyDataBuffer.m_guid.prefix, announcementSn);
+  if (verdict == Verdict::Known) {
+    SPDP_LOG("Not adding this participant");
+    return; // Already in our list, lease refreshed
+  }
+  if (verdict == Verdict::Restart) {
+    // The peer restarted with the prefix we know it by (see isRestart):
+    // everything we hold of it - its builtin proxies, its endpoints and their
+    // proxies at our readers and writers - belongs to the old incarnation,
+    // whose writers' sequence numbers our stateful proxies expect to continue.
+    // Forget it and discover it afresh below. Lock order as for a dispose:
+    // this agent's mutex, then the SEDP agent's and the participant's inside
+    // removeRemoteParticipant.
     const auto &p = m_proxyDataBuffer.m_guid.prefix;
     logger_.warn("Remote participant {:02x}{:02x}{:02x}{:02x}... restarted with the same GUID "
-                 "prefix (SPDP sequence {} after {}): rediscovering it",
-                 p.id[0], p.id[1], p.id[2], p.id[3], announcementSn.low,
-                 remote_part->m_lastSpdpSn.low);
+                 "prefix (SPDP sequence {} far below what it had reached): rediscovering it",
+                 p.id[0], p.id[1], p.id[2], p.id[3], announcementSn.low);
     mp_participant->removeRemoteParticipant(p);
     // The parser stops at the GUID of a participant it already knows (nothing
     // but the lease was refreshed): now that it is forgotten, parse the
@@ -505,10 +515,10 @@ bool SPDPAgent::addProxiesForBuiltInEndpoints() {
   return ok;
 }
 
-void SPDPAgent::addInlineQos(CdrWriter &writer, const GuidPrefix_t &prefix) {
+void SPDPAgent::addInlineQos(CdrWriter &writer) {
   writer.write<uint16_t>(ParameterId::PID_KEY_HASH);
   writer.write<uint16_t>(16);
-  writeBytes(writer, prefix.id.data(), sizeof(GuidPrefix_t::id));
+  writeBytes(writer, mp_participant->m_guidPrefix.id.data(), sizeof(GuidPrefix_t::id));
   writeBytes(writer, ENTITYID_BUILD_IN_PARTICIPANT.entityKey.data(), sizeof(EntityId_t::entityKey));
   writer.write<uint8_t>(static_cast<uint8_t>(ENTITYID_BUILD_IN_PARTICIPANT.entityKind));
 

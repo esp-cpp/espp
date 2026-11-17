@@ -65,6 +65,13 @@ private:
 
   EsppTransport *m_transport;
 
+public:
+  /// The transport this writer sends on and the source port it sends from
+  /// (SPDPAgent sends the previous incarnation's dispose through them).
+  EsppTransport *getTransport() const { return m_transport; }
+  Ip4Port_t getSourcePort() const { return m_srcPort; }
+
+private:
   SimpleHistoryCache<Config::HISTORY_SIZE_STATELESS> m_history;
 };
 

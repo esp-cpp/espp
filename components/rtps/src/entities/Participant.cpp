@@ -556,8 +556,9 @@ const rtps::ParticipantProxyData *Participant::findRemoteParticipant(const GuidP
   return m_remoteParticipants.find(thunk, &isElementToFind);
 }
 
-void Participant::refreshRemoteParticipantLiveliness(const GuidPrefix_t &prefix,
-                                                     const SequenceNumber_t &sn) {
+Participant::AnnouncementVerdict
+Participant::noteRemoteParticipantAnnouncement(const GuidPrefix_t &prefix,
+                                               const SequenceNumber_t &sn) {
   std::lock_guard<std::recursive_mutex> lock(m_mutex);
   auto isElementToFind = [&](const ParticipantProxyData &proxy) {
     return proxy.m_guid.prefix == prefix;
@@ -566,12 +567,17 @@ void Participant::refreshRemoteParticipantLiveliness(const GuidPrefix_t &prefix,
     return (*static_cast<decltype(isElementToFind) *>(arg))(value);
   };
   auto remoteParticipant = m_remoteParticipants.find(thunk, &isElementToFind);
-  if (remoteParticipant != nullptr) {
-    remoteParticipant->onAliveSignal();
-    if (remoteParticipant->m_lastSpdpSn < sn) {
-      remoteParticipant->m_lastSpdpSn = sn;
-    }
+  if (remoteParticipant == nullptr) {
+    return AnnouncementVerdict::Unknown;
   }
+  if (SPDPAgent::isRestart(sn, remoteParticipant->m_lastSpdpSn)) {
+    return AnnouncementVerdict::Restart;
+  }
+  remoteParticipant->onAliveSignal();
+  if (remoteParticipant->m_lastSpdpSn < sn) {
+    remoteParticipant->m_lastSpdpSn = sn;
+  }
+  return AnnouncementVerdict::Known;
 }
 
 void Participant::refreshRemoteParticipantLiveliness(const GuidPrefix_t &prefix) {

@@ -206,16 +206,20 @@ a remote lease cap below a peer's announcement period drops that peer while it
 is alive.
 
 A participant's GUID prefix on an ESP target is its MAC, the participant id,
-the vendor id, the domain id and two incarnation bytes drawn once per boot
-(`rtps::Domain::guidIncarnation()`), so a board that reboots is a new
-participant to its peers - what RTPS requires, since every writer of the
-rebooted board numbers its samples from 1 again and a peer still holding the
-old incarnation would ignore them until its lease ran out. The previous
-boot's incarnation survives a software reset in RTC memory and is disposed
-before the first announcement, so such peers forget it at once; and a peer
-that does reuse a prefix (another stack, a power-cycled board whose old
-incarnation is still held) is recognised by the sequence number of its
-announcements falling far below what was seen and rediscovered on the spot.
+the vendor id, the domain id and two incarnation bytes drawn when the Domain
+is constructed (`rtps::Domain::guidIncarnation()`), so a board that reboots -
+or an application that recreates its Domain - is a new participant to its
+peers: what RTPS requires, since every writer of the restarted board numbers
+its samples from 1 again and a peer still holding the old incarnation would
+ignore them until its lease ran out. The previous incarnation is kept in RTC
+memory (`.noinit` RAM on chips without it), which survives a software reset,
+and is disposed, as that incarnation, on the first announce cycles, so such
+peers forget it at once (after a power-on there is nothing to dispose; the
+old incarnation then expires with its lease). A peer
+that does reuse a prefix across a restart - this engine's boards never do, but
+a stack that derives its prefix from stable hardware identifiers would - is
+recognised by the sequence number of its announcements falling far below what
+it had reached, and rediscovered on the spot.
 
 ### Per-limit capacity overrides
 

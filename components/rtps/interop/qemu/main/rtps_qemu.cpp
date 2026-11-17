@@ -11,7 +11,14 @@
 //                                    this boot and, after a software reset, of the
 //                                    previous one (which the engine disposes first)
 //   RTPSTEST restart                 a "RESTART" sample arrived on rt/qemu_rx: the
-//                                    device reboots (esp_restart) - the restart case
+//                                    firmware tears its participant down and creates a
+//                                    new one (a new GUID incarnation, which first disposes
+//                                    the previous one) - the restart case. Not esp_restart:
+//                                    QEMU's emulated chip panics in ESP-IDF's startup
+//                                    after a software reset (esp_timer interrupt
+//                                    allocation), so the participant restarts, as an
+//                                    application recreating its Domain would. Ignored,
+//                                    with a marker, in the first 20 s of a participant.
 //   RTPSTEST pub_matched/sub_matched a writer / reader gained a remote peer
 //   RTPSTEST tx <n>                  reliable publisher sent "qemu <n>"
 //   RTPSTEST rx <data>               reliable subscriber received <data>
@@ -56,7 +63,6 @@
 
 #include <esp_heap_caps.h>
 #include <esp_netif.h>
-#include <esp_system.h>
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
 
@@ -129,6 +135,12 @@ static std::string ip4_to_string(esp_ip4_addr_t ip) {
   return buf;
 }
 
+// One participant lifetime: endpoints, timers, the status loop. Returns when a
+// RESTART sample asks for a new participant (the restart case); everything it
+// owns is destroyed on the way out, and app_main builds the next one.
+static void run_participant(espp::Logger &logger, const std::string &interface_address,
+                            const std::string &interface_netmask);
+
 extern "C" void app_main(void) {
   espp::Logger logger({.tag = "rtps_qemu", .level = espp::Logger::Verbosity::INFO});
   logger.info("Starting the RTPS QEMU interop firmware");
@@ -172,6 +184,16 @@ extern "C" void app_main(void) {
   esp_netif_get_ip_info(esp_netif_get_handle_from_ifkey("ETH_DEF"), &ip_info);
   const std::string interface_netmask = ip4_to_string(ip_info.netmask);
 
+  while (true) {
+    run_participant(logger, interface_address, interface_netmask);
+    logger.info("RTPSTEST participant torn down, starting a new one");
+  }
+}
+
+static void run_participant(espp::Logger &logger, const std::string &interface_address,
+                            const std::string &interface_netmask) {
+  const auto boot_time = std::chrono::steady_clock::now();
+  std::atomic<bool> restart_requested{false};
   // Counters for the status line (the callbacks run on the engine's threads)
   std::atomic<uint32_t> tx_count{0};
   std::atomic<uint32_t> rx_count{0};
@@ -221,11 +243,20 @@ extern "C" void app_main(void) {
                              rx_count++;
                              logger.info("RTPSTEST rx {}", msg.data);
                              if (msg.data == "RESTART") {
-                               // the restart case: reboot
-                               // like a board would
-                               logger.info("RTPSTEST restart");
-                               std::this_thread::sleep_for(100ms); // let the log out
-                               esp_restart();
+                               // the restart case (see the header comment). The
+                               // harness repeats the sample for a few seconds so a
+                               // just-matched writer gets it through; copies that
+                               // reach the NEW participant are ignored for its
+                               // first 20 s.
+                               const auto up_s = std::chrono::duration_cast<std::chrono::seconds>(
+                                                     std::chrono::steady_clock::now() - boot_time)
+                                                     .count();
+                               if (up_s < 20) {
+                                 logger.info("RTPSTEST restart ignored (participant {} s old)",
+                                             up_s);
+                               } else if (!restart_requested.exchange(true)) {
+                                 logger.info("RTPSTEST restart");
+                               }
                              }
                            },
                    });
@@ -341,11 +372,12 @@ extern "C" void app_main(void) {
   logger.info("RTPSTEST ready ip={}", interface_address);
   {
     // The prefix incarnation (bytes 10-11 of every GUID prefix this boot) and
-    // the previous boot's, kept across a software reset: the engine disposed
-    // that incarnation before its first announcement, so peers that still held
-    // it (a reboot within the lease) forgot it at once.
-    const auto prev = rtps::Domain::previousGuidIncarnation();
-    logger.info("RTPSTEST incarnation cur={:04x} prev={}", rtps::Domain::guidIncarnation(),
+    // the previous one (the previous boot's, kept across a software reset, or
+    // the previous participant's after a RESTART): the engine disposes that
+    // incarnation on its first announce cycles, so peers that still held it
+    // forget it at once.
+    const auto prev = rtps::Domain::currentPreviousGuidIncarnation();
+    logger.info("RTPSTEST incarnation cur={:04x} prev={}", rtps::Domain::currentGuidIncarnation(),
                 prev ? fmt::format("{:04x}", *prev) : std::string{"none"});
   }
 
@@ -380,7 +412,7 @@ extern "C" void app_main(void) {
 
   // Status line every 2 s: the soak and leak checks read heap and min_heap
   const auto t0 = std::chrono::steady_clock::now();
-  while (true) {
+  while (!restart_requested) {
     std::this_thread::sleep_for(2s);
     const auto up =
         std::chrono::duration_cast<std::chrono::seconds>(std::chrono::steady_clock::now() - t0)

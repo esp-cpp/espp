@@ -100,20 +100,25 @@ public:
 
   Participant *createParticipant();
 
-  /// Bytes 10-11 of every GUID prefix generated this boot. On ESP targets a
-  /// nonce drawn once per boot, so a board that reboots comes back as a NEW
+  /// Bytes 10-11 of every GUID prefix this Domain generates. On ESP targets
+  /// a nonce drawn when the Domain is constructed, so a board that reboots -
+  /// or an application that recreates its Domain - comes back as a NEW
   /// participant to every peer (RTPS requires a GUID never to be reused; a
   /// peer that still holds the old incarnation would otherwise ignore the
   /// restarted writers, whose sequence numbers start at 1 again, until the
   /// lease ran out). Host builds return 0: their prefixes are random per
-  /// process already (or the configured template, for tests).
-  static uint16_t guidIncarnation();
-  /// The previous boot's incarnation, when known: ESP targets keep it in
-  /// RTC memory across a software reset (not a power cycle), and the SPDP
-  /// agent disposes that incarnation's participant before announcing the new
-  /// one, so peers drop it at once. nullopt on host builds and after a
-  /// power-on.
-  static std::optional<uint16_t> previousGuidIncarnation();
+  /// process already (or the configured template, for tests). The static
+  /// form reports the most recently constructed Domain's value.
+  uint16_t guidIncarnation() const { return m_incarnation; }
+  static uint16_t currentGuidIncarnation();
+  /// The incarnation before this Domain's, when known: ESP targets keep the
+  /// last one in RTC memory across a software reset (not a power cycle), so
+  /// it is the previous boot's after a reboot and the previous Domain's after
+  /// a recreation. The SPDP agent disposes that incarnation's participant on
+  /// its first announce cycles, so peers drop it at once. nullopt on host
+  /// builds and after a power-on.
+  std::optional<uint16_t> previousGuidIncarnation() const { return m_previousIncarnation; }
+  static std::optional<uint16_t> currentPreviousGuidIncarnation();
   Writer *createWriter(Participant &part, const char *topicName, const char *typeName,
                        bool reliable, bool enforceUnicast = false,
                        const EndpointOptions &options = {});
@@ -251,6 +256,9 @@ private:
 
   bool m_initComplete = false;
   bool m_transportSetupOk = true;
+  uint16_t m_incarnation = 0;
+  std::optional<uint16_t> m_previousIncarnation{};
+  void drawGuidIncarnation();
   std::recursive_mutex m_mutex;
 
   void receiveCallback(const PacketInfo &packet);

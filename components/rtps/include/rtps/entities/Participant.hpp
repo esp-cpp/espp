@@ -144,9 +144,18 @@ public:
 
   const ParticipantProxyData *findRemoteParticipant(const GuidPrefix_t &prefix);
   void refreshRemoteParticipantLiveliness(const GuidPrefix_t &prefix);
-  /// As above, and records the announcement's sequence number (the highest
-  /// seen is kept) for SPDPAgent's restart detection.
-  void refreshRemoteParticipantLiveliness(const GuidPrefix_t &prefix, const SequenceNumber_t &sn);
+  /// What an SPDP announcement from `prefix`, numbered `sn`, means for the
+  /// remote participant we may know by that prefix - decided and recorded in
+  /// one step under the participant mutex (the lease sweep removes entries
+  /// concurrently).
+  enum class AnnouncementVerdict : uint8_t {
+    Unknown, ///< no such participant: discover it
+    Known,   ///< a known participant; its lease and highest SPDP number were refreshed
+    Restart, ///< a known participant restarted with this prefix (SPDPAgent::isRestart):
+             ///< forget it and discover it afresh; nothing was refreshed
+  };
+  AnnouncementVerdict noteRemoteParticipantAnnouncement(const GuidPrefix_t &prefix,
+                                                        const SequenceNumber_t &sn);
   uint32_t getRemoteParticipantCount();
   MessageReceiver *getMessageReceiver();
   bool checkAndResetHeartbeats();

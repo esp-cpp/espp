@@ -69,6 +69,24 @@ public:
   /// scheduler at SPDP_RESEND_PERIOD_MS cadence instead of a dedicated
   /// broadcast thread.
   void announce();
+  /// `announced` is the sequence number of the announcement just received from
+  /// a known participant whose highest so far is `last`. A number far below
+  /// the highest (at most half of it, once the peer has announced at least
+  /// three times) is not a reordered or duplicated datagram but a peer that
+  /// restarted with the same GUID prefix and numbers its new SPDP writer from
+  /// 1 again; such a peer is forgotten and rediscovered (its SEDP and user
+  /// writers restarted too, and the stateful readers' proxies would keep
+  /// waiting for the old numbers). Edges: a peer seen fewer than three times
+  /// is never judged (a reordered second announcement must not tear down a
+  /// participant just discovered); a restarted peer whose first
+  /// announcements were lost is caught as long as its number is still at most
+  /// half of what was seen before, else its lease decides; number 0 never
+  /// qualifies (not a valid RTPS sequence number). This engine's own boards
+  /// never reuse a prefix (Domain::guidIncarnation), so this guards against
+  /// stacks that do. Security: a spoofed low-numbered announcement can tear
+  /// down and re-add a healthy peer - no more than a spoofed dispose, which
+  /// the protocol has always allowed from any multicast sender.
+  static bool isRestart(const SequenceNumber_t &announced, const SequenceNumber_t &last);
   std::recursive_mutex m_mutex;
 
 private:
@@ -115,32 +133,21 @@ private:
   size_t m_nextDisposed = 0;
   void rememberDispose(const GuidPrefix_t &prefix, const SequenceNumber_t &sn);
   bool isFromBeforeDispose(const GuidPrefix_t &prefix, const SequenceNumber_t &sn) const;
-  /// `announced` is the sequence number of the announcement just received from
-  /// a known participant whose highest so far is `last`. A number far below
-  /// the highest (at most half of it) is not a reordered or duplicated
-  /// datagram but a peer that restarted with the same GUID prefix and numbers
-  /// its new SPDP writer from 1 again; such a peer is forgotten and
-  /// rediscovered (its SEDP and user writers restarted too). A single
-  /// reordered announcement (last - 1) never qualifies once a peer has
-  /// announced three times.
-  static bool isRestart(const SequenceNumber_t &announced, const SequenceNumber_t &last);
-  /// Whether `disposed` is an earlier incarnation of the participant whose
-  /// SPDP writer `writer` belongs to: same bytes 0-9 (board, participant id,
-  /// this engine's VENDOR_ID, domain), different incarnation bytes 10-11.
-  /// Such a dispose is honoured as the participant's own
-  /// (Domain::previousGuidIncarnation). Prefixes of other vendors never
-  /// qualify: their bytes 10-11 mean something else.
-  static bool isPreviousIncarnationOf(const GuidPrefix_t &disposed, const GuidPrefix_t &writer);
-  /// Dispose the participant we were in the previous boot (its prefix differs
-  /// from ours in the incarnation bytes only), as the first change of our
-  /// SPDP writer, so a peer that still holds that incarnation forgets it now
-  /// rather than when its lease runs out - and then discovers us.
-  void disposePreviousIncarnation(const GuidPrefix_t &prefix);
+  /// Send the dispose of the participant we were in the previous boot, AS that
+  /// participant: an RTPS message whose header prefix and SPDP writer are the
+  /// old incarnation's, with its participant GUID as key hash + payload and
+  /// a sequence number above anything it could have sent (every stack's SPDP
+  /// reader takes a participant's own dispose; one from another writer
+  /// naming it is refused by Cyclone DDS, Fast DDS and this engine alike).
+  /// Sent on the first PREVIOUS_INCARNATION_DISPOSES announce cycles - best
+  /// effort, multicast, a lost datagram costs a peer one lease.
+  void sendPreviousIncarnationDispose();
+  static constexpr uint8_t PREVIOUS_INCARNATION_DISPOSES = 3;
+  uint8_t m_previousIncarnationDisposesLeft = 0;
   void processProxyData(const SequenceNumber_t &announcementSn);
   bool addProxiesForBuiltInEndpoints();
 
-  /// Inline QoS naming a participant instance (its key hash) + sentinel.
-  void addInlineQos(CdrWriter &writer, const GuidPrefix_t &prefix);
+  void addInlineQos(CdrWriter &writer);
   void addParticipantParameters();
   void endCurrentList(CdrWriter &writer);
 };
