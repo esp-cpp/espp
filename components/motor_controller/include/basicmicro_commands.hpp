@@ -81,8 +81,11 @@ enum class BasicmicroCommand : uint8_t {
       62, ///< payload: D, P, I (scaled 1024), MaxI, Deadzone, MinPos, MaxPos (4 each)
   ReadPositionPidM1 = 63, ///< reply: P, I, D (scaled 1024), MaxI, Deadzone, MinPos, MaxPos (4 each)
   ReadPositionPidM2 = 64, ///< reply: P, I, D (scaled 1024), MaxI, Deadzone, MinPos, MaxPos (4 each)
-  SetM1DefaultDutyAccel = 68, ///< payload: accel (4 bytes)
-  SetM2DefaultDutyAccel = 69, ///< payload: accel (4 bytes)
+  SetM1DefaultDutyAccel = 68, ///< payload: accel (4 bytes); also the ramp of position moves (MCP)
+  SetM2DefaultDutyAccel = 69, ///< payload: accel (4 bytes); also the ramp of position moves (MCP)
+  SetM1DefaultSpeed = 70,     ///< payload: speed (2 bytes); the speed ceiling of position moves
+  SetM2DefaultSpeed = 71,     ///< payload: speed (2 bytes); the speed ceiling of position moves
+  ReadDefaultSpeeds = 72,     ///< reply: speedM1 (2 bytes), speedM2 (2 bytes)
   ReadEncoderCounters = 78,   ///< reply: encM1 (4 bytes), encM2 (4 bytes)
   ReadISpeedCounters = 79,    ///< reply: ispeedM1 (4 bytes), ispeedM2 (4 bytes)
   RestoreDefaults = 80,       ///< payload: none (write command, CRC appended)

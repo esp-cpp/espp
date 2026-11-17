@@ -40,6 +40,9 @@ This component uses that to:
 * set an axis's encoder count (22/23, `set_encoder`) or zero both (20,
   `reset_encoders`) — how a quadrature encoder is homed against a limit switch
   or restored to a remembered position after power-up,
+* set and read back the stored default speed and accel (68-72, 81:
+  `set_default_speed`, `set_default_accel`, `read_default_speeds`,
+  `read_default_accels`) — see below,
 * issue the manufacturer speed/duty commands (32/33, 35/36), and
 * read telemetry: main battery (24) and temperature (82).
 
@@ -52,6 +55,20 @@ called once per boot (the MCP reverts to its EEPROM configuration on power-up):
   (63/64) uses `P, I, D`, so a naive read-modify-write of the record would move
   `P` into the `D` slot and zero `P`. The correct field shuffle (and seeding a
   non-zero `P` when the record has none) is done here.
+
+**The motion profile is a stored setting, not a per-move one.** Profile-position
+moves run on the controller's stored *default speed* and *default accel*: the
+move's profile velocity (`0x6081`) is honoured below the stored speed, which
+acts as a ceiling, and the stored accel is the ramp, while the CiA 402 profile
+acceleration / deceleration objects are accepted but not applied (verified on
+an MCP266 with a 50 counts/s² stored accel). `set_default_speed()` and
+`set_default_accel()` write those stored values through the mirror (70/71 and
+68/69). They take effect at once, but the controller reloads its EEPROM on
+power-up and the write-settings command (94) did not persist them on the unit
+tested, so install them at every boot alongside `configure_position_loop()`.
+Note that Motion Studio's position page shows the parameters of its own slider
+moves, which are not these stored values. The command's decel field is accepted
+but inert on the firmware tested, which keeps one ramp per axis.
 
 ## Example
 

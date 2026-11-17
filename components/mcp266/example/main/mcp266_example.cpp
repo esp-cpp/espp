@@ -121,7 +121,23 @@ extern "C" void app_main(void) {
   static constexpr uint32_t profile_velocity = 500; // counts/s
   static constexpr uint32_t profile_accel = 500;    // counts/s^2
   static constexpr uint32_t profile_decel = 500;    // counts/s^2
-  static constexpr int32_t tolerance = 100;         // counts
+
+  // The ramp and speed ceiling the controller applies to position moves are its
+  // stored defaults, not the per-move profile objects, and it reloads them from
+  // EEPROM at power-up: install them every boot too.
+  if (!mcp.set_default_speed(Axis::M1, profile_velocity, ec) ||
+      !mcp.set_default_accel(Axis::M1, profile_accel, ec)) {
+    logger.error("Failed to set M1 default speed/accel: {}", ec.message());
+    return;
+  }
+  uint16_t speed_m1 = 0, speed_m2 = 0;
+  uint32_t accel_m1 = 0, decel_m1 = 0, accel_m2 = 0, decel_m2 = 0;
+  if (mcp.read_default_speeds(speed_m1, speed_m2, ec) &&
+      mcp.read_default_accels(accel_m1, decel_m1, accel_m2, decel_m2, ec)) {
+    logger.info("Stored defaults: M1 speed {} accel {} | M2 speed {} accel {}", speed_m1, accel_m1,
+                speed_m2, accel_m2);
+  }
+  static constexpr int32_t tolerance = 100; // counts
   for (int32_t target : targets) {
     logger.info("Moving M1 to {}", target);
     if (!mcp.move_to_position(Axis::M1, target, profile_velocity, profile_accel, profile_decel,

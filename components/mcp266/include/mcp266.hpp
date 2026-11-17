@@ -354,6 +354,104 @@ public:
 
   /// @}
 
+  /// @name Stored position-move defaults (manufacturer mirror)
+  /// @note On the MCP266 firmware tested, profile-position moves run on the
+  ///       controller's stored default speed and default accel: the stored speed
+  ///       is the ceiling of the move's profile velocity (0x6081, honoured below
+  ///       it), and the stored accel is the ramp, while the CiA 402 profile
+  ///       acceleration / deceleration objects are accepted but not applied.
+  ///       These two commands set those stored values. They take effect at once
+  ///       but the controller reloads its EEPROM at power-up and the
+  ///       write-settings command (94) did not persist them on the unit tested,
+  ///       so install them every boot, like configure_position_loop(). Motion
+  ///       Studio's position page shows its own slider parameters, not these.
+  /// @{
+
+  /// \brief Set an axis's stored default speed (mirrored command 70/71): the
+  ///        speed ceiling for profile-position moves. Reads back as 32768 when
+  ///        the controller has no limit set.
+  /// \param axis The motor channel.
+  /// \param speed Counts per second, 16-bit.
+  /// \param ec Set on failure.
+  /// \return True on success.
+  bool set_default_speed(Axis axis, uint16_t speed, std::error_code &ec) {
+    ec.clear();
+    if (!check_axis(axis, ec))
+      return false;
+    const AxisState &a = axis_state(axis);
+    if (!client_.write_u16(a.objects.default_speed_set, 0, speed, ec)) {
+      logger_.error("{}: default speed write 0x{:04X} rejected: {}", a.name,
+                    a.objects.default_speed_set, ec.message());
+      return false;
+    }
+    logger_.info("{}: default speed set to {}", a.name, speed);
+    return true;
+  }
+
+  /// \brief Set an axis's stored default accel (mirrored command 68/69): the
+  ///        ramp of profile-position moves. The command's decel field (sub 2)
+  ///        is accepted but had no effect on the firmware tested, which keeps
+  ///        one ramp per axis, so only the accel is written.
+  /// \param axis The motor channel.
+  /// \param accel Counts per second squared.
+  /// \param ec Set on failure.
+  /// \return True on success.
+  bool set_default_accel(Axis axis, uint32_t accel, std::error_code &ec) {
+    ec.clear();
+    if (!check_axis(axis, ec))
+      return false;
+    const AxisState &a = axis_state(axis);
+    if (!client_.write_u32(a.objects.default_accel_set, 1, accel, ec)) {
+      logger_.error("{}: default accel write 0x{:04X} rejected: {}", a.name,
+                    a.objects.default_accel_set, ec.message());
+      return false;
+    }
+    logger_.info("{}: default accel set to {}", a.name, accel);
+    return true;
+  }
+
+  /// \brief Read both axes' stored default speeds (mirrored command 72).
+  /// \param m1 Out: M1 default speed. \param m2 Out: M2 default speed.
+  /// \param ec Set on failure.
+  /// \return True on success.
+  bool read_default_speeds(uint16_t &m1, uint16_t &m2, std::error_code &ec) {
+    ec.clear();
+    m1 = client_.read_u16(detail::mcp266::kDefaultSpeedsObject, 1, ec);
+    if (!ec) {
+      m2 = client_.read_u16(detail::mcp266::kDefaultSpeedsObject, 2, ec);
+    }
+    if (ec) {
+      logger_.error("default speeds read 0x{:04X} failed: {}", detail::mcp266::kDefaultSpeedsObject,
+                    ec.message());
+      return false;
+    }
+    return true;
+  }
+
+  /// \brief Read both axes' stored default accel and decel (mirrored command
+  ///        81, four fields). On the firmware tested only the M1 accel field
+  ///        reflected set_default_accel(); the decel fields read a sentinel.
+  /// \param m1_accel Out: M1 accel. \param m1_decel Out: M1 decel.
+  /// \param m2_accel Out: M2 accel. \param m2_decel Out: M2 decel.
+  /// \param ec Set on failure.
+  /// \return True on success.
+  bool read_default_accels(uint32_t &m1_accel, uint32_t &m1_decel, uint32_t &m2_accel,
+                           uint32_t &m2_decel, std::error_code &ec) {
+    ec.clear();
+    uint32_t *fields[] = {&m1_accel, &m1_decel, &m2_accel, &m2_decel};
+    for (uint8_t sub = 1; sub <= 4 && !ec; ++sub) {
+      *fields[sub - 1] = client_.read_u32(detail::mcp266::kDefaultAccelsObject, sub, ec);
+    }
+    if (ec) {
+      logger_.error("default accels read 0x{:04X} failed: {}", detail::mcp266::kDefaultAccelsObject,
+                    ec.message());
+      return false;
+    }
+    return true;
+  }
+
+  /// @}
+
   /// @name Manufacturer speed / duty command mirror
   /// @note Accepted by the drive but inert on the MCP266 firmware tested; kept
   ///       for completeness and in case a firmware update activates them.

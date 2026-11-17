@@ -58,6 +58,10 @@ inline constexpr uint16_t kEStopResetObject =
     command_object(BasicmicroCommand::EStopReset); ///< write-only
 inline constexpr uint16_t kResetEncodersObject =
     command_object(BasicmicroCommand::ResetEncoders); ///< write-only, zeros both counters
+inline constexpr uint16_t kDefaultSpeedsObject =
+    command_object(BasicmicroCommand::ReadDefaultSpeeds); ///< :1 M1, :2 M2 (u16)
+inline constexpr uint16_t kDefaultAccelsObject = command_object(
+    BasicmicroCommand::ReadDefaultDutyAccels); ///< :1 M1 accel, :2 M1 decel, :3/:4 M2
 /// @}
 
 /// \brief Scale of the position PID gains in the record: the controller stores
@@ -101,12 +105,14 @@ inline constexpr float position_gain_from_bits(int32_t raw) {
 
 /// \brief The manufacturer command objects and CiA 402 offset for one axis.
 struct AxisObjects {
-  uint16_t object_offset;    ///< 0 for M1, 0x800 for M2 (added to 0x60xx objects).
-  uint16_t position_pid_set; ///< Position PID setter (command 61/62), write-only.
-  uint16_t position_pid_get; ///< Position PID readback (command 63/64).
-  uint16_t drive_duty;       ///< Signed-duty command (32/33).
-  uint16_t drive_speed;      ///< Signed-speed command (35/36).
-  uint16_t encoder_set;      ///< Encoder count setter (command 22/23), write-only.
+  uint16_t object_offset;     ///< 0 for M1, 0x800 for M2 (added to 0x60xx objects).
+  uint16_t position_pid_set;  ///< Position PID setter (command 61/62), write-only.
+  uint16_t position_pid_get;  ///< Position PID readback (command 63/64).
+  uint16_t drive_duty;        ///< Signed-duty command (32/33).
+  uint16_t drive_speed;       ///< Signed-speed command (35/36).
+  uint16_t encoder_set;       ///< Encoder count setter (command 22/23), write-only.
+  uint16_t default_accel_set; ///< Default accel setter (command 68/69), write-only.
+  uint16_t default_speed_set; ///< Default speed setter (command 70/71), write-only.
 };
 
 /// \brief Objects for motor 1 (the standard axis).
@@ -116,7 +122,9 @@ inline constexpr AxisObjects axis_m1() {
           command_object(BasicmicroCommand::ReadPositionPidM1),
           command_object(BasicmicroCommand::DriveM1SignedDuty),
           command_object(BasicmicroCommand::DriveM1SignedSpeed),
-          command_object(BasicmicroCommand::SetEncoderM1)};
+          command_object(BasicmicroCommand::SetEncoderM1),
+          command_object(BasicmicroCommand::SetM1DefaultDutyAccel),
+          command_object(BasicmicroCommand::SetM1DefaultSpeed)};
 }
 /// \brief Objects for motor 2 (mirrored at +0x800 / command n+1).
 inline constexpr AxisObjects axis_m2() {
@@ -125,7 +133,9 @@ inline constexpr AxisObjects axis_m2() {
           command_object(BasicmicroCommand::ReadPositionPidM2),
           command_object(BasicmicroCommand::DriveM2SignedDuty),
           command_object(BasicmicroCommand::DriveM2SignedSpeed),
-          command_object(BasicmicroCommand::SetEncoderM2)};
+          command_object(BasicmicroCommand::SetEncoderM2),
+          command_object(BasicmicroCommand::SetM2DefaultDutyAccel),
+          command_object(BasicmicroCommand::SetM2DefaultSpeed)};
 }
 
 /// \brief Remap a position-PID record from the readback order to the setter

@@ -38,7 +38,8 @@ The MCP266's control-loop parameters are **not** standard CiA 402 objects. The
 MCP mirrors its packet-serial command set into the manufacturer region of the
 object dictionary at index ``0x2000 + command number``. This component uses
 that to configure and read back the position PID (commands 61-64), set or zero
-the encoder counts (22/23, 20), issue the manufacturer speed/duty commands
+the encoder counts (22/23, 20), set and read back the stored default speed and
+accel of position moves (68-72, 81), issue the manufacturer speed/duty commands
 (32/33, 35/36), and read telemetry (main battery 24, temperature 82).
 
 Two device quirks are handled by ``configure_position_loop()``, which must be
@@ -50,6 +51,16 @@ called once per boot (the MCP reverts to its EEPROM configuration on power-up):
   (63/64) uses ``P, I, D``, so a naive read-modify-write of the record would
   move ``P`` into the ``D`` slot and zero ``P``. The correct field shuffle (and
   seeding a non-zero ``P`` when the record has none) is done here.
+
+The motion profile is a stored setting, not a per-move one: profile-position
+moves run on the controller's stored default speed (a ceiling on the move's
+profile velocity) and default accel (the ramp), while the CiA 402 profile
+acceleration / deceleration objects are accepted but not applied.
+``set_default_speed()`` and ``set_default_accel()`` write those stored values
+(commands 70/71 and 68/69) and ``read_default_speeds()`` /
+``read_default_accels()`` read them back (72, 81). They take effect at once but
+did not persist through the write-settings command on the unit tested, so
+install them every boot along with ``configure_position_loop()``.
 
 .. ------------------------------- Example -------------------------------------
 
