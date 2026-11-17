@@ -10,48 +10,13 @@
 //   RTPSTEST incarnation cur=<hex> prev=<hex|none>   the GUID prefix incarnation of
 //                                    this boot and, after a software reset, of the
 //                                    previous one (which the engine disposes first)
-//   RTPSTEST restart                 a "RESTART" sample arrived on rt/qemu_rx: the
-//                                    firmware tears its participant down and creates a
-//                                    new one (a new GUID incarnation, which first disposes
-//                                    the previous one) - the restart case. Not esp_restart:
-//                                    QEMU's emulated chip panics in ESP-IDF's startup
-//                                    after a software reset (esp_timer interrupt
-//                                    allocation), so the participant restarts, as an
-//                                    application recreating its Domain would. Ignored,
-//                                    with a marker, in the first 5 s of a participant.
-//   RTPSTEST pub_matched/sub_matched a writer / reader gained a remote peer
-//   RTPSTEST tx <n>                  reliable publisher sent "qemu <n>"
-//   RTPSTEST rx <data>               reliable subscriber received <data>
-//   RTPSTEST be_rx <data>            best-effort subscriber received <data>
-//   RTPSTEST big_rx len=<n>          fragmented-sample subscriber received n bytes
-//   RTPSTEST srv <a>+<b>=<sum>       service request served
-//   RTPSTEST status up=<s> tx= rx= be_rx= big_rx= heap=<free> min_heap=<low water>
-//                                    int=<internal free> int_min= int_largest= psram=<free>
-//                                    stack_min=<bytes> stack_min_task=<name>
-//                                    stack_min_worker=<bytes>
-//     stack_min: the smallest stack high-water mark (bytes never used) over the
-//     engine's tasks (rtps_* and the action servers' exec_* workers) since boot,
-//     and the task; stack_min_worker: the same over the receive workers alone
-//     (rtps_worker_*: they run every reader and matched callback on top of the
-//     engine's deepest path, and rtps_worker_0 overflowed once on the eviction
-//     path with a few hundred bytes of margin). The harness fails
-//     device_stack_margin below 1024 bytes.
-//                                    every 2 s, for the soak and memory checks
-//   RTPSTEST mem sizeof domain=<B> participant= stateful_writer= stateless_writer=
-//                                    stateful_reader= stateless_reader= facade=
-//                                    the engine's compile-time-sized objects (bytes)
-//   RTPSTEST mem heap <stage> internal=<free> internal_min= internal_largest= psram= psram_largest=
-//                                    at boot, started, endpoints: the memory suite's deltas
-//
-// Topics (ROS 2 names: "rt/" prefix stripped, std_msgs/msg/String):
-//   rt/qemu_tx     reliable, device publishes "qemu <n>" every 200 ms
-//   rt/qemu_rx     reliable, device subscribes
-//   rt/qemu_be_tx  best-effort, device publishes "qemu_be <n>" every 200 ms
-//   rt/qemu_be_rx  best-effort, device subscribes
-//   rt/qemu_big    reliable, device subscribes (fragmented samples)
-//   /qemu_add_two_ints  example_interfaces/srv/AddTwoInts service the device serves
-//   /qemu_fibonacci     example_interfaces/action/Fibonacci action the device serves
-//                       (one execute worker: the memory suite reads its cost)
+//   RTPSTEST restart                 the restart case called /qemu_add_two_ints with a
+//                                    magic request: the firmware tears its participant
+//                                    down and creates a new one (a new GUID incarnation,
+//                                    which first disposes the previous one). Not
+//                                    esp_restart: QEMU's emulated chip panics in
+//                                    ESP-IDF startup after a software reset. Ignored in
+//                                    the first 5 s of a participant.
 
 #include <atomic>
 #include <chrono>
@@ -193,6 +158,10 @@ extern "C" void app_main(void) {
 static void run_participant(espp::Logger &logger, const std::string &interface_address,
                             const std::string &interface_netmask) {
   const auto boot_time = std::chrono::steady_clock::now();
+  // The restart case calls /qemu_add_two_ints with this magic pair to ask the
+  // device to recreate its participant (see the service handler below).
+  constexpr int64_t kRestartMagicA = 424242;
+  constexpr int64_t kRestartMagicB = 0;
   std::atomic<bool> restart_requested{false};
   // Counters for the status line (the callbacks run on the engine's threads)
   std::atomic<uint32_t> tx_count{0};
@@ -233,33 +202,17 @@ static void run_participant(espp::Logger &logger, const std::string &interface_a
                                                         .type_name = type_name,
                                                         .reliability = Reliability::RELIABLE,
                                                     });
-  espp::Subscriber<StringMsg> subscriber(
-      participant, {
-                       .topic = "rt/qemu_rx",
-                       .type_name = type_name,
-                       .reliability = Reliability::RELIABLE,
-                       .on_message =
-                           [&](const StringMsg &msg) {
-                             rx_count++;
-                             logger.info("RTPSTEST rx {}", msg.data);
-                             if (msg.data == "RESTART") {
-                               // the restart case (see the header comment). The
-                               // harness repeats the sample for a few seconds so a
-                               // just-matched writer gets it through; copies that
-                               // reach the NEW participant are ignored for its
-                               // first 5 s.
-                               const auto up_s = std::chrono::duration_cast<std::chrono::seconds>(
-                                                     std::chrono::steady_clock::now() - boot_time)
-                                                     .count();
-                               if (up_s < 5) {
-                                 logger.info("RTPSTEST restart ignored (participant {} s old)",
-                                             up_s);
-                               } else if (!restart_requested.exchange(true)) {
-                                 logger.info("RTPSTEST restart");
-                               }
-                             }
-                           },
-                   });
+  espp::Subscriber<StringMsg> subscriber(participant, {
+                                                          .topic = "rt/qemu_rx",
+                                                          .type_name = type_name,
+                                                          .reliability = Reliability::RELIABLE,
+                                                          .on_message =
+                                                              [&](const StringMsg &msg) {
+                                                                rx_count++;
+                                                                logger.info("RTPSTEST rx {}",
+                                                                            msg.data);
+                                                              },
+                                                      });
   espp::Publisher<StringMsg> be_publisher(participant, {
                                                            .topic = "rt/qemu_be_tx",
                                                            .type_name = type_name,
@@ -303,6 +256,25 @@ static void run_participant(espp::Logger &logger, const std::string &interface_a
                        .handler =
                            [&](const AddReq &r) {
                              logger.info("RTPSTEST srv {}+{}={}", r.a, r.b, r.a + r.b);
+                             // The restart case triggers through this reliable,
+                             // already-matched request/reply channel (a topic
+                             // sample to a freshly-matched reliable reader is
+                             // not reliably delivered on every RMW). The magic
+                             // request restarts the participant AFTER the reply
+                             // goes out (the status loop tears down ~2 s later);
+                             // ignored in the participant's first 5 s so an
+                             // in-flight retry does not restart the new one.
+                             if (r.a == kRestartMagicA && r.b == kRestartMagicB) {
+                               const auto up_s = std::chrono::duration_cast<std::chrono::seconds>(
+                                                     std::chrono::steady_clock::now() - boot_time)
+                                                     .count();
+                               if (up_s < 5) {
+                                 logger.info("RTPSTEST restart ignored (participant {} s old)",
+                                             up_s);
+                               } else if (!restart_requested.exchange(true)) {
+                                 logger.info("RTPSTEST restart");
+                               }
+                             }
                              return AddResp{r.a + r.b};
                            },
                    });

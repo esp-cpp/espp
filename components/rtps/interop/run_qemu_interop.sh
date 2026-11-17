@@ -181,11 +181,11 @@ source "/opt/ros/${ROS_DISTRO:-jazzy}/setup.bash"
 export ROS_DOMAIN_ID=0 # matches the engine's Config::DOMAIN_ID
 
 run_matrix() {
-# The device restarts its participant (on a "RESTART" sample, see
-# rtps_qemu.cpp; a software reset of the emulated chip trips a QEMU startup
-# bug, so the firmware recreates its Domain instead, which is what a board's
-# reboot does to its peers) while a ROS 2 subscriber and a ROS 2 publisher of
-# the current rmw stay up. Its GUID prefix is MAC-based, so before the fix it
+# The device restarts its participant (triggered through its /qemu_add_two_ints
+# service with a magic request, see rtps_qemu.cpp; a software reset of the
+# emulated chip trips a QEMU startup bug, so the firmware recreates its Domain
+# instead, which is what a board's reboot does to its peers) while a ROS 2
+# subscriber and a ROS 2 publisher of the current rmw stay up. Its GUID prefix is MAC-based, so before the fix it
 # came back as the participant the peers still held, with every writer
 # numbered from 1 again: the peers' readers rejected those numbers and nothing
 # moved until the old lease (30 s in sdkconfig.ci.defaults, so a restart cannot
@@ -211,11 +211,13 @@ device_restart_case() { # prefix log-tag
   local pub=$!
   sleep 10 # both matched and flowing, and the daemon knows the device
   m=$(mark)
-  # published once the device's subscriber is matched (-w 1), then exits: a
-  # single RESTART, the rebooted device must not get it again
-  timeout 20 ros2 topic pub --once -w 1 /qemu_rx std_msgs/msg/String "data: 'RESTART'" > /dev/null 2>&1
-  if ! wait_for_marker_since "$m" "RTPSTEST restart" 15; then
-    echo "  the device did not take the RESTART"; rc=1
+  # Trigger the restart through the already-matched service (a topic sample to
+  # a freshly-matched reliable reader is not reliably delivered on every RMW);
+  # the magic request restarts the device after it replies (rtps_qemu.cpp).
+  timeout 20 ros2 service call /qemu_add_two_ints example_interfaces/srv/AddTwoInts \
+    "{a: 424242, b: 0}" > /dev/null 2>&1
+  if ! wait_for_marker_since "$m" "RTPSTEST restart" 20; then
+    echo "  the device did not take the restart"; rc=1
   fi
   local boot; boot=$(mark)
   if [ $rc -eq 0 ] && ! wait_for_marker_since "$boot" "RTPSTEST ready" 60; then
@@ -451,9 +453,9 @@ note "the device restarts while the espp host publisher runs: the rebooted devic
 m=$(mark)
 "$BIN"/rtps_interop_pub rt/qemu_rx std_msgs::msg::dds_::String_ 1 400 200 $HOST_IP > /tmp/hostpub_restart.log 2>&1 &
 pub=$!; sleep 10
-timeout 20 ros2 topic pub --once -w 1 /qemu_rx std_msgs/msg/String "data: 'RESTART'" > /dev/null 2>&1
+timeout 20 ros2 service call /qemu_add_two_ints example_interfaces/srv/AddTwoInts "{a: 424242, b: 0}" > /dev/null 2>&1
 rc=0
-wait_for_marker_since "$m" "RTPSTEST restart" 15 || rc=1
+wait_for_marker_since "$m" "RTPSTEST restart" 20 || rc=1
 boot=$(mark)
 [ $rc -eq 0 ] && { wait_for_marker_since "$boot" "RTPSTEST ready" 60 || rc=1; }
 if [ $rc -eq 0 ]; then
