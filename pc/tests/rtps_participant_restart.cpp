@@ -257,7 +257,7 @@ struct Peer {
                             spdp_payload(prefix)));
   }
   // An announcement that repeats an earlier number (a duplicated or reordered datagram).
-  void announce_with(rtps::Participant *part, uint32_t sn) {
+  void announce_with(rtps::Participant *part, uint32_t sn) const {
     feed(part, data_message(prefix, rtps::ENTITYID_SPDP_BUILTIN_PARTICIPANT_WRITER,
                             rtps::ENTITYID_SPDP_BUILTIN_PARTICIPANT_READER, sn, {},
                             spdp_payload(prefix)));
