@@ -94,6 +94,9 @@ private:
   /// else GUIDPREFIX_UNKNOWN. For a dispose that carries the key in its
   /// payload rather than inline.
   static GuidPrefix_t participantPrefixInPayload(const uint8_t *data, DataSize_t size);
+  /// Parse the announcement in m_inputBuffer into m_proxyDataBuffer. The
+  /// parser stops at the GUID of a participant that is already known.
+  bool parseAnnouncement();
   /// Participants that disposed themselves lately: the prefix, the dispose's
   /// sequence number and when it came. An announcement of such a prefix with
   /// a lower number is a delayed or duplicated copy from before the dispose
@@ -112,10 +115,32 @@ private:
   size_t m_nextDisposed = 0;
   void rememberDispose(const GuidPrefix_t &prefix, const SequenceNumber_t &sn);
   bool isFromBeforeDispose(const GuidPrefix_t &prefix, const SequenceNumber_t &sn) const;
-  void processProxyData();
+  /// `announced` is the sequence number of the announcement just received from
+  /// a known participant whose highest so far is `last`. A number far below
+  /// the highest (at most half of it) is not a reordered or duplicated
+  /// datagram but a peer that restarted with the same GUID prefix and numbers
+  /// its new SPDP writer from 1 again; such a peer is forgotten and
+  /// rediscovered (its SEDP and user writers restarted too). A single
+  /// reordered announcement (last - 1) never qualifies once a peer has
+  /// announced three times.
+  static bool isRestart(const SequenceNumber_t &announced, const SequenceNumber_t &last);
+  /// Whether `disposed` is an earlier incarnation of the participant whose
+  /// SPDP writer `writer` belongs to: same bytes 0-9 (board, participant id,
+  /// this engine's VENDOR_ID, domain), different incarnation bytes 10-11.
+  /// Such a dispose is honoured as the participant's own
+  /// (Domain::previousGuidIncarnation). Prefixes of other vendors never
+  /// qualify: their bytes 10-11 mean something else.
+  static bool isPreviousIncarnationOf(const GuidPrefix_t &disposed, const GuidPrefix_t &writer);
+  /// Dispose the participant we were in the previous boot (its prefix differs
+  /// from ours in the incarnation bytes only), as the first change of our
+  /// SPDP writer, so a peer that still holds that incarnation forgets it now
+  /// rather than when its lease runs out - and then discovers us.
+  void disposePreviousIncarnation(const GuidPrefix_t &prefix);
+  void processProxyData(const SequenceNumber_t &announcementSn);
   bool addProxiesForBuiltInEndpoints();
 
-  void addInlineQos(CdrWriter &writer);
+  /// Inline QoS naming a participant instance (its key hash) + sentinel.
+  void addInlineQos(CdrWriter &writer, const GuidPrefix_t &prefix);
   void addParticipantParameters();
   void endCurrentList(CdrWriter &writer);
 };

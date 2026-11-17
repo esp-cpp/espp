@@ -32,7 +32,9 @@ Author: i11 - Embedded Software, RWTH Aachen University
 #include <random>
 
 #if defined(ESP_PLATFORM)
+#include "esp_attr.h"
 #include "esp_mac.h"
+#include "esp_random.h"
 #endif
 
 #if DOMAIN_VERBOSE && RTPS_GLOBAL_VERBOSE
@@ -44,6 +46,67 @@ Author: i11 - Embedded Software, RWTH Aachen University
 #endif
 
 using rtps::Domain;
+
+namespace {
+#if defined(ESP_PLATFORM)
+// The GUID prefix incarnation of this boot and of the previous one. The record
+// lives in RTC memory, which a software reset (esp_restart, a panic reboot,
+// deep sleep) preserves and a power-on leaves with arbitrary contents: the
+// magic + complement check tells the two apart. Read once, lazily, on the
+// first prefix generated this boot.
+struct IncarnationRecord {
+  uint32_t magic;
+  uint16_t incarnation;
+  uint16_t check; // ~incarnation
+};
+RTC_NOINIT_ATTR IncarnationRecord s_incarnationRecord;
+constexpr uint32_t kIncarnationMagic = 0x52545049; // 'RTPI'
+
+struct IncarnationState {
+  uint16_t current = 0;
+  bool hasPrevious = false;
+  uint16_t previous = 0;
+};
+
+const IncarnationState &incarnationState() {
+  static const IncarnationState state = [] {
+    IncarnationState s;
+    const bool valid =
+        s_incarnationRecord.magic == kIncarnationMagic &&
+        s_incarnationRecord.check == static_cast<uint16_t>(~s_incarnationRecord.incarnation);
+    if (valid) {
+      s.hasPrevious = true;
+      s.previous = s_incarnationRecord.incarnation;
+    }
+    do {
+      s.current = static_cast<uint16_t>(esp_random());
+    } while (s.hasPrevious && s.current == s.previous);
+    s_incarnationRecord =
+        IncarnationRecord{kIncarnationMagic, s.current, static_cast<uint16_t>(~s.current)};
+    return s;
+  }();
+  return state;
+}
+#endif
+} // namespace
+
+uint16_t Domain::guidIncarnation() {
+#if defined(ESP_PLATFORM)
+  return incarnationState().current;
+#else
+  return 0;
+#endif
+}
+
+std::optional<uint16_t> Domain::previousGuidIncarnation() {
+#if defined(ESP_PLATFORM)
+  const auto &s = incarnationState();
+  if (s.hasPrevious) {
+    return s.previous;
+  }
+#endif
+  return std::nullopt;
+}
 
 Domain::Domain(const rtps::Ip4AddressBytes &localIpAddress, const DomainConfig &config)
     : espp::BaseComponent("RtpsDomain", espp::Logger::Verbosity::WARN)
@@ -368,6 +431,15 @@ rtps::Participant *Domain::createParticipant() {
   auto &entry = m_participants[slot];
   entry.reuse(generateGuidPrefix(candidate), candidate, m_localIpAddress,
               m_config.local_prefix_length);
+  if (const auto previous = previousGuidIncarnation(); previous.has_value()) {
+    // The same board, participant id, vendor and domain with the previous
+    // boot's incarnation bytes: what peers still hold if we came back within
+    // our lease. Disposed by the SPDP agent before the first announcement.
+    entry.m_previousIncarnationPrefix = entry.m_guidPrefix;
+    entry.m_previousIncarnationPrefix.id[10] = static_cast<uint8_t>(*previous >> 8);
+    entry.m_previousIncarnationPrefix.id[11] = static_cast<uint8_t>(*previous & 0xFF);
+    entry.m_hasPreviousIncarnation = true;
+  }
   if (!createBuiltinWritersAndReaders(entry)) {
     // Pool exhaustion (see createBuiltinWritersAndReaders): the slot was never
     // published, so only the probed ports need unwinding for a clean failure
@@ -1015,8 +1087,12 @@ rtps::GuidPrefix_t Domain::generateGuidPrefix(ParticipantId_t id) const {
     prefix.id[7] = Config::VENDOR_ID.vendorId[0];
     prefix.id[8] = Config::VENDOR_ID.vendorId[1];
     prefix.id[9] = Config::DOMAIN_ID;
-    prefix.id[10] = 0xA5;
-    prefix.id[11] = 0x5A;
+    // Bytes 10-11: this boot's incarnation (see guidIncarnation()). Everything
+    // before it is stable across boots, which is what lets the SPDP agent
+    // dispose the previous incarnation and peers tell the two apart.
+    const uint16_t incarnation = guidIncarnation();
+    prefix.id[10] = static_cast<uint8_t>(incarnation >> 8);
+    prefix.id[11] = static_cast<uint8_t>(incarnation & 0xFF);
     return prefix;
   }
 #endif

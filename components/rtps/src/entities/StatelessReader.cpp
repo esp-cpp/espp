@@ -78,6 +78,17 @@ void StatelessReader::newChange(const ReaderCacheChange &cacheChange) {
   // reader): participant announcements come from writers that are, by
   // definition, not matched yet.
   //
+  // The SPDP reader is exempt from the ordering rule as well. A peer that
+  // restarts with the same GUID prefix (a board rebooting within its lease:
+  // the prefix is MAC-based on ESP targets, and other stacks do the same)
+  // numbers its new SPDP writer from 1 again, below what its proxy here
+  // expects; dropping those announcements - and the dispose it may send first
+  // - would keep the stale participant, with every proxy of its endpoints,
+  // until the lease ran out, deaf to the restarted peer the whole time. The
+  // SPDP agent owns that judgement instead (SPDPAgent::isRestart, and its
+  // dispose memory for the duplicates); a repeated announcement only
+  // refreshes a lease, so nothing is lost by letting it through.
+  //
   // The claim and the callbacks are one operation under m_delivery_mutex (as
   // in StatefulReader::newChange()): receive workers for different sockets
   // can hand this reader consecutive samples at once, and with the callbacks
@@ -92,7 +103,7 @@ void StatelessReader::newChange(const ReaderCacheChange &cacheChange) {
     };
     auto it = std::find_if(m_proxies.begin(), m_proxies.end(), matches_writer);
     if (it != m_proxies.end()) {
-      if (cacheChange.sn < it->expectedSN) {
+      if (cacheChange.sn < it->expectedSN && !isBuiltinEndpoint()) {
         return; // a duplicate, or older than something already delivered
       }
       it->expectedSN = cacheChange.sn;

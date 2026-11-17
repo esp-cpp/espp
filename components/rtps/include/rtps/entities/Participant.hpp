@@ -50,6 +50,13 @@ class Participant : public espp::BaseComponent {
 public:
   GuidPrefix_t m_guidPrefix;
   ParticipantId_t m_participantId;
+  /// The GUID prefix this participant had in the previous boot, when the
+  /// Domain could tell (ESP targets keep the prefix's incarnation bytes
+  /// across a software reset: Domain::generateGuidPrefix). The SPDP agent
+  /// disposes it before the first announcement, so peers forget the old
+  /// incarnation at once instead of when its lease runs out.
+  bool m_hasPreviousIncarnation = false;
+  GuidPrefix_t m_previousIncarnationPrefix{};
   Ip4AddressBytes m_localIpAddress{{0, 0, 0, 0}};
   /// Prefix length (CIDR bits) of the local network, used to tell which of a
   /// peer's announced unicast locators is reachable (see
@@ -137,6 +144,9 @@ public:
 
   const ParticipantProxyData *findRemoteParticipant(const GuidPrefix_t &prefix);
   void refreshRemoteParticipantLiveliness(const GuidPrefix_t &prefix);
+  /// As above, and records the announcement's sequence number (the highest
+  /// seen is kept) for SPDPAgent's restart detection.
+  void refreshRemoteParticipantLiveliness(const GuidPrefix_t &prefix, const SequenceNumber_t &sn);
   uint32_t getRemoteParticipantCount();
   MessageReceiver *getMessageReceiver();
   bool checkAndResetHeartbeats();

@@ -50,6 +50,7 @@ void ParticipantProxyData::reset() {
   m_guid = Guid_t{GUIDPREFIX_UNKNOWN, ENTITYID_UNKNOWN};
   m_manualLivelinessCount = Count_t{1};
   m_expectsInlineQos = false;
+  m_lastSpdpSn = SequenceNumber_t{0, 0};
   onAliveSignal();
   onDiscovered();
   for (int i = 0; i < Config::SPDP_MAX_NUM_LOCATORS; ++i) {

@@ -36,6 +36,7 @@ Author: i11 - Embedded Software, RWTH Aachen University
 
 #include <chrono>
 #include <cstring>
+#include <limits>
 #include <mutex>
 #include <thread>
 
@@ -52,7 +53,80 @@ void SPDPAgent::init(Participant &participant, BuiltInEndpoints &endpoints) {
   m_buildInEndpoints.spdpReader->registerCallback(receiveCallback, this);
 
   addParticipantParameters();
+  if (participant.m_hasPreviousIncarnation) {
+    disposePreviousIncarnation(participant.m_previousIncarnationPrefix);
+  }
   initialized = true;
+}
+
+void SPDPAgent::disposePreviousIncarnation(const GuidPrefix_t &prefix) {
+  // The form Fast DDS, Cyclone DDS and this engine's receiver all understand
+  // (handleSPDPPackage below): a DATA whose inline QoS carries the key hash of
+  // the disposed participant and PID_STATUS_INFO disposed|unregistered, with
+  // a payload that names the participant GUID for a peer that reads the key
+  // from the payload. Queued before the first announcement, so it goes out
+  // first (the stateless writer sends in sequence-number order).
+  std::array<uint8_t, 96> buffer{};
+  CdrSink sink{asWritableBytes(buffer.data(), buffer.size())};
+  CdrWriter writer(sink);
+  // inline QoS
+  writer.write<uint16_t>(ParameterId::PID_KEY_HASH);
+  writer.write<uint16_t>(16);
+  writeBytes(writer, prefix.id.data(), sizeof(GuidPrefix_t::id));
+  writeBytes(writer, ENTITYID_BUILD_IN_PARTICIPANT.entityKey.data(), sizeof(EntityId_t::entityKey));
+  writer.write<uint8_t>(static_cast<uint8_t>(ENTITYID_BUILD_IN_PARTICIPANT.entityKind));
+  writer.write<uint16_t>(ParameterId::PID_STATUS_INFO);
+  writer.write<uint16_t>(4);
+  writer.write<uint8_t>(0);
+  writer.write<uint8_t>(0);
+  writer.write<uint8_t>(0);
+  writer.write<uint8_t>(3); // disposed | unregistered, as Fast DDS writes it
+  endCurrentList(writer);
+  // payload
+  writeBytes(writer, rtps::SMElement::SCHEME_PL_CDR_LE.data(),
+             rtps::SMElement::SCHEME_PL_CDR_LE.size());
+  writer.write<uint16_t>(0); // options
+  writer.write<uint16_t>(ParameterId::PID_PARTICIPANT_GUID);
+  writer.write<uint16_t>(16);
+  writeBytes(writer, prefix.id.data(), sizeof(GuidPrefix_t::id));
+  writeBytes(writer, ENTITYID_BUILD_IN_PARTICIPANT.entityKey.data(), sizeof(EntityId_t::entityKey));
+  writer.write<uint8_t>(static_cast<uint8_t>(ENTITYID_BUILD_IN_PARTICIPANT.entityKind));
+  endCurrentList(writer);
+
+  const auto *change = m_buildInEndpoints.spdpWriter->newChange(
+      ChangeKind_t::ALIVE, buffer.data(), static_cast<DataSize_t>(sink.size()),
+      /*inLineQoS=*/true, /*markDisposedAfterWrite=*/false);
+  if (change == nullptr) {
+    logger_.warn("Could not queue the dispose of the previous incarnation {:02x}{:02x}; peers "
+                 "that still hold it forget it when its lease runs out",
+                 prefix.id[10], prefix.id[11]);
+    return;
+  }
+  logger_.info("Disposing the previous incarnation {:02x}{:02x} of this participant (now "
+               "{:02x}{:02x}) before the first announcement",
+               prefix.id[10], prefix.id[11], mp_participant->m_guidPrefix.id[10],
+               mp_participant->m_guidPrefix.id[11]);
+}
+
+bool SPDPAgent::isRestart(const SequenceNumber_t &announced, const SequenceNumber_t &last) {
+  if (!(announced < last) || announced.high < 0) {
+    return false;
+  }
+  const uint64_t a =
+      (static_cast<uint64_t>(static_cast<uint32_t>(announced.high)) << 32) | announced.low;
+  const uint64_t l = (static_cast<uint64_t>(static_cast<uint32_t>(last.high)) << 32) | last.low;
+  return a * 2 <= l;
+}
+
+bool SPDPAgent::isPreviousIncarnationOf(const GuidPrefix_t &disposed, const GuidPrefix_t &writer) {
+  // Only for prefixes in this engine's layout (MAC, participant id, VENDOR_ID
+  // at bytes 7-8, domain, incarnation): other stacks put something else in
+  // bytes 10-11 - Fast DDS its participant id within a process, so two of its
+  // participants in one process differ only there and must not be allowed to
+  // dispose each other.
+  return !(disposed == writer) && disposed.id[7] == Config::VENDOR_ID.vendorId[0] &&
+         disposed.id[8] == Config::VENDOR_ID.vendorId[1] &&
+         std::equal(disposed.id.begin(), disposed.id.begin() + 10, writer.id.begin());
 }
 
 void SPDPAgent::start() { m_running = true; }
@@ -104,20 +178,9 @@ void SPDPAgent::handleSPDPPackage(const ReaderCacheChange &cacheChange) {
       SPDP_LOG("Announcement from before the participant's dispose, ignored");
       return;
     }
-    // The payload's endianness is selected by the encapsulation identifier
-    // (first two bytes); endianness doesn't matter for reading those since
-    // they are single bytes.
-    const std::endian endianness = (m_inputBuffer[0] == SMElement::SCHEME_PL_CDR_LE[0] &&
-                                    m_inputBuffer[1] == SMElement::SCHEME_PL_CDR_LE[1])
-                                       ? std::endian::little
-                                       : std::endian::big;
-    CdrReader buffer(asBytes(m_inputBuffer.data(), m_inputBuffer.size()), endianness);
-    // Skip the encapsulation identifier and options (2 + 2 bytes)
-    skipBytes(buffer, 4);
-    volatile bool success = m_proxyDataBuffer.readFromBuffer(buffer, mp_participant);
-    if (success) {
+    if (parseAnnouncement()) {
       // TODO In case we store the history we can free the history mutex here
-      processProxyData();
+      processProxyData(cacheChange.sn);
     } else {
       SPDP_LOG("ParticipantProxyData deserialization failed");
     }
@@ -126,9 +189,12 @@ void SPDPAgent::handleSPDPPackage(const ReaderCacheChange &cacheChange) {
     // forget it now, with every proxy of its endpoints, instead of when its
     // lease runs out. The instance is named by the inline-QoS key hash; a
     // peer that leaves the hash out carries the GUID in the payload.
-    // Only the peer's own SPDP writer may dispose it, and only itself: a
-    // DATA from another writer, or naming another participant, is malformed
-    // (or hostile) and must not remove anyone.
+    // Only the peer's own SPDP writer may dispose it, and only itself - or a
+    // previous incarnation of itself (the same board, participant id, vendor
+    // and domain with other incarnation bytes: what a restarted peer disposes
+    // first, see disposePreviousIncarnation). A DATA from another writer, or
+    // naming another participant, is malformed (or hostile) and must not
+    // remove anyone.
     if (!(cacheChange.writerGuid.entityId == ENTITYID_SPDP_BUILTIN_PARTICIPANT_WRITER)) {
       return;
     }
@@ -143,14 +209,23 @@ void SPDPAgent::handleSPDPPackage(const ReaderCacheChange &cacheChange) {
     if (prefix == GUIDPREFIX_UNKNOWN || prefix == mp_participant->m_guidPrefix) {
       return;
     }
-    if (!(prefix == cacheChange.writerGuid.prefix)) {
+    if (!(prefix == cacheChange.writerGuid.prefix) &&
+        !isPreviousIncarnationOf(prefix, cacheChange.writerGuid.prefix)) {
       logger_.warn("Participant dispose from {:02x}{:02x}{:02x}{:02x} names another participant, "
                    "ignored",
                    cacheChange.writerGuid.prefix.id[0], cacheChange.writerGuid.prefix.id[1],
                    cacheChange.writerGuid.prefix.id[2], cacheChange.writerGuid.prefix.id[3]);
       return;
     }
-    rememberDispose(prefix, cacheChange.sn);
+    if (prefix == cacheChange.writerGuid.prefix) {
+      rememberDispose(prefix, cacheChange.sn);
+    } else {
+      // A previous incarnation is dead: whatever it still has in flight (its
+      // own numbering, unrelated to the new writer's) is stale, so remember
+      // the dispose as newer than anything it could announce.
+      rememberDispose(prefix, SequenceNumber_t{std::numeric_limits<int32_t>::max(),
+                                               std::numeric_limits<uint32_t>::max()});
+    }
     if (mp_participant->findRemoteParticipant(prefix) == nullptr) {
       return; // never known, or already gone
     }
@@ -159,6 +234,20 @@ void SPDPAgent::handleSPDPPackage(const ReaderCacheChange &cacheChange) {
     // the SEDP agent's and the participant's inside removeRemoteParticipant.
     mp_participant->removeRemoteParticipant(prefix);
   }
+}
+
+bool SPDPAgent::parseAnnouncement() {
+  // The payload's endianness is selected by the encapsulation identifier
+  // (first two bytes); endianness doesn't matter for reading those since
+  // they are single bytes.
+  const std::endian endianness = (m_inputBuffer[0] == SMElement::SCHEME_PL_CDR_LE[0] &&
+                                  m_inputBuffer[1] == SMElement::SCHEME_PL_CDR_LE[1])
+                                     ? std::endian::little
+                                     : std::endian::big;
+  CdrReader buffer(asBytes(m_inputBuffer.data(), m_inputBuffer.size()), endianness);
+  // Skip the encapsulation identifier and options (2 + 2 bytes)
+  skipBytes(buffer, 4);
+  return m_proxyDataBuffer.readFromBuffer(buffer, mp_participant);
 }
 
 rtps::GuidPrefix_t SPDPAgent::participantPrefixInPayload(const uint8_t *data, DataSize_t size) {
@@ -225,7 +314,7 @@ bool SPDPAgent::isFromBeforeDispose(const GuidPrefix_t &prefix, const SequenceNu
   return false;
 }
 
-void SPDPAgent::processProxyData() {
+void SPDPAgent::processProxyData(const SequenceNumber_t &announcementSn) {
   if (m_proxyDataBuffer.m_guid.prefix.id == mp_participant->m_guidPrefix.id) {
     return; // Our own packet
   }
@@ -236,10 +325,34 @@ void SPDPAgent::processProxyData() {
   const rtps::ParticipantProxyData *remote_part;
   remote_part = mp_participant->findRemoteParticipant(m_proxyDataBuffer.m_guid.prefix);
   if (remote_part != nullptr) {
-    SPDP_LOG("Not adding this participant");
-    mp_participant->refreshRemoteParticipantLiveliness(m_proxyDataBuffer.m_guid.prefix);
-    return; // Already in our list
+    if (!isRestart(announcementSn, remote_part->m_lastSpdpSn)) {
+      SPDP_LOG("Not adding this participant");
+      mp_participant->refreshRemoteParticipantLiveliness(m_proxyDataBuffer.m_guid.prefix,
+                                                         announcementSn);
+      return; // Already in our list
+    }
+    // The peer restarted with the prefix we know it by (a board back within
+    // its lease, see isRestart): everything we hold of it - its builtin
+    // proxies, its endpoints and their proxies at our readers and writers -
+    // belongs to the old incarnation, whose writers' sequence numbers our
+    // proxies expect to continue. Forget it and discover it afresh below.
+    // Lock order as for a dispose: this agent's mutex, then the SEDP agent's
+    // and the participant's inside removeRemoteParticipant.
+    const auto &p = m_proxyDataBuffer.m_guid.prefix;
+    logger_.warn("Remote participant {:02x}{:02x}{:02x}{:02x}... restarted with the same GUID "
+                 "prefix (SPDP sequence {} after {}): rediscovering it",
+                 p.id[0], p.id[1], p.id[2], p.id[3], announcementSn.low,
+                 remote_part->m_lastSpdpSn.low);
+    mp_participant->removeRemoteParticipant(p);
+    // The parser stops at the GUID of a participant it already knows (nothing
+    // but the lease was refreshed): now that it is forgotten, parse the
+    // announcement in full for its locators and builtin endpoints.
+    if (!parseAnnouncement()) {
+      SPDP_LOG("ParticipantProxyData deserialization failed");
+      return;
+    }
   }
+  m_proxyDataBuffer.m_lastSpdpSn = announcementSn;
 
   // A newcomer without a usable metatraffic unicast locator could never be
   // matched (addProxiesForBuiltInEndpoints() refuses it below): check that
@@ -392,10 +505,10 @@ bool SPDPAgent::addProxiesForBuiltInEndpoints() {
   return ok;
 }
 
-void SPDPAgent::addInlineQos(CdrWriter &writer) {
+void SPDPAgent::addInlineQos(CdrWriter &writer, const GuidPrefix_t &prefix) {
   writer.write<uint16_t>(ParameterId::PID_KEY_HASH);
   writer.write<uint16_t>(16);
-  writeBytes(writer, mp_participant->m_guidPrefix.id.data(), sizeof(GuidPrefix_t::id));
+  writeBytes(writer, prefix.id.data(), sizeof(GuidPrefix_t::id));
   writeBytes(writer, ENTITYID_BUILD_IN_PARTICIPANT.entityKey.data(), sizeof(EntityId_t::entityKey));
   writer.write<uint8_t>(static_cast<uint8_t>(ENTITYID_BUILD_IN_PARTICIPANT.entityKind));
 

@@ -7,6 +7,11 @@
 // host side and asserts on the "RTPSTEST ..." lines this firmware logs:
 //
 //   RTPSTEST ready ip=<ip>           participant started
+//   RTPSTEST incarnation cur=<hex> prev=<hex|none>   the GUID prefix incarnation of
+//                                    this boot and, after a software reset, of the
+//                                    previous one (which the engine disposes first)
+//   RTPSTEST restart                 a "RESTART" sample arrived on rt/qemu_rx: the
+//                                    device reboots (esp_restart) - the restart case
 //   RTPSTEST pub_matched/sub_matched a writer / reader gained a remote peer
 //   RTPSTEST tx <n>                  reliable publisher sent "qemu <n>"
 //   RTPSTEST rx <data>               reliable subscriber received <data>
@@ -51,6 +56,7 @@
 
 #include <esp_heap_caps.h>
 #include <esp_netif.h>
+#include <esp_system.h>
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
 
@@ -205,17 +211,24 @@ extern "C" void app_main(void) {
                                                         .type_name = type_name,
                                                         .reliability = Reliability::RELIABLE,
                                                     });
-  espp::Subscriber<StringMsg> subscriber(participant, {
-                                                          .topic = "rt/qemu_rx",
-                                                          .type_name = type_name,
-                                                          .reliability = Reliability::RELIABLE,
-                                                          .on_message =
-                                                              [&](const StringMsg &msg) {
-                                                                rx_count++;
-                                                                logger.info("RTPSTEST rx {}",
-                                                                            msg.data);
-                                                              },
-                                                      });
+  espp::Subscriber<StringMsg> subscriber(
+      participant, {
+                       .topic = "rt/qemu_rx",
+                       .type_name = type_name,
+                       .reliability = Reliability::RELIABLE,
+                       .on_message =
+                           [&](const StringMsg &msg) {
+                             rx_count++;
+                             logger.info("RTPSTEST rx {}", msg.data);
+                             if (msg.data == "RESTART") {
+                               // the restart case: reboot
+                               // like a board would
+                               logger.info("RTPSTEST restart");
+                               std::this_thread::sleep_for(100ms); // let the log out
+                               esp_restart();
+                             }
+                           },
+                   });
   espp::Publisher<StringMsg> be_publisher(participant, {
                                                            .topic = "rt/qemu_be_tx",
                                                            .type_name = type_name,
@@ -326,6 +339,15 @@ extern "C" void app_main(void) {
   });
 
   logger.info("RTPSTEST ready ip={}", interface_address);
+  {
+    // The prefix incarnation (bytes 10-11 of every GUID prefix this boot) and
+    // the previous boot's, kept across a software reset: the engine disposed
+    // that incarnation before its first announcement, so peers that still held
+    // it (a reboot within the lease) forgot it at once.
+    const auto prev = rtps::Domain::previousGuidIncarnation();
+    logger.info("RTPSTEST incarnation cur={:04x} prev={}", rtps::Domain::guidIncarnation(),
+                prev ? fmt::format("{:04x}", *prev) : std::string{"none"});
+  }
 
   // The engine's tasks' stack margin: the smallest high-water mark (bytes of
   // stack never touched since the task started) over the rtps_* tasks (receive

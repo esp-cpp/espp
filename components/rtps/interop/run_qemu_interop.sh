@@ -181,6 +181,70 @@ source "/opt/ros/${ROS_DISTRO:-jazzy}/setup.bash"
 export ROS_DOMAIN_ID=0 # matches the engine's Config::DOMAIN_ID
 
 run_matrix() {
+# The device reboots (esp_restart on a "RESTART" sample, see rtps_qemu.cpp)
+# while a ROS 2 subscriber and a ROS 2 publisher of the current rmw stay up.
+# Its GUID prefix is MAC-based, so before the fix it came back as the
+# participant the peers still held (and every writer numbered from 1 again):
+# the peers' best-effort SPDP readers dropped its announcements, their user
+# readers dropped its samples, and nothing moved until the old lease (30 s in
+# sdkconfig.ci.defaults, so a reboot cannot hide behind it) ran out. Now the
+# prefix carries a per-boot incarnation (bytes 10-11) and the device disposes
+# the previous incarnation before announcing, so the peers forget it at once
+# and discover the new one; the device's own proxies are fresh anyway.
+# Results: restart_<tag>_rediscovered_by_ros2_sub (the ROS 2 subscriber
+# receives the restarted publisher's first samples, "qemu 0".."qemu 9", well
+# inside the old lease), restart_<tag>_device_sub_receives (the ROS 2
+# publisher's samples reach the rebooted device), and
+# restart_previous_incarnation_disposed (the firmware found the previous
+# incarnation in RTC memory and disposed it; once, FastDDS pass).
+device_restart_case() { # prefix log-tag
+  local p="$1" t="$2" m rc=0 n i
+  timeout 90 ros2 topic echo /qemu_tx std_msgs/msg/String > "/tmp/${t}_restart_echo.log" 2>&1 &
+  local echo_pid=$!
+  timeout 90 ros2 topic pub -r 5 /qemu_rx std_msgs/msg/String "data: 'across restart'" > /dev/null 2>&1 &
+  local pub=$!
+  sleep 10 # both matched and flowing
+  m=$(mark)
+  local before_rx; before_rx=$(count_since "$m" "RTPSTEST rx across restart")
+  # published once the device's subscriber is matched (-w 1), then exits: a
+  # single RESTART, the rebooted device must not get it again
+  timeout 20 ros2 topic pub --once -w 1 /qemu_rx std_msgs/msg/String "data: 'RESTART'" > /dev/null 2>&1
+  if ! wait_for_marker_since "$m" "RTPSTEST restart" 15; then
+    echo "  the device did not take the RESTART"; rc=1
+  fi
+  local boot; boot=$(mark)
+  if [ $rc -eq 0 ] && ! wait_for_marker_since "$boot" "RTPSTEST ready" 60; then
+    echo "  the device did not come back"; rc=1
+  fi
+  if [ $rc -eq 0 ]; then
+    since "$boot" | grep -o "RTPSTEST incarnation.*" | head -1 | sed 's/^/  /'
+    # the restarted publisher counts from 0 again: its first samples at the ROS 2
+    # subscriber are the proof it was rediscovered (the old lease is 30 s)
+    local t0 n0=0; t0=$(date +%s)
+    for i in $(seq 1 25); do
+      n0=$(grep -c -E '^data: qemu [0-9]$' "/tmp/${t}_restart_echo.log")
+      [ "$n0" -ge 3 ] && break
+      sleep 1
+    done
+    echo "  ROS 2 subscriber got $n0 of the restarted publisher's first samples after $(( $(date +%s) - t0 )) s"
+    [ "$n0" -ge 3 ] || rc=1
+    n=$(count_since "$boot" "RTPSTEST rx across restart"); echo "  rebooted device received $n from the ROS 2 publisher"
+    [ "$n" -ge 5 ] || rc=1
+    if [ "$p" = "" ] || [ "$t" = fastdds ]; then
+      since "$boot" | grep -q "RTPSTEST incarnation cur=[0-9a-f]* prev=[0-9a-f]"
+      result "restart_previous_incarnation_disposed" $?
+    fi
+  fi
+  stop_pids $echo_pid $pub
+  result "restart_${t}_rediscovered_by_ros2_sub" $rc
+  [ $rc -eq 0 ] && [ "${n:-0}" -ge 5 ]; result "restart_${t}_device_sub_receives" $?
+}
+wait_for_marker_since() { # mark marker timeout_s
+  local i
+  for i in $(seq 1 "$3"); do [ "$(count_since "$1" "$2")" -ge 1 ] && return 0; sleep 1; done
+  return 1
+}
+
 # --- the ROS 2 cases, run once per rmw -----------------------------------------------
 ros2_cases() { # prefix log-tag
   local p="$1" t="$2" m
@@ -229,6 +293,10 @@ ros2_cases() { # prefix log-tag
   rc=$?; grep -q "sum=42" "/tmp/${t}_srv.log" || rc=1
   [ "$(count_since "$m" "RTPSTEST srv 7+35=42")" -ge 1 ] || rc=1
   tail -2 "/tmp/${t}_srv.log"; result "${p}ros2_client->device_service" $rc
+  settle
+
+  note "${p}the device restarts within its lease: the ROS 2 peers drop the old incarnation and talk to the new one"
+  device_restart_case "${p}" "${t}"
   settle
 
   note "${p}twelve other participants on the domain, then the publisher the device needs joins last"
@@ -360,6 +428,29 @@ settle
 note "device publisher -> espp host subscriber (reliable, /qemu_tx)"
 "$BIN"/rtps_interop_sub rt/qemu_tx std_msgs::msg::dds_::String_ 1 5 30 $HOST_IP > /tmp/hostsub.log 2>&1
 rc=$?; tail -2 /tmp/hostsub.log; result "device_pub->espp_host_sub" $rc
+settle
+
+note "the device restarts while the espp host publisher runs: the rebooted device receives again at once"
+# The host engine keeps the device's previous incarnation until its dispose
+# arrives (the espp SPDP reader lets a restarted peer through; SPDPAgent
+# forgets it on the dispose or on the restart it detects); the host publisher's
+# samples must reach the rebooted device within a few seconds of its boot.
+m=$(mark)
+"$BIN"/rtps_interop_pub rt/qemu_rx std_msgs::msg::dds_::String_ 1 400 200 $HOST_IP > /tmp/hostpub_restart.log 2>&1 &
+pub=$!; sleep 10
+timeout 20 ros2 topic pub --once -w 1 /qemu_rx std_msgs/msg/String "data: 'RESTART'" > /dev/null 2>&1
+rc=0
+wait_for_marker_since "$m" "RTPSTEST restart" 15 || rc=1
+boot=$(mark)
+[ $rc -eq 0 ] && { wait_for_marker_since "$boot" "RTPSTEST ready" 60 || rc=1; }
+if [ $rc -eq 0 ]; then
+  t0=$(date +%s); n=0
+  for i in $(seq 1 25); do n=$(count_since "$boot" "RTPSTEST rx espp interop"); [ "$n" -ge 5 ] && break; sleep 1; done
+  echo "  rebooted device received $n from the espp host publisher after $(( $(date +%s) - t0 )) s"
+  [ "$n" -ge 5 ] || rc=1
+fi
+stop_pids $pub
+result "restart_espp_host_pub->device_sub" $rc
 settle
 
 note "espp host publisher -> device subscriber, 30 KB samples as DATA_FRAG (1400-byte fragments, /qemu_big)"

@@ -205,6 +205,18 @@ wire. The announced lease must comfortably exceed the announcement period
 a remote lease cap below a peer's announcement period drops that peer while it
 is alive.
 
+A participant's GUID prefix on an ESP target is its MAC, the participant id,
+the vendor id, the domain id and two incarnation bytes drawn once per boot
+(`rtps::Domain::guidIncarnation()`), so a board that reboots is a new
+participant to its peers - what RTPS requires, since every writer of the
+rebooted board numbers its samples from 1 again and a peer still holding the
+old incarnation would ignore them until its lease ran out. The previous
+boot's incarnation survives a software reset in RTC memory and is disposed
+before the first announcement, so such peers forget it at once; and a peer
+that does reuse a prefix (another stack, a power-cycled board whose old
+incarnation is still held) is recognised by the sequence number of its
+announcements falling far below what was seen and rediscovered on the spot.
+
 ### Per-limit capacity overrides
 
 Every capacity cap in the profile headers can be raised (or lowered)
