@@ -312,20 +312,20 @@ ros2_cases() { # prefix log-tag
   tail -2 "/tmp/${t}_srv.log"; result "${p}ros2_client->device_service" $rc
   settle
 
-  # Restart the device's participant once per firmware boot, on the FastDDS
-  # pass. Recreating the espp participant in-process is how the device
-  # "reboots" here (a chip reset trips a QEMU startup bug - see
-  # device_restart_case); doing it repeatedly in one boot is not yet robust
-  # (the engine's teardown leaves a task that can fire into freed state after a
-  # few cycles - a separate follow-up), so the matrix exercises it once. The
-  # host test (pc/tests/rtps_participant_restart.cpp) covers the receive side
-  # for any peer; the dispose the device sends is the standard participant
-  # dispose every DDS honours, so one real-stack pass is enough to prove interop.
-  if [ "${t}" = fastdds ]; then
-    note "${p}the device restarts within its lease: the ROS 2 peers drop the old incarnation and talk to the new one"
-    device_restart_case "${p}" "${t}"
-    settle
-  fi
+  # Restart the device's participant once on EACH rmw pass (FastDDS and
+  # CycloneDDS), so a real peer of each stack is proven to honour the dispose
+  # the restarted device sends. Recreating the espp participant in-process is
+  # how the device "reboots" here (a chip reset trips a QEMU startup bug - see
+  # device_restart_case). That recreate frees and reallocates the engine's
+  # FreeRTOS task stacks in internal RAM, which fragments it; two recreates in
+  # one boot are stable, but more are not yet (a stack allocation eventually
+  # fails and the device aborts - a separate teardown/fragmentation follow-up).
+  # So the two rmw passes get one restart each and no third is done (the
+  # espp-host engine's handling of a restarted peer is covered by
+  # pc/tests/rtps_participant_restart.cpp).
+  note "${p}the device restarts within its lease: the ROS 2 peers drop the old incarnation and talk to the new one"
+  device_restart_case "${p}" "${t}"
+  settle
 
   note "${p}twelve other participants on the domain, then the publisher the device needs joins last"
   local crowd=() i
