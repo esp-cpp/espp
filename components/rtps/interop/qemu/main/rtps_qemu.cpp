@@ -65,6 +65,10 @@ void log_mem_heap(espp::Logger &logger, const char *stage) {
               heap_caps_get_free_size(MALLOC_CAP_SPIRAM),
               heap_caps_get_largest_free_block(MALLOC_CAP_SPIRAM));
 }
+// The restart case calls /qemu_add_two_ints with this magic request to ask the
+// device to recreate its participant (see the service handler in run_participant).
+constexpr int64_t kRestartMagicA = 424242;
+constexpr int64_t kRestartMagicB = 0;
 } // namespace
 
 using namespace std::chrono_literals;
@@ -158,10 +162,6 @@ extern "C" void app_main(void) {
 static void run_participant(espp::Logger &logger, const std::string &interface_address,
                             const std::string &interface_netmask) {
   const auto boot_time = std::chrono::steady_clock::now();
-  // The restart case calls /qemu_add_two_ints with this magic pair to ask the
-  // device to recreate its participant (see the service handler below).
-  constexpr int64_t kRestartMagicA = 424242;
-  constexpr int64_t kRestartMagicB = 0;
   std::atomic<bool> restart_requested{false};
   // Counters for the status line (the callbacks run on the engine's threads)
   std::atomic<uint32_t> tx_count{0};
