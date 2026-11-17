@@ -45,6 +45,10 @@ static void test_command_object() {
   CHECK(kTemperatureObject == 0x2052);
   CHECK(kEStopResetObject == 0x20C8);
   CHECK(kResetEncodersObject == 0x2014);
+  CHECK(command_object(72) == 0x2048); // read default speeds
+  CHECK(command_object(81) == 0x2051); // read default accels
+  CHECK(kDefaultSpeedsObject == 0x2048);
+  CHECK(kDefaultAccelsObject == 0x2051);
   CHECK(kPositionGainScale == 1024);
 }
 
@@ -61,11 +65,15 @@ static void test_axis_objects() {
   CHECK(m1.drive_duty == 0x2020);
   CHECK(m1.drive_speed == 0x2023);
   CHECK(m1.encoder_set == 0x2016);
+  CHECK(m1.default_accel_set == 0x2044);
+  CHECK(m1.default_speed_set == 0x2046);
   CHECK(m2.position_pid_set == 0x203E);
   CHECK(m2.position_pid_get == 0x2040);
   CHECK(m2.drive_duty == 0x2021);
   CHECK(m2.drive_speed == 0x2024);
   CHECK(m2.encoder_set == 0x2017);
+  CHECK(m2.default_accel_set == 0x2045);
+  CHECK(m2.default_speed_set == 0x2047);
   // the CiA 402 offset applied to a device-profile object selects the axis
   CHECK(static_cast<uint16_t>(0x6040 + m2.object_offset) == 0x6840); // controlword
   CHECK(static_cast<uint16_t>(0x607A + m2.object_offset) == 0x687A); // target position
