@@ -275,7 +275,7 @@ struct Peer {
                             sample_payload(value)));
   }
   // Dispose `disposed` from this peer's SPDP writer, numbered `sn`.
-  void dispose(rtps::Participant *part, const rtps::GuidPrefix_t &disposed, uint32_t sn) {
+  void dispose(rtps::Participant *part, const rtps::GuidPrefix_t &disposed, uint32_t sn) const {
     feed(part, data_message(prefix, rtps::ENTITYID_SPDP_BUILTIN_PARTICIPANT_WRITER,
                             rtps::ENTITYID_SPDP_BUILTIN_PARTICIPANT_READER, sn,
                             participant_dispose_qos(disposed), {}));
