@@ -76,6 +76,9 @@ extern "C" void app_main(void) {
       .baudrate = kCanBaudrate,
       .mode = espp::Twai::Mode::NORMAL,
       .tx_queue_depth = 10,
+      // retransmit until sent: single shot (0, and 1..15 on most targets) drops
+      // a request that loses arbitration to a node's reply, failing the SDO
+      .tx_retry_count = -1,
       .on_receive =
           [](const espp::Twai::Message &m) {
             if (client_ptr)

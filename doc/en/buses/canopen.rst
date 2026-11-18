@@ -29,6 +29,11 @@ SDO transactions are blocking with a configurable timeout, so
 performing SDO transfers; with `Twai` this is automatically the case since its
 ``on_receive`` callback runs in the Twai receive task.
 
+With `Twai`, set ``Config::tx_retry_count = -1`` (as the example does). An SDO
+request (COB-ID ``0x600 + node``) loses arbitration to every node's responses
+and PDOs, and the default single-shot transmit drops a frame that loses
+arbitration, so ``send`` fails and the SDO reports ``io_error``.
+
 .. ------------------------------- Example -------------------------------------
 
 .. toctree::
