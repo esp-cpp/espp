@@ -260,7 +260,16 @@ device_restart_case() { # (args unused; runs once, watching both stacks)
       sleep 1
     done
     echo "  $(( $(date +%s) - t0 )) s after the restart, first samples reached: FastDDS sub $n_fd, CycloneDDS sub $n_cy"
-    n=$(count_since "$boot" "RTPSTEST rx across restart"); echo "  rebooted device received $n from the ROS 2 publisher"
+    # The reverse direction re-matches a beat later than the device's own
+    # publisher (whose samples above arrive at once), so poll for it rather than
+    # sampling once: the across-restart publisher stays up and keeps sending at
+    # 5 Hz, so the new incarnation's reader fills in within seconds of re-match.
+    for i in $(seq 1 25); do
+      n=$(count_since "$boot" "RTPSTEST rx across restart")
+      [ "$n" -ge 5 ] && break
+      sleep 1
+    done
+    echo "  rebooted device received $n from the ROS 2 publisher $(( $(date +%s) - t0 )) s after the restart"
     since "$boot" | grep -o "RTPSTEST incarnation.*" | head -1 | sed 's/^/  /'
     since "$boot" | grep -q "RTPSTEST incarnation cur=[0-9a-f]* prev=[0-9a-f]"
     result "restart_previous_incarnation_remembered" $?
