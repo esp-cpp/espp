@@ -16,6 +16,7 @@
 // started at subindex 1 and nothing else was read in between.
 
 #include <array>
+#include <bit>
 #include <cstdint>
 #include <cstdio>
 #include <map>
@@ -34,14 +35,17 @@ static int g_failures = 0;
 
 namespace {
 
+namespace co = espp::detail::canopen;
+namespace ds = espp::detail::ds402;
+namespace mcp = espp::detail::mcp266;
 using espp::CanopenClient;
 using Frame = CanopenClient::CanFrame;
 
 constexpr uint8_t kNode = 3;
-constexpr uint16_t kM1PidSet = 0x203D;
-constexpr uint16_t kM2PidSet = 0x203E;
-constexpr uint16_t kM1PidGet = 0x203F;
-constexpr uint16_t kM2PidGet = 0x2040;
+constexpr uint16_t kM1PidSet = mcp::axis_m1().position_pid_set;
+constexpr uint16_t kM2PidSet = mcp::axis_m2().position_pid_set;
+constexpr uint16_t kM1PidGet = mcp::axis_m1().position_pid_get;
+constexpr uint16_t kM2PidGet = mcp::axis_m2().position_pid_get;
 
 /// A fake MCP266: an object dictionary of 4-byte values plus the readback quirk.
 class FakeMcp266 {
@@ -55,31 +59,41 @@ public:
     // [P, I, D, MaxI, Deadzone, MinPos, MaxPos]
     set_record(kM1PidGet, {103, 0, 868, 0, 10, 10000, 18000});
     set_record(kM2PidGet, {120, 0, 1086, 0, 10, 25000, 32000});
-    od_[{0x6064, 0}] = 13554; // M1 position actual
+    store(ds::OBJ_POSITION_ACTUAL, 0, 13554); // M1 position actual
   }
 
   CanopenClient &client() { return client_; }
 
-  int32_t field(uint16_t object, uint8_t sub) const { return od_.at({object, sub}); }
+  /// A dictionary entry; 0 for one never written, as the controller reads it.
+  int32_t field(uint16_t object, uint8_t sub) const {
+    const auto it = od_.find({object, sub});
+    return it == od_.end() ? 0 : it->second;
+  }
 
 private:
+  using Key = std::pair<uint16_t, uint8_t>;
+
+  void store(uint16_t object, uint8_t sub, int32_t value) {
+    od_.insert_or_assign(Key{object, sub}, value);
+  }
+
   void set_record(uint16_t object, const std::array<int32_t, 7> &readback) {
     for (uint8_t sub = 1; sub <= 7; ++sub) {
-      od_[{object, sub}] = readback[sub - 1];
+      store(object, sub, readback[sub - 1]);
     }
   }
 
   static bool is_readback(uint16_t object) { return object == kM1PidGet || object == kM2PidGet; }
 
   bool on_request(const Frame &req) {
-    if (req.id != espp::detail::canopen::COB_SDO_RX_BASE + kNode || req.dlc != 8) {
+    if (req.id != co::COB_SDO_RX_BASE + kNode || req.dlc != 8) {
       return true; // not an SDO request to us (NMT etc.): accept and ignore
     }
     const uint8_t cmd = req.data[0];
-    const uint16_t index = static_cast<uint16_t>(req.data[1] | (req.data[2] << 8));
+    const auto index = static_cast<uint16_t>(co::get_le(&req.data[1], 2));
     const uint8_t sub = req.data[3];
     Frame resp{};
-    resp.id = espp::detail::canopen::COB_SDO_TX_BASE + kNode;
+    resp.id = co::COB_SDO_TX_BASE + kNode;
     resp.dlc = 8;
     resp.data[1] = req.data[1];
     resp.data[2] = req.data[2];
@@ -92,22 +106,16 @@ private:
         if (sub == 1) {
           snapshot_object_ = index;
         }
-        value = (snapshot_object_ == index) ? od_[{index, sub}] : 0;
+        value = (snapshot_object_ == index) ? field(index, sub) : 0;
       } else {
         snapshot_object_ = 0;
-        value = od_[{index, sub}];
+        value = field(index, sub);
       }
       resp.data[0] = 0x43; // expedited, size indicated, 4 bytes
-      for (int i = 0; i < 4; ++i) {
-        resp.data[4 + i] = static_cast<uint8_t>(static_cast<uint32_t>(value) >> (8 * i));
-      }
+      co::put_le(std::bit_cast<uint32_t>(value), &resp.data[4], 4);
     } else if ((cmd & 0xE3) == 0x23) { // expedited download (write), any size
-      const int n = 4 - ((cmd >> 2) & 0x3);
-      uint32_t raw = 0;
-      for (int i = 0; i < n; ++i) {
-        raw |= static_cast<uint32_t>(req.data[4 + i]) << (8 * i);
-      }
-      apply_write(index, sub, static_cast<int32_t>(raw));
+      const size_t n = 4 - ((cmd >> 2) & 0x3);
+      apply_write(index, sub, std::bit_cast<int32_t>(co::get_le(&req.data[4], n)));
       resp.data[0] = 0x60;
     } else {
       return true; // nothing else is used by these tests
@@ -117,18 +125,20 @@ private:
   }
 
   // the setter takes [D, P, I, MaxI, Deadzone, MinPos, MaxPos]; mirror it into
-  // the readback's [P, I, D, ...]
+  // the readback's [P, I, D, ...]. Written out here rather than taken from
+  // mcp::position_pid_readback_to_setter() so the driver's field shuffle is
+  // checked against an independent copy, not against itself.
   void apply_write(uint16_t index, uint8_t sub, int32_t value) {
     const uint16_t get = index == kM1PidSet ? kM1PidGet : index == kM2PidSet ? kM2PidGet : 0;
     if (get == 0) {
-      od_.insert_or_assign(std::make_pair(index, sub), value);
+      store(index, sub, value);
       return;
     }
     static constexpr std::array<uint8_t, 8> kSetterToReadback{0, 3, 1, 2, 4, 5, 6, 7};
-    od_.insert_or_assign(std::make_pair(get, kSetterToReadback[sub]), value);
+    store(get, kSetterToReadback[sub], value);
   }
 
-  std::map<std::pair<uint16_t, uint8_t>, int32_t> od_;
+  std::map<Key, int32_t> od_;
   uint16_t snapshot_object_{0};
   CanopenClient client_;
 };
@@ -143,8 +153,10 @@ static void test_fake_models_the_quirk() {
   CHECK(!ec);
   for (uint8_t sub = 1; sub <= 5; ++sub) {
     fake.client().read_i32(kM1PidGet, sub, ec);
+    CHECK(!ec);
   }
   CHECK(fake.client().read_i32(kM1PidGet, 6, ec) == 10000); // after subs 1..5: the clamp
+  CHECK(!ec);
 }
 
 static void test_read_position_limits_cold() {
@@ -167,9 +179,9 @@ static void test_read_position_limits_after_other_reads() {
   FakeMcp266 fake;
   espp::Mcp266 mcp(fake.client());
   std::error_code ec;
-  float p, i, d;
-  uint32_t max_i, deadzone;
-  int32_t min_pos = 0, max_pos = 0, count = 0;
+  float p{}, i{}, d{};
+  uint32_t max_i{}, deadzone{};
+  int32_t min_pos{}, max_pos{}, count{};
   CHECK(mcp.read_position_pid(espp::Mcp266::Axis::M1, p, i, d, max_i, deadzone, min_pos, max_pos,
                               ec));
   CHECK(min_pos == 10000 && max_pos == 18000);
