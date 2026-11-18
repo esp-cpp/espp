@@ -156,14 +156,13 @@ public:
     /** Hardware retransmission limit for a frame that fails (no ACK, bit error,
      *  arbitration lost): 0 = single shot (the default: one attempt, then the
      *  frame is dropped and transmit() reports the failure -- the behaviour
-     *  espp::Twai has always had), 1..15 = that many retries, -1 = retransmit
-     *  until it succeeds (standard CAN behaviour; transmit() bounds the wait
-     *  with its timeout).
-     *  \warning Only the TWAI-FD controller (ESP32-C5, ESP32-H4) has a
-     *  retransmission limit. On the SJA1000-style controller of the other
-     *  targets (ESP32, -S2, -S3, -C3, -C6, -H2, -H21, -P4) ESP-IDF's
-     *  twai_hal_v1.c sets single shot for every value but -1, so 1..15 behave
-     *  exactly like 0 (espressif/esp-idf#19195).
+     *  espp::Twai has always had), -1 = retransmit until it succeeds (standard
+     *  CAN behaviour; transmit() bounds the wait with its timeout), 1..15 =
+     *  that many retries on the TWAI-FD controller (ESP32-C5, ESP32-H4) only.
+     *  \warning On the SJA1000-style controller of every other target (ESP32,
+     *  -S2, -S3, -C3, -C6, -H2, -H21, -P4) ESP-IDF's twai_hal_v1.c sets single
+     *  shot for every value but -1, so 1..15 behave exactly like 0
+     *  (espressif/esp-idf#19195).
      *  \note Single shot drops a frame that loses arbitration, which is
      *  routine on a bus where other nodes transmit: a CANopen master's SDO
      *  request (COB-ID 0x600 + node) loses to any node's lower-ID response or

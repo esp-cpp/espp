@@ -61,12 +61,9 @@ behave like 0 (espressif/esp-idf#19195).
 Single shot drops a frame that loses arbitration, which is normal whenever other
 nodes transmit. A CANopen master is the common case: its SDO requests
 (COB-ID `0x600 + node`) lose to every node's responses (`0x580 + node`) and
-PDOs. On an ESP32-P4 at 1 Mbit/s with two Basicmicro MCP266 nodes answering
-about 1,800 SDO requests a second, `tx_retry_count` 0, 3 or 15 failed about 1.6
-frames a second (`io_error`; the error counters showed only arbitration-lost
-events), and -1 failed 2 in 120 s. So use `tx_retry_count = -1`
-under `espp::CanopenClient`. With nothing on the bus to acknowledge, the
-completion wait still times out and `auto_abort_on_timeout` drops the frame.
+PDOs. Use `tx_retry_count = -1` under `espp::CanopenClient`; with nothing on the
+bus to acknowledge, the completion wait still times out and
+`auto_abort_on_timeout` drops the frame.
 
 ## Pending transmissions: `flush()` and `abort_pending()`
 
