@@ -151,7 +151,9 @@ bool Switch2Pro::init() {
   // reconnect/wake a previously-bonded console.
   if (start_fresh_) {
     logger_.info("start_fresh: erasing any stored bond before advertising for a fresh pairing");
-    erase_stored_bond();
+    if (!erase_stored_bond())
+      logger_.error("start_fresh: erasing the stored bond failed (NVS error) — a prior bond may "
+                    "still be loaded below");
   }
   // Load any persisted bond BEFORE configure_security (which otherwise clears
   // bonds): if present we reconnect instead of re-pairing.
@@ -354,7 +356,13 @@ void Switch2Pro::configure_callbacks() {
     notify_input_streaming_state();
     if (callbacks_.on_disconnected)
       callbacks_.on_disconnected(r);
-    advertise();
+    // Normally a disconnect re-advertises so the console can reconnect. Skip it if
+    // the app has called stop_advertising(): it wants the controller to stay dark
+    // until an explicit wake_console() / re-init.
+    if (readvertise_suppressed_)
+      logger_.info("disconnect: advertising suppressed (stop_advertising) — staying off the air");
+    else
+      advertise();
   };
   callbacks.conn_params_update_callback = [this](const NimBLEConnInfo &info) {
     // Fires when ANY connection-parameter-update procedure completes — including
@@ -624,6 +632,9 @@ bool Switch2Pro::wake_console() {
   logger_.info("wake: broadcasting wake advertisement (user-requested)");
   wake_pending_ = true; // keep the wake variant on the air (across any transient
                         // connect/drop while the console boots) until connected
+  // An explicit wake re-enables the automatic re-advertise a prior
+  // stop_advertising() had suppressed.
+  readvertise_suppressed_ = false;
   if (!start_advertising(AdvMode::Wake, host_addr)) {
     wake_pending_ = false; // nothing is on the air — don't leave the latch set
     logger_.error("wake: failed to start the wake advertisement");
@@ -1281,15 +1292,21 @@ bool Switch2Pro::erase_stored_bond() {
 }
 
 bool Switch2Pro::is_advertising() const {
-  NimBLEAdvertising *adv = NimBLEDevice::getAdvertising();
+  // auto: NimBLEDevice::getAdvertising() returns NimBLEAdvertising* or
+  // NimBLEExtAdvertising* depending on CONFIG_BT_NIMBLE_EXT_ADV; both expose
+  // isAdvertising(), so this stays correct under either advertising config.
+  auto *adv = NimBLEDevice::getAdvertising();
   return adv != nullptr && adv->isAdvertising();
 }
 
 void Switch2Pro::stop_advertising() {
-  // Stop the wake re-advertiser first (and clear the wake latches) so it does not
-  // put a fresh advertisement back on the air, then stop advertising. Stopping the
-  // timer here (app context) is safe; it must never be stopped/joined from a
-  // NimBLE host-callback context.
+  // Latch the suppression BEFORE stopping, so a disconnect callback that races
+  // this (e.g. after a disconnect()) sees it and does not re-advertise. Stop the
+  // wake re-advertiser and clear the wake latches so nothing puts a fresh
+  // advertisement back on the air, then stop advertising. Stopping the timer here
+  // (app context) is safe; it must never be stopped/joined from a NimBLE
+  // host-callback context.
+  readvertise_suppressed_ = true;
   wake_pending_ = false;
   boot_wake_pending_ = false;
   if (wake_timer_)
@@ -1302,7 +1319,9 @@ bool Switch2Pro::disconnect() {
   if (h == 0xffff)
     return false;
   const int rc = ble_gap_terminate(h, BLE_ERR_REM_USER_CONN_TERM);
-  if (rc != 0 && rc != BLE_HS_ENOTCONN) {
+  if (rc == BLE_HS_ENOTCONN)
+    return false; // the link was already gone — nothing was terminated
+  if (rc != 0) {
     logger_.error("disconnect: ble_gap_terminate failed (rc={})", rc);
     return false;
   }
@@ -1313,11 +1332,16 @@ std::optional<NimBLEAddress> Switch2Pro::bonded_console_address() const {
   std::lock_guard<std::mutex> lk(bond_mutex_);
   if (!paired_.load())
     return std::nullopt;
-  // bond_peer_val_ is the console's identity address in wire (little-endian)
-  // order, bond_peer_type_ its address type (see save_bond/load_bond).
+  // Return the console's STABLE IDENTITY (host_addr_, from the 0x15 exchange and
+  // persisted in the bond) — the value the component itself trusts for reconnect
+  // (see advertise()), set during the handshake before paired_ flips. NOT
+  // bond_peer_val_, which is the NimBLE connection address and can be a rotating
+  // private address (this component does no SMP resolution). The identity is
+  // matched at the application layer, so its address type is not tracked; report
+  // it as public. host_addr_ is little-endian wire order, as ble_addr_t.val wants.
   ble_addr_t a{};
-  a.type = bond_peer_type_;
-  std::copy(bond_peer_val_.begin(), bond_peer_val_.end(), a.val);
+  a.type = BLE_ADDR_PUBLIC;
+  std::copy(host_addr_.begin(), host_addr_.end(), a.val);
   return NimBLEAddress(a);
 }
 

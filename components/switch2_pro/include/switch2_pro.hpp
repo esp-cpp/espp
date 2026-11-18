@@ -184,8 +184,12 @@ public:
   bool is_advertising() const;
 
   /// Stop advertising now and stop the wake re-advertiser, so no pairing /
-  /// reconnect / wake window stays on the air. Does NOT drop an existing
-  /// connection (use disconnect() for that). Safe to call when not advertising.
+  /// reconnect / wake window stays on the air. Also suppresses the automatic
+  /// re-advertise that a disconnect would otherwise trigger, so the controller
+  /// stays dark until an explicit wake_console() (or a re-init); this makes a
+  /// "disconnect() then stop_advertising()" go-dark sequence race-free regardless
+  /// of when the disconnect callback runs. Does NOT drop an existing connection
+  /// (use disconnect() for that). Safe to call when not advertising.
   void stop_advertising();
 
   /// Terminate the current console connection, if any. The bond is kept (this
@@ -193,10 +197,13 @@ public:
   /// disconnect was requested (a connection was live), false if there was none.
   bool disconnect();
 
-  /// The bonded console's identity address, if a bond exists (from a completed
-  /// pairing this boot or one restored from NVS). Lets a host that keeps its own
-  /// pairing records name the console. @return the address, or nullopt when no
-  /// bond is stored.
+  /// The bonded console's stable identity address, if a bond exists (from a
+  /// completed pairing this boot or one restored from NVS) — the value the
+  /// component uses to recognise the console on reconnect, not the (possibly
+  /// rotating) connection address. Lets a host that keeps its own pairing records
+  /// name the console. The identity is matched at the application layer (the 0x15
+  /// exchange), not via SMP, so its NimBLE address type is not tracked and is
+  /// reported as public. @return the address, or nullopt when no bond is stored.
   std::optional<NimBLEAddress> bonded_console_address() const;
 
   /// Erase the persisted bond (console address + LTK) from NVS WITHOUT a live
@@ -204,8 +211,9 @@ public:
   /// the stored console while the radio is up as a different personality. Unlike
   /// clear_bond() this touches only NVS — it does not remove any live NimBLE
   /// security record or re-advertise (there may be no stack up) — so the next
-  /// Switch2Pro init() simply starts in discovery mode. @return true if a bond
-  /// was erased or none was stored; false only on an NVS error.
+  /// Switch2Pro init() simply starts in discovery mode. Requires NVS to be
+  /// initialised (nvs_flash_init); if NVS cannot be opened this returns false.
+  /// @return true if a bond was erased or none was stored; false on an NVS error.
   static bool erase_stored_bond();
 
   /// Store the latest controller state. This does NOT send — a driver-owned
@@ -359,6 +367,11 @@ protected:
   /// so the callback fires only on an actual edge. Written/read from the NimBLE
   /// callback thread(s).
   std::atomic<bool> input_streaming_reported_{false};
+  /// stop_advertising() latched this: the disconnect callback must NOT auto
+  /// re-advertise, so the controller stays off the air until an explicit
+  /// wake_console() / re-init. Written by stop_advertising() (app task) and
+  /// wake_console() (app task), read by the disconnect callback (host task).
+  std::atomic<bool> readvertise_suppressed_{false};
   std::shared_ptr<espp::Timer> wake_timer_; ///< re-issues the wake advertisement until connected
   BleGattServer ble_gatt_server_;
 
