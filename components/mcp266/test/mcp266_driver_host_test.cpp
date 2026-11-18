@@ -121,11 +121,11 @@ private:
   void apply_write(uint16_t index, uint8_t sub, int32_t value) {
     const uint16_t get = index == kM1PidSet ? kM1PidGet : index == kM2PidSet ? kM2PidGet : 0;
     if (get == 0) {
-      od_[{index, sub}] = value;
+      od_.insert_or_assign(std::make_pair(index, sub), value);
       return;
     }
     static constexpr std::array<uint8_t, 8> kSetterToReadback{0, 3, 1, 2, 4, 5, 6, 7};
-    od_[{get, kSetterToReadback[sub]}] = value;
+    od_.insert_or_assign(std::make_pair(get, kSetterToReadback[sub]), value);
   }
 
   std::map<std::pair<uint16_t, uint8_t>, int32_t> od_;
