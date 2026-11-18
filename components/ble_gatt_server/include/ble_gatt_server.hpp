@@ -27,6 +27,16 @@ namespace espp {
 /// It is also responsible for handling the pairing process.
 /// It also manages the different services that are part of the GATT server.
 ///
+/// @note One GATT server per boot. init() calls NimBLEDevice::init() and
+///       deinit() tears the whole NimBLE stack down (NimBLEDevice::deinit()),
+///       and NimBLE itself owns a single GATT server (NimBLEDevice::createServer()
+///       returns that one server). So a design that needs two different GATT
+///       layouts — e.g. switching a peripheral between two personalities — must
+///       bring up ONE BleGattServer at a time: deinit() the first (and let the
+///       stack settle) before init()-ing the second, rather than holding two
+///       initialized instances at once. Use is_initialized() to check whether an
+///       instance currently owns the stack.
+///
 /// \section ble_gatt_server_ex1 BLE GATT Server Example
 /// \snippet ble_gatt_server_example.cpp ble gatt server example
 class BleGattServer : public BaseComponent {
@@ -279,6 +289,12 @@ public:
     return true;
   }
 
+  /// Whether this server currently owns the NimBLE stack, i.e. init() has run
+  /// and deinit() has not. Lets an application ask "is the radio up as this
+  /// server?" without tracking it in parallel (see the one-server-per-boot note
+  /// on the class). @return true between a successful init() and deinit().
+  bool is_initialized() const { return server_ != nullptr; }
+
   /// Enable or disable the built-in Device Information and Battery services.
   /// @param enabled Whether init()/start_services() create and start the
   ///        built-in Device Information (0x180A) and Battery (0x180F) services.
@@ -302,8 +318,9 @@ public:
   /// It also invalidates any references/pointers to the server.
   /// @note After calling this method, any references/pointers to the server
   ///       and any created services/characteristics will be invalid.
-  /// @note This method should only be called after NimBLEDevice::deinit(true)
-  ///       has been called, since that will free the memory used by the server.
+  /// @note This method itself calls NimBLEDevice::deinit(true), which frees the
+  ///       server and every service/characteristic — that is what invalidates the
+  ///       references above. Do not call NimBLEDevice::deinit() separately.
   /// @note This method will also deinitialize the device info and battery
   ///       services.
   void deinit() {
