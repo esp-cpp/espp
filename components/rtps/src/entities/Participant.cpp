@@ -56,6 +56,8 @@ Participant::~Participant() { m_spdpAgent.stop(); }
 
 void Participant::reuse(const GuidPrefix_t &guidPrefix, ParticipantId_t participantId,
                         const Ip4AddressBytes &localIpAddress, uint8_t localPrefixLength) {
+  m_hasPreviousIncarnation = false;
+  m_previousIncarnationPrefix = GuidPrefix_t{};
   m_guidPrefix = guidPrefix;
   m_participantId = participantId;
   m_localIpAddress = localIpAddress;
@@ -552,6 +554,30 @@ const rtps::ParticipantProxyData *Participant::findRemoteParticipant(const GuidP
     return (*static_cast<decltype(isElementToFind) *>(arg))(value);
   };
   return m_remoteParticipants.find(thunk, &isElementToFind);
+}
+
+Participant::AnnouncementVerdict
+Participant::noteRemoteParticipantAnnouncement(const GuidPrefix_t &prefix,
+                                               const SequenceNumber_t &sn) {
+  std::lock_guard<std::recursive_mutex> lock(m_mutex);
+  auto isElementToFind = [&](const ParticipantProxyData &proxy) {
+    return proxy.m_guid.prefix == prefix;
+  };
+  auto thunk = [](void *arg, const ParticipantProxyData &value) {
+    return (*static_cast<decltype(isElementToFind) *>(arg))(value);
+  };
+  auto remoteParticipant = m_remoteParticipants.find(thunk, &isElementToFind);
+  if (remoteParticipant == nullptr) {
+    return AnnouncementVerdict::Unknown;
+  }
+  if (SPDPAgent::isRestart(sn, remoteParticipant->m_lastSpdpSn)) {
+    return AnnouncementVerdict::Restart;
+  }
+  remoteParticipant->onAliveSignal();
+  if (remoteParticipant->m_lastSpdpSn < sn) {
+    remoteParticipant->m_lastSpdpSn = sn;
+  }
+  return AnnouncementVerdict::Known;
 }
 
 void Participant::refreshRemoteParticipantLiveliness(const GuidPrefix_t &prefix) {

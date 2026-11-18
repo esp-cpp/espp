@@ -7,39 +7,16 @@
 // host side and asserts on the "RTPSTEST ..." lines this firmware logs:
 //
 //   RTPSTEST ready ip=<ip>           participant started
-//   RTPSTEST pub_matched/sub_matched a writer / reader gained a remote peer
-//   RTPSTEST tx <n>                  reliable publisher sent "qemu <n>"
-//   RTPSTEST rx <data>               reliable subscriber received <data>
-//   RTPSTEST be_rx <data>            best-effort subscriber received <data>
-//   RTPSTEST big_rx len=<n>          fragmented-sample subscriber received n bytes
-//   RTPSTEST srv <a>+<b>=<sum>       service request served
-//   RTPSTEST status up=<s> tx= rx= be_rx= big_rx= heap=<free> min_heap=<low water>
-//                                    int=<internal free> int_min= int_largest= psram=<free>
-//                                    stack_min=<bytes> stack_min_task=<name>
-//                                    stack_min_worker=<bytes>
-//     stack_min: the smallest stack high-water mark (bytes never used) over the
-//     engine's tasks (rtps_* and the action servers' exec_* workers) since boot,
-//     and the task; stack_min_worker: the same over the receive workers alone
-//     (rtps_worker_*: they run every reader and matched callback on top of the
-//     engine's deepest path, and rtps_worker_0 overflowed once on the eviction
-//     path with a few hundred bytes of margin). The harness fails
-//     device_stack_margin below 1024 bytes.
-//                                    every 2 s, for the soak and memory checks
-//   RTPSTEST mem sizeof domain=<B> participant= stateful_writer= stateless_writer=
-//                                    stateful_reader= stateless_reader= facade=
-//                                    the engine's compile-time-sized objects (bytes)
-//   RTPSTEST mem heap <stage> internal=<free> internal_min= internal_largest= psram= psram_largest=
-//                                    at boot, started, endpoints: the memory suite's deltas
-//
-// Topics (ROS 2 names: "rt/" prefix stripped, std_msgs/msg/String):
-//   rt/qemu_tx     reliable, device publishes "qemu <n>" every 200 ms
-//   rt/qemu_rx     reliable, device subscribes
-//   rt/qemu_be_tx  best-effort, device publishes "qemu_be <n>" every 200 ms
-//   rt/qemu_be_rx  best-effort, device subscribes
-//   rt/qemu_big    reliable, device subscribes (fragmented samples)
-//   /qemu_add_two_ints  example_interfaces/srv/AddTwoInts service the device serves
-//   /qemu_fibonacci     example_interfaces/action/Fibonacci action the device serves
-//                       (one execute worker: the memory suite reads its cost)
+//   RTPSTEST incarnation cur=<hex> prev=<hex|none>   the GUID prefix incarnation of
+//                                    this boot and, after a software reset, of the
+//                                    previous one (which the engine disposes first)
+//   RTPSTEST restart                 the restart case called /qemu_add_two_ints with a
+//                                    magic request: the firmware tears its participant
+//                                    down and creates a new one (a new GUID incarnation,
+//                                    which first disposes the previous one). Not
+//                                    esp_restart: QEMU's emulated chip panics in
+//                                    ESP-IDF startup after a software reset. Ignored in
+//                                    the first 5 s of a participant.
 
 #include <atomic>
 #include <chrono>
@@ -88,6 +65,10 @@ void log_mem_heap(espp::Logger &logger, const char *stage) {
               heap_caps_get_free_size(MALLOC_CAP_SPIRAM),
               heap_caps_get_largest_free_block(MALLOC_CAP_SPIRAM));
 }
+// The restart case calls /qemu_add_two_ints with this magic request to ask the
+// device to recreate its participant (see the service handler in run_participant).
+constexpr int64_t kRestartMagicA = 424242;
+constexpr int64_t kRestartMagicB = 0;
 } // namespace
 
 using namespace std::chrono_literals;
@@ -122,6 +103,12 @@ static std::string ip4_to_string(esp_ip4_addr_t ip) {
   esp_ip4addr_ntoa(&ip, buf, sizeof(buf));
   return buf;
 }
+
+// One participant lifetime: endpoints, timers, the status loop. Returns when a
+// RESTART sample asks for a new participant (the restart case); everything it
+// owns is destroyed on the way out, and app_main builds the next one.
+static void run_participant(espp::Logger &logger, const std::string &interface_address,
+                            const std::string &interface_netmask);
 
 extern "C" void app_main(void) {
   espp::Logger logger({.tag = "rtps_qemu", .level = espp::Logger::Verbosity::INFO});
@@ -166,6 +153,16 @@ extern "C" void app_main(void) {
   esp_netif_get_ip_info(esp_netif_get_handle_from_ifkey("ETH_DEF"), &ip_info);
   const std::string interface_netmask = ip4_to_string(ip_info.netmask);
 
+  while (true) {
+    run_participant(logger, interface_address, interface_netmask);
+    logger.info("RTPSTEST participant torn down, starting a new one");
+  }
+}
+
+static void run_participant(espp::Logger &logger, const std::string &interface_address,
+                            const std::string &interface_netmask) {
+  const auto boot_time = std::chrono::steady_clock::now();
+  std::atomic<bool> restart_requested{false};
   // Counters for the status line (the callbacks run on the engine's threads)
   std::atomic<uint32_t> tx_count{0};
   std::atomic<uint32_t> rx_count{0};
@@ -259,6 +256,25 @@ extern "C" void app_main(void) {
                        .handler =
                            [&](const AddReq &r) {
                              logger.info("RTPSTEST srv {}+{}={}", r.a, r.b, r.a + r.b);
+                             // The restart case triggers through this reliable,
+                             // already-matched request/reply channel (a topic
+                             // sample to a freshly-matched reliable reader is
+                             // not reliably delivered on every RMW). The magic
+                             // request restarts the participant AFTER the reply
+                             // goes out (the status loop tears down ~2 s later);
+                             // ignored in the participant's first 5 s so an
+                             // in-flight retry does not restart the new one.
+                             if (r.a == kRestartMagicA && r.b == kRestartMagicB) {
+                               const auto up_s = std::chrono::duration_cast<std::chrono::seconds>(
+                                                     std::chrono::steady_clock::now() - boot_time)
+                                                     .count();
+                               if (up_s < 5) {
+                                 logger.info("RTPSTEST restart ignored (participant {} s old)",
+                                             up_s);
+                               } else if (!restart_requested.exchange(true)) {
+                                 logger.info("RTPSTEST restart");
+                               }
+                             }
                              return AddResp{r.a + r.b};
                            },
                    });
@@ -326,6 +342,16 @@ extern "C" void app_main(void) {
   });
 
   logger.info("RTPSTEST ready ip={}", interface_address);
+  {
+    // The prefix incarnation (bytes 10-11 of every GUID prefix this boot) and
+    // the previous one (the previous boot's, kept across a software reset, or
+    // the previous participant's after a RESTART): the engine disposes that
+    // incarnation on its first announce cycles, so peers that still held it
+    // forget it at once.
+    const auto prev = rtps::Domain::currentPreviousGuidIncarnation();
+    logger.info("RTPSTEST incarnation cur={:04x} prev={}", rtps::Domain::currentGuidIncarnation(),
+                prev ? fmt::format("{:04x}", *prev) : std::string{"none"});
+  }
 
   // The engine's tasks' stack margin: the smallest high-water mark (bytes of
   // stack never touched since the task started) over the rtps_* tasks (receive
@@ -358,7 +384,7 @@ extern "C" void app_main(void) {
 
   // Status line every 2 s: the soak and leak checks read heap and min_heap
   const auto t0 = std::chrono::steady_clock::now();
-  while (true) {
+  while (!restart_requested) {
     std::this_thread::sleep_for(2s);
     const auto up =
         std::chrono::duration_cast<std::chrono::seconds>(std::chrono::steady_clock::now() - t0)

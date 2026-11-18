@@ -27,12 +27,16 @@ Author: i11 - Embedded Software, RWTH Aachen University
 #include "rtps/utils/Log.hpp"
 #include "rtps/utils/udpUtils.hpp"
 #include <algorithm>
+#include <atomic>
 #include <cassert>
 #include <mutex>
 #include <random>
 
 #if defined(ESP_PLATFORM)
+#include "esp_attr.h"
 #include "esp_mac.h"
+#include "esp_random.h"
+#include "soc/soc_caps.h"
 #endif
 
 #if DOMAIN_VERBOSE && RTPS_GLOBAL_VERBOSE
@@ -45,12 +49,78 @@ Author: i11 - Embedded Software, RWTH Aachen University
 
 using rtps::Domain;
 
+namespace {
+#if defined(ESP_PLATFORM)
+// The last GUID prefix incarnation drawn (by this boot's Domains or the
+// previous boot's). The record lives in RTC memory (where the chip has it),
+// which a software reset (esp_restart, a panic reboot, deep sleep) preserves
+// and a power-on leaves with arbitrary contents: the magic + complement check
+// tells the two apart. Each Domain draws its incarnation from esp_random and
+// records it here (Domain::drawGuidIncarnation).
+struct IncarnationRecord {
+  uint32_t magic;
+  uint16_t incarnation;
+  uint16_t check; // ~incarnation
+};
+#if SOC_RTC_FAST_MEM_SUPPORTED || SOC_RTC_SLOW_MEM_SUPPORTED
+RTC_NOINIT_ATTR IncarnationRecord s_incarnationRecord;
+#else
+// No RTC memory on this chip: .noinit DRAM also survives a software reset
+// (esp_restart, a panic reboot), just not deep sleep.
+__NOINIT_ATTR IncarnationRecord s_incarnationRecord;
+#endif
+constexpr uint32_t kIncarnationMagic = 0x52545049; // 'RTPI'
+
+// The most recently constructed Domain's incarnation and its predecessor, for
+// the static accessors (a firmware logs them without holding the Domain).
+std::atomic<uint16_t> s_currentIncarnation{0};
+std::atomic<int32_t> s_currentPrevious{-1}; // -1: none
+#endif
+} // namespace
+
+void Domain::drawGuidIncarnation() {
+#if defined(ESP_PLATFORM)
+  const bool valid =
+      s_incarnationRecord.magic == kIncarnationMagic &&
+      s_incarnationRecord.check == static_cast<uint16_t>(~s_incarnationRecord.incarnation);
+  if (valid) {
+    m_previousIncarnation = s_incarnationRecord.incarnation;
+  }
+  do {
+    m_incarnation = static_cast<uint16_t>(esp_random());
+  } while (m_previousIncarnation && m_incarnation == *m_previousIncarnation);
+  s_incarnationRecord =
+      IncarnationRecord{kIncarnationMagic, m_incarnation, static_cast<uint16_t>(~m_incarnation)};
+  s_currentIncarnation = m_incarnation;
+  s_currentPrevious = m_previousIncarnation ? static_cast<int32_t>(*m_previousIncarnation) : -1;
+#endif
+}
+
+uint16_t Domain::currentGuidIncarnation() {
+#if defined(ESP_PLATFORM)
+  return s_currentIncarnation.load();
+#else
+  return 0;
+#endif
+}
+
+std::optional<uint16_t> Domain::currentPreviousGuidIncarnation() {
+#if defined(ESP_PLATFORM)
+  const int32_t p = s_currentPrevious.load();
+  if (p >= 0) {
+    return static_cast<uint16_t>(p);
+  }
+#endif
+  return std::nullopt;
+}
+
 Domain::Domain(const rtps::Ip4AddressBytes &localIpAddress, const DomainConfig &config)
     : espp::BaseComponent("RtpsDomain", espp::Logger::Verbosity::WARN)
     , m_defaultTransport(&Domain::datagramJumppad, this, config.transport)
     , m_transport(&m_defaultTransport)
     , m_localIpAddress(localIpAddress)
     , m_config(config) {
+  drawGuidIncarnation();
   m_transportSetupOk = initializeTransport();
 }
 
@@ -61,6 +131,7 @@ Domain::Domain(rtps::EsppTransport &transport, const rtps::Ip4AddressBytes &loca
     , m_transport(&transport)
     , m_localIpAddress(localIpAddress)
     , m_config(config) {
+  drawGuidIncarnation();
   m_transportSetupOk = initializeTransport();
 }
 
@@ -368,6 +439,15 @@ rtps::Participant *Domain::createParticipant() {
   auto &entry = m_participants[slot];
   entry.reuse(generateGuidPrefix(candidate), candidate, m_localIpAddress,
               m_config.local_prefix_length);
+  if (const auto previous = m_previousIncarnation; previous.has_value()) {
+    // The same board, participant id, vendor and domain with the previous
+    // boot's incarnation bytes: what peers still hold if we came back within
+    // our lease. Disposed by the SPDP agent before the first announcement.
+    entry.m_previousIncarnationPrefix = entry.m_guidPrefix;
+    entry.m_previousIncarnationPrefix.id[10] = static_cast<uint8_t>(*previous >> 8);
+    entry.m_previousIncarnationPrefix.id[11] = static_cast<uint8_t>(*previous & 0xFF);
+    entry.m_hasPreviousIncarnation = true;
+  }
   if (!createBuiltinWritersAndReaders(entry)) {
     // Pool exhaustion (see createBuiltinWritersAndReaders): the slot was never
     // published, so only the probed ports need unwinding for a clean failure
@@ -1015,8 +1095,11 @@ rtps::GuidPrefix_t Domain::generateGuidPrefix(ParticipantId_t id) const {
     prefix.id[7] = Config::VENDOR_ID.vendorId[0];
     prefix.id[8] = Config::VENDOR_ID.vendorId[1];
     prefix.id[9] = Config::DOMAIN_ID;
-    prefix.id[10] = 0xA5;
-    prefix.id[11] = 0x5A;
+    // Bytes 10-11: this boot's incarnation (see guidIncarnation()). Everything
+    // before it is stable across boots, which is what lets the SPDP agent
+    // dispose the previous incarnation and peers tell the two apart.
+    prefix.id[10] = static_cast<uint8_t>(m_incarnation >> 8);
+    prefix.id[11] = static_cast<uint8_t>(m_incarnation & 0xFF);
     return prefix;
   }
 #endif

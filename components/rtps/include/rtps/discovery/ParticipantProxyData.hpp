@@ -67,6 +67,11 @@ public:
   // When this proxy entered the remote-participant pool (eviction prefers the
   // oldest unused one and spares one still completing endpoint discovery).
   std::chrono::time_point<std::chrono::steady_clock> m_discoveredTimestamp;
+  // The highest sequence number seen from this participant's SPDP writer. A
+  // later announcement numbered far below it (SPDPAgent::isRestart) means the
+  // peer restarted with the same GUID prefix - its writers all start again at
+  // 1 - and must be rediscovered, not refreshed.
+  SequenceNumber_t m_lastSpdpSn{0, 0};
   void reset();
 
   /// Parses the SPDP PL_CDR parameter list starting at `buffer`'s current

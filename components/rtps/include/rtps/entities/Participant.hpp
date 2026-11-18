@@ -50,6 +50,13 @@ class Participant : public espp::BaseComponent {
 public:
   GuidPrefix_t m_guidPrefix;
   ParticipantId_t m_participantId;
+  /// The GUID prefix this participant had in the previous boot, when the
+  /// Domain could tell (ESP targets keep the prefix's incarnation bytes
+  /// across a software reset: Domain::generateGuidPrefix). The SPDP agent
+  /// disposes it before the first announcement, so peers forget the old
+  /// incarnation at once instead of when its lease runs out.
+  bool m_hasPreviousIncarnation = false;
+  GuidPrefix_t m_previousIncarnationPrefix{};
   Ip4AddressBytes m_localIpAddress{{0, 0, 0, 0}};
   /// Prefix length (CIDR bits) of the local network, used to tell which of a
   /// peer's announced unicast locators is reachable (see
@@ -137,6 +144,18 @@ public:
 
   const ParticipantProxyData *findRemoteParticipant(const GuidPrefix_t &prefix);
   void refreshRemoteParticipantLiveliness(const GuidPrefix_t &prefix);
+  /// What an SPDP announcement from `prefix`, numbered `sn`, means for the
+  /// remote participant we may know by that prefix - decided and recorded in
+  /// one step under the participant mutex (the lease sweep removes entries
+  /// concurrently).
+  enum class AnnouncementVerdict : uint8_t {
+    Unknown, ///< no such participant: discover it
+    Known,   ///< a known participant; its lease and highest SPDP number were refreshed
+    Restart, ///< a known participant restarted with this prefix (SPDPAgent::isRestart):
+             ///< forget it and discover it afresh; nothing was refreshed
+  };
+  AnnouncementVerdict noteRemoteParticipantAnnouncement(const GuidPrefix_t &prefix,
+                                                        const SequenceNumber_t &sn);
   uint32_t getRemoteParticipantCount();
   MessageReceiver *getMessageReceiver();
   bool checkAndResetHeartbeats();

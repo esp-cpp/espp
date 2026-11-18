@@ -59,8 +59,15 @@ const VendorId_t VENDOR_ID = {13, 37};
 // Fallback only: Domain::generateGuidPrefix() builds the prefix from the
 // Ethernet or Wi-Fi MAC (bytes 0-5) and uses this template only when neither
 // MAC can be read. Bytes 6-9 are always overwritten with the participant id,
-// VENDOR_ID and DOMAIN_ID, so two boards that both fall back share bytes 0-5
-// and 10-11 and would collide on a domain.
+// VENDOR_ID and DOMAIN_ID, so two boards that both fall back share bytes 0-9
+// and collide on a domain unless their incarnations differ (2^-16 odds of
+// matching). Bytes 10-11 are the boot's incarnation
+// (Domain::guidIncarnation(), a nonce drawn once per boot): a board that
+// reboots is a NEW participant to its peers, which is what RTPS requires - a
+// peer that still held the old incarnation would otherwise ignore the
+// restarted writers (their sequence numbers start at 1 again) until the lease
+// ran out. The previous boot's incarnation survives a software reset in RTC
+// memory and is disposed before the first announcement (SPDPAgent).
 const GuidPrefix_t BASE_GUID_PREFIX{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 13};
 
 // DDS domain id (the ROS_DOMAIN_ID equivalent; 0..232 with UDP). The port base

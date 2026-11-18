@@ -19,6 +19,13 @@ CONFIG_RTPS_LIMIT_SPDP_MAX_NUMBER_FOUND_PARTICIPANTS=24
 CONFIG_RTPS_LIMIT_NUM_WRITER_PROXIES_PER_READER=20
 CONFIG_RTPS_LIMIT_NUM_READER_PROXIES_PER_WRITER=20
 
+# The device announces a 30 s lease for itself (the embedded profile's 5 s
+# would expire during the restart case's reboot and hide what it tests: that
+# a peer still holding the device's previous incarnation drops it on the
+# dispose the restarted device sends, and discovers the new one, well before
+# the old lease runs out).
+CONFIG_RTPS_SPDP_DEFAULT_REMOTE_LEASE_DURATION_S=30
+
 # Every ros2 CLI invocation the harness makes is a participant that announces
 # a 20 s lease (FastDDS) and then exits; left to the announced lease, the dead
 # ones pile up in the pool across cases. Cap what the device honours (the
