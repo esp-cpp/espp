@@ -50,6 +50,19 @@ public:
                                     (external_power ? 0x01 : 0x00));
   }
 
+  /// Convenience over set_power() that takes a battery percentage (0..100) and
+  /// quantises it to the report's 0..9 level, so an application that tracks a
+  /// percentage does not have to pick its own mapping. 0% -> 0, 100% -> 9, and
+  /// the range in between is rounded to the nearest level; values above 100 are
+  /// clamped. charging/external-power flags are passed through.
+  /// @param percent Battery charge, 0..100 (clamped).
+  void set_battery_percent(uint8_t percent, bool charging = false, bool external_power = false) {
+    const uint8_t pct = percent > 100 ? 100 : percent;
+    // round(pct/100*9) without floating point: (pct*9 + 50) / 100
+    const uint8_t level = static_cast<uint8_t>((static_cast<uint16_t>(pct) * 9 + 50) / 100);
+    set_power(level, charging, external_power);
+  }
+
   // Face / shoulder / system buttons.
   void set_a(bool v) { set_bit(2, 0x02, v); }
   void set_b(bool v) { set_bit(2, 0x01, v); }
