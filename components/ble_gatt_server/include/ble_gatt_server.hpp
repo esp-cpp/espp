@@ -318,8 +318,9 @@ public:
   /// It also invalidates any references/pointers to the server.
   /// @note After calling this method, any references/pointers to the server
   ///       and any created services/characteristics will be invalid.
-  /// @note This method should only be called after NimBLEDevice::deinit(true)
-  ///       has been called, since that will free the memory used by the server.
+  /// @note This method itself calls NimBLEDevice::deinit(true), which frees the
+  ///       server and every service/characteristic — that is what invalidates the
+  ///       references above. Do not call NimBLEDevice::deinit() separately.
   /// @note This method will also deinitialize the device info and battery
   ///       services.
   void deinit() {
