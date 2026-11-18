@@ -5,6 +5,7 @@
 #include <chrono>
 #include <condition_variable>
 #include <cstdint>
+#include <functional>
 #include <memory>
 #include <mutex>
 #include <optional>
@@ -48,6 +49,28 @@ namespace espp {
 /// \snippet switch2_pro_example.cpp switch2_pro example
 class Switch2Pro : public BaseComponent {
 public:
+  /// Optional application callbacks for the connection/pairing lifecycle. All
+  /// are optional; leave any null to ignore it. They mirror the polling getters
+  /// (is_connected / is_paired / is_input_streaming) for an application that
+  /// would rather be notified than poll from its IO tick.
+  /// @note Every callback is invoked from the NimBLE host-task context. Keep
+  ///       them short and non-blocking, and never destroy this Switch2Pro from
+  ///       one (teardown deinitialises NimBLE from within its own callback).
+  struct Callbacks {
+    /// A console established the link (before pairing / encryption / input
+    /// subscription; see is_input_streaming for when reports actually flow).
+    std::function<void()> on_connected{nullptr};
+    /// The link dropped; `reason` is the simplified BleGattServer reason.
+    std::function<void(BleGattServer::DisconnectReason)> on_disconnected{nullptr};
+    /// The 0x15 pairing handshake finished and a bond now exists. Fires on a
+    /// fresh pairing, not on a bonded reconnect (which does not re-pair).
+    std::function<void()> on_paired{nullptr};
+    /// is_input_streaming() changed: true once the console has subscribed to the
+    /// input characteristic on an encrypted link (reports are flowing), false
+    /// when that stops (e.g. on disconnect).
+    std::function<void(bool)> on_input_streaming{nullptr};
+  };
+
   /// Configuration for the controller.
   struct Config {
     std::string device_name{"Pro Controller"}; ///< BLE advertised name.
@@ -85,6 +108,14 @@ public:
     /// packet-count-based one (our-side tx-credit accumulation — survives ~N×
     /// longer). Ignored in on-change mode.
     uint32_t continuous_stream_divisor{1};
+    /// Start in fresh-pairing (discovery) mode even if a bond is stored: init()
+    /// erases any persisted bond first, so the controller advertises for a new
+    /// pairing instead of reconnecting/waking a previously-bonded console. Use
+    /// this to factory-reset the emulated controller at boot without the
+    /// load-bond / advertise-reconnect / clear / advertise-discovery flicker.
+    bool start_fresh{false};
+    /// Optional lifecycle callbacks (see Callbacks). Default: none (poll instead).
+    Callbacks callbacks{};
     Logger::Verbosity log_level{Logger::Verbosity::INFO}; ///< Verbosity of the logger.
   };
 
@@ -97,6 +128,8 @@ public:
       , continuous_streaming_enabled_(config.continuous_streaming_enabled)
       , continuous_stream_divisor_(
             config.continuous_stream_divisor ? config.continuous_stream_divisor : 1)
+      , start_fresh_(config.start_fresh)
+      , callbacks_(config.callbacks)
       , ble_gatt_server_({.callbacks = {}, .log_level = Logger::Verbosity::WARN}) {}
 
   /// Stop the input-streaming task on teardown.
@@ -139,6 +172,49 @@ public:
   bool is_input_streaming() const {
     return input_subscribed_ && encrypted_ && active_conn_handle_ != 0xffff;
   }
+
+  /// Whether init() has completed successfully, i.e. the radio is up as this
+  /// controller. False before init() and after a failed init(). Lets a host
+  /// that manages one BLE personality at a time ask "is the radio mine?"
+  /// without tracking it in parallel.
+  bool is_initialized() const { return initialized_; }
+
+  /// Whether the controller is currently broadcasting any advertisement
+  /// (discovery, reconnect or wake).
+  bool is_advertising() const;
+
+  /// Stop advertising now and stop the wake re-advertiser, so no pairing /
+  /// reconnect / wake window stays on the air. Also suppresses the automatic
+  /// re-advertise that a disconnect would otherwise trigger, so the controller
+  /// stays dark until an explicit wake_console() (or a re-init); this makes a
+  /// "disconnect() then stop_advertising()" go-dark sequence race-free regardless
+  /// of when the disconnect callback runs. Does NOT drop an existing connection
+  /// (use disconnect() for that). Safe to call when not advertising.
+  void stop_advertising();
+
+  /// Terminate the current console connection, if any. The bond is kept (this
+  /// is not clear_bond()); the console can reconnect. @return true if a
+  /// disconnect was requested (a connection was live), false if there was none.
+  bool disconnect();
+
+  /// The bonded console's stable identity address, if a bond exists (from a
+  /// completed pairing this boot or one restored from NVS) — the value the
+  /// component uses to recognise the console on reconnect, not the (possibly
+  /// rotating) connection address. Lets a host that keeps its own pairing records
+  /// name the console. The identity is matched at the application layer (the 0x15
+  /// exchange), not via SMP, so its NimBLE address type is not tracked and is
+  /// reported as public. @return the address, or nullopt when no bond is stored.
+  std::optional<NimBLEAddress> bonded_console_address() const;
+
+  /// Erase the persisted bond (console address + LTK) from NVS WITHOUT a live
+  /// instance, for a host that keeps its own pairing list and wants to forget
+  /// the stored console while the radio is up as a different personality. Unlike
+  /// clear_bond() this touches only NVS — it does not remove any live NimBLE
+  /// security record or re-advertise (there may be no stack up) — so the next
+  /// Switch2Pro init() simply starts in discovery mode. Requires NVS to be
+  /// initialised (nvs_flash_init); if NVS cannot be opened this returns false.
+  /// @return true if a bond was erased or none was stored; false on an NVS error.
+  static bool erase_stored_bond();
 
   /// Store the latest controller state. This does NOT send — a driver-owned
   /// streaming task notifies the newest stored report once per connection
@@ -262,6 +338,10 @@ protected:
   /// Track CCCD subscribe/unsubscribe so we only stream input when the console
   /// has asked for it (updates input_subscribed_ for the 0x000e characteristic).
   void on_subscribe(NimBLECharacteristic *characteristic, uint16_t sub_value);
+  /// Recompute is_input_streaming() and, if it changed since the last report,
+  /// invoke callbacks_.on_input_streaming. Called from the subscribe / auth-
+  /// complete / disconnect sites that flip the underlying atomics.
+  void notify_input_streaming_state();
   /// NimBLE NOTIFY_TX callback for `characteristic`. Maintains diagnostics only:
   /// it decrements notify_in_flight_ and advances the tx-completion telemetry
   /// (tx_completions_/last_tx_complete_us_). It is NOT the stream's backpressure —
@@ -281,6 +361,17 @@ protected:
   bool continuous_streaming_enabled_; ///< see Config::continuous_streaming_enabled
   uint32_t
       continuous_stream_divisor_; ///< see Config::continuous_stream_divisor (rate-halving probe)
+  bool start_fresh_;              ///< see Config::start_fresh (erase any bond in init())
+  Callbacks callbacks_;           ///< application lifecycle callbacks (see Config::callbacks)
+  /// Last is_input_streaming() value reported through callbacks_.on_input_streaming,
+  /// so the callback fires only on an actual edge. Written/read from the NimBLE
+  /// callback thread(s).
+  std::atomic<bool> input_streaming_reported_{false};
+  /// stop_advertising() latched this: the disconnect callback must NOT auto
+  /// re-advertise, so the controller stays off the air until an explicit
+  /// wake_console() / re-init. Written by stop_advertising() (app task) and
+  /// wake_console() (app task), read by the disconnect callback (host task).
+  std::atomic<bool> readvertise_suppressed_{false};
   std::shared_ptr<espp::Timer> wake_timer_; ///< re-issues the wake advertisement until connected
   BleGattServer ble_gatt_server_;
 

@@ -146,6 +146,15 @@ bool Switch2Pro::init() {
                  "{:02x}:{:02x}:{:02x}",
                  rnd[5], rnd[4], rnd[3], rnd[2], rnd[1], rnd[0]);
   }
+  // Caller asked to start fresh: drop any persisted bond first, so load_bond()
+  // below finds none and we advertise for a new pairing instead of trying to
+  // reconnect/wake a previously-bonded console.
+  if (start_fresh_) {
+    logger_.info("start_fresh: erasing any stored bond before advertising for a fresh pairing");
+    if (!erase_stored_bond())
+      logger_.error("start_fresh: erasing the stored bond failed (NVS error) — a prior bond may "
+                    "still be loaded below");
+  }
   // Load any persisted bond BEFORE configure_security (which otherwise clears
   // bonds): if present we reconnect instead of re-pairing.
   reconnect_mode_ = load_bond();
@@ -300,6 +309,8 @@ void Switch2Pro::configure_callbacks() {
     logger_.info("connected: peer={} interval={:.2f}ms supervision={}ms latency={}",
                  info.getAddress().toString(), info.getConnInterval() * 1.25f,
                  info.getConnTimeout() * 10, info.getConnLatency());
+    if (callbacks_.on_connected)
+      callbacks_.on_connected();
     // NOTE: we deliberately do NOT initiate a connection-parameter update here.
     // NimBLE floors ble_gap_update_params at the 7.5 ms spec minimum, so we could
     // not request the console's 5 ms even if we wanted to — and we don't need to:
@@ -340,7 +351,18 @@ void Switch2Pro::configure_callbacks() {
     input_subscribed_ = false;
     encrypted_ = false;           // require a fresh encrypted session before streaming again
     active_conn_handle_ = 0xffff; // so the wake timer knows we're disconnected
-    advertise();
+    // input streaming necessarily stopped with the link; report the edge (and the
+    // disconnect) before we re-advertise.
+    notify_input_streaming_state();
+    if (callbacks_.on_disconnected)
+      callbacks_.on_disconnected(r);
+    // Normally a disconnect re-advertises so the console can reconnect. Skip it if
+    // the app has called stop_advertising(): it wants the controller to stay dark
+    // until an explicit wake_console() / re-init.
+    if (readvertise_suppressed_)
+      logger_.info("disconnect: advertising suppressed (stop_advertising) — staying off the air");
+    else
+      advertise();
   };
   callbacks.conn_params_update_callback = [this](const NimBLEConnInfo &info) {
     // Fires when ANY connection-parameter-update procedure completes — including
@@ -375,6 +397,9 @@ void Switch2Pro::configure_callbacks() {
       wake_pending_ = false;
       boot_wake_pending_ = false;
     }
+    // Encryption settling can complete the is_input_streaming() condition (if the
+    // console already subscribed); report the edge if so.
+    notify_input_streaming_state();
   };
   ble_gatt_server_.set_callbacks(callbacks);
 }
@@ -607,6 +632,9 @@ bool Switch2Pro::wake_console() {
   logger_.info("wake: broadcasting wake advertisement (user-requested)");
   wake_pending_ = true; // keep the wake variant on the air (across any transient
                         // connect/drop while the console boots) until connected
+  // An explicit wake re-enables the automatic re-advertise a prior
+  // stop_advertising() had suppressed.
+  readvertise_suppressed_ = false;
   if (!start_advertising(AdvMode::Wake, host_addr)) {
     wake_pending_ = false; // nothing is on the air — don't leave the latch set
     logger_.error("wake: failed to start the wake advertisement");
@@ -766,6 +794,20 @@ void Switch2Pro::on_subscribe(NimBLECharacteristic *characteristic, uint16_t sub
     const bool subscribed = (sub_value != 0);
     input_subscribed_.store(subscribed);
     logger_.info("input-report streaming {}", subscribed ? "ENABLED (0x000e)" : "disabled");
+    // Subscribe/unsubscribe can flip is_input_streaming() (if the link is already
+    // encrypted); report the edge.
+    notify_input_streaming_state();
+  }
+}
+
+void Switch2Pro::notify_input_streaming_state() {
+  const bool now_streaming = is_input_streaming();
+  // Edge-trigger: only call the app when the state actually changed. exchange()
+  // returns the previous reported value atomically, so concurrent callers (all on
+  // the NimBLE host task in practice) still fire the callback exactly once per edge.
+  if (input_streaming_reported_.exchange(now_streaming) != now_streaming) {
+    if (callbacks_.on_input_streaming)
+      callbacks_.on_input_streaming(now_streaming);
   }
 }
 
@@ -1224,6 +1266,85 @@ bool Switch2Pro::clear_bond() {
   return ok;
 }
 
+bool Switch2Pro::erase_stored_bond() {
+  // Static: erase ONLY the NVS bond blob. With no instance there is no NimBLE
+  // security record to remove and no advertising to restart. A missing bond is
+  // success; mirrors the NVS half of clear_bond().
+  espp::Nvs nvs;
+  std::error_code ec;
+  espp::NvsHandle handle = nvs.get_handle(kNvsNamespace, ec);
+  if (ec)
+    return false; // could not open the namespace (a real NVS error)
+  std::vector<uint8_t> existing;
+  std::error_code get_ec;
+  handle.get(kNvsBondKey, existing, get_ec);
+  // The espp NVS error category is per-translation-unit (anonymous namespace), so
+  // match not-found by value + category name rather than by error_code equality.
+  const bool not_found = get_ec.value() == static_cast<int>(NvsErrc::Key_Not_Found) &&
+                         std::strcmp(get_ec.category().name(), "nvs") == 0;
+  if (!get_ec) { // a bond is stored — erase it and commit
+    std::error_code erase_ec, commit_ec;
+    handle.erase(kNvsBondKey, erase_ec);
+    handle.commit(commit_ec);
+    return !erase_ec && !commit_ec;
+  }
+  return not_found; // no bond stored = success; a real read error = failure
+}
+
+bool Switch2Pro::is_advertising() const {
+  // auto: NimBLEDevice::getAdvertising() returns NimBLEAdvertising* or
+  // NimBLEExtAdvertising* depending on CONFIG_BT_NIMBLE_EXT_ADV; both expose
+  // isAdvertising(), so this stays correct under either advertising config.
+  auto *adv = NimBLEDevice::getAdvertising();
+  return adv != nullptr && adv->isAdvertising();
+}
+
+void Switch2Pro::stop_advertising() {
+  // Latch the suppression BEFORE stopping, so a disconnect callback that races
+  // this (e.g. after a disconnect()) sees it and does not re-advertise. Stop the
+  // wake re-advertiser and clear the wake latches so nothing puts a fresh
+  // advertisement back on the air, then stop advertising. Stopping the timer here
+  // (app context) is safe; it must never be stopped/joined from a NimBLE
+  // host-callback context.
+  readvertise_suppressed_ = true;
+  wake_pending_ = false;
+  boot_wake_pending_ = false;
+  if (wake_timer_)
+    wake_timer_->stop();
+  ble_gatt_server_.stop_advertising();
+}
+
+bool Switch2Pro::disconnect() {
+  const uint16_t h = active_conn_handle_.load();
+  if (h == 0xffff)
+    return false;
+  const int rc = ble_gap_terminate(h, BLE_ERR_REM_USER_CONN_TERM);
+  if (rc == BLE_HS_ENOTCONN)
+    return false; // the link was already gone — nothing was terminated
+  if (rc != 0) {
+    logger_.error("disconnect: ble_gap_terminate failed (rc={})", rc);
+    return false;
+  }
+  return true;
+}
+
+std::optional<NimBLEAddress> Switch2Pro::bonded_console_address() const {
+  std::lock_guard<std::mutex> lk(bond_mutex_);
+  if (!paired_.load())
+    return std::nullopt;
+  // Return the console's STABLE IDENTITY (host_addr_, from the 0x15 exchange and
+  // persisted in the bond) — the value the component itself trusts for reconnect
+  // (see advertise()), set during the handshake before paired_ flips. NOT
+  // bond_peer_val_, which is the NimBLE connection address and can be a rotating
+  // private address (this component does no SMP resolution). The identity is
+  // matched at the application layer, so its address type is not tracked; report
+  // it as public. host_addr_ is little-endian wire order, as ble_addr_t.val wants.
+  ble_addr_t a{};
+  a.type = BLE_ADDR_PUBLIC;
+  std::copy(host_addr_.begin(), host_addr_.end(), a.val);
+  return NimBLEAddress(a);
+}
+
 void Switch2Pro::handle_pairing(bool via_vibration_command, uint8_t transport, PairingSub sub,
                                 const uint8_t *payload, size_t len) {
   // Pairing responses use byte4=0x10, byte5=0x78, and a payload that begins
@@ -1342,6 +1463,8 @@ void Switch2Pro::handle_pairing(bool via_vibration_command, uint8_t transport, P
     // without re-running the pairing exchange.
     save_bond();
     reconnect_mode_ = true;
+    if (callbacks_.on_paired)
+      callbacks_.on_paired();
     break;
   }
   default:
