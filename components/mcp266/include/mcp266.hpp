@@ -275,11 +275,13 @@ public:
     return true;
   }
 
-  /// \brief Read just the MinPos/MaxPos clamp of an axis's position PID record
-  ///        (two SDOs instead of the seven of read_position_pid()). Useful as a
-  ///        cheap check that the controller still holds the configuration it
-  ///        was given: it reverts to its EEPROM (factory clamp [0, 0]) on a
-  ///        power cycle.
+  /// \brief Read just the MinPos/MaxPos clamp of an axis's position PID record.
+  ///        Useful as a check that the controller still holds the
+  ///        configuration it was given: it reverts to its EEPROM (factory
+  ///        clamp [0, 0]) on a power cycle.
+  /// \note The whole record is read, from subindex 1 (seven SDOs, like
+  ///       read_position_pid()): on the MCP266 firmware tested (1.4.9),
+  ///       subindices 6 and 7 read 0 unless the read starts at subindex 1.
   /// \param axis The motor channel.
   /// \param min_pos Out: minimum commandable position.
   /// \param max_pos Out: maximum commandable position.
@@ -289,16 +291,13 @@ public:
     ec.clear();
     if (!check_axis(axis, ec))
       return false;
-    const AxisState &a = axis_state(axis);
-    min_pos = client_.read_i32(a.objects.position_pid_get, 6, ec);
-    if (!ec) {
-      max_pos = client_.read_i32(a.objects.position_pid_get, 7, ec);
-    }
-    if (ec) {
-      logger_.error("{}: position limits read 0x{:04X} failed: {}", a.name,
-                    a.objects.position_pid_get, ec.message());
+    std::array<int32_t, 7> readback{};
+    if (!read_position_pid_raw(axis_state(axis), readback, ec)) {
       return false;
     }
+    // readback order is [P, I, D, MaxI, Deadzone, MinPos, MaxPos]
+    min_pos = readback[5];
+    max_pos = readback[6];
     return true;
   }
 
@@ -681,6 +680,9 @@ private:
   /// [P, I, D, MaxI, Deadzone, MinPos, MaxPos] (subindices 1..7 of command 63/64).
   /// The first five fields are unsigned on the device; the i32 read carries
   /// their 4-byte bit pattern, which the callers reinterpret.
+  /// Always read in order from subindex 1: the MCP266 (firmware 1.4.9) appears
+  /// to run the mirrored command when subindex 1 is read and to serve the later
+  /// subindices from that reply; read on their own, subindices 6 and 7 return 0.
   bool read_position_pid_raw(const AxisState &a, std::array<int32_t, 7> &readback,
                              std::error_code &ec) {
     for (uint8_t sub = 1; sub <= 7; ++sub) {

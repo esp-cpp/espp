@@ -52,6 +52,11 @@ called once per boot (the MCP reverts to its EEPROM configuration on power-up):
   move ``P`` into the ``D`` slot and zero ``P``. The correct field shuffle (and
   seeding a non-zero ``P`` when the record has none) is done here.
 
+The position PID readback (63/64) is always read from subindex 1, including by
+``read_position_limits()``: on the MCP266 firmware tested (1.4.9) its
+``MinPos`` / ``MaxPos`` subindices (6, 7) read 0 when read on their own, and the
+stored values when read after subindices 1..5.
+
 The motion profile is a stored setting, not a per-move one: profile-position
 moves run on the controller's stored default speed (a ceiling on the move's
 profile velocity) and default accel (the ramp), while the CiA 402 profile
