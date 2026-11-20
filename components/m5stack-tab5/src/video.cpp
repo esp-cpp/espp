@@ -1398,7 +1398,16 @@ void M5StackTab5::flush(lv_display_t *disp, const lv_area_t *area, uint8_t *px_m
       // and notify_ppa_trans_done() signals LVGL when it finishes, so LVGL
       // renders the next area into its other draw buffer meanwhile. The next
       // panel operation waits for it first (wait_for_transfer_idle()).
+#if LV_USE_PPA
+      // Except with LVGL's PPA draw unit: its fills and blends (the PPA's
+      // blend engine) while this rotation (the SRM engine) is in flight left
+      // the rotation's completion never arriving on a Tab5 (LVGL then waits
+      // for the flush forever), so the rotation finishes before LVGL draws
+      // again. The completion callback still signals LVGL as below.
+      srm.mode = PPA_TRANS_MODE_BLOCKING;
+#else
       srm.mode = PPA_TRANS_MODE_NON_BLOCKING;
+#endif
       srm.user_data = this;
       // Serialize the framebuffer write with draw_bitmap (write_lcd_lines /
       // the non-PPA flush tail) so two engines never write the panel FB at once.
