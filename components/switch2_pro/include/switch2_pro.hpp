@@ -175,17 +175,22 @@ public:
   /// empty, exactly as after clear_bond(). Re-enables the automatic re-advertise
   /// a prior stop_advertising() suppressed. A live console link is NOT dropped
   /// (use disconnect() for that); discovery advertising starts once nothing is
-  /// connected. Calling it again while pairing restarts the advertisement and
-  /// keeps the original bond. @return true if discovery advertising is on the
-  /// air or will start on the next disconnect.
+  /// connected. Calling it again while pairing restarts the advertisement, keeps
+  /// the original bond and leaves a handshake already running on a live link
+  /// alone. @return true if discovery advertising is on the air or will start on
+  /// the next disconnect; false if advertising failed to start, in which case a
+  /// window this call opened is rolled back (the previous bond stays current).
   bool start_pairing();
 
   /// End a start_pairing() window that no console completed: restore the bond
   /// that was stored when it began (reconnect mode, its LTK re-injected) and,
   /// unless advertising is suppressed by stop_advertising() or a console is
   /// connected, advertise for that console again (passive reconnect variant). An
-  /// unfinished handshake on a live link is abandoned (its FINALISE is then
-  /// rejected). @return true if a previous bond was restored; false if not
+  /// unfinished handshake on a live link is abandoned: every further pairing step
+  /// on that connection, FINALISE included, is rejected until the console
+  /// reconnects. The window also ends this way when the previous console itself
+  /// reconnects and encrypts during it. @return true if a previous bond was
+  /// restored; false if not
   /// pairing, or there was no bond to go back to (discovery mode stays).
   bool cancel_pairing();
 
@@ -272,9 +277,11 @@ protected:
   bool start_advertising(AdvMode mode, const std::array<uint8_t, 6> &host_addr_le = {});
   /// Advertise in the mode appropriate to the current state: Wake (with the stored
   /// console address) if bonded and wake-on-boot is enabled, else Reconnect if
-  /// bonded, else Discovery.
+  /// bonded, else Discovery. Takes adv_mutex_.
   /// @return true if advertising actually started.
   bool advertise();
+  /// advertise() for a caller that already holds adv_mutex_.
+  bool advertise_locked();
   /// Start a periodic timer that re-issues the wake advertisement (via advertise())
   /// every wake_interval_ while disconnected, so a sleeping console keeps getting
   /// nudged until it wakes and reconnects. No-op if already running.
@@ -304,21 +311,36 @@ protected:
   /// Pro Controller 2's init-sequence ACKs.
   void send_ack(bool via_vibration_command, uint8_t cmd, uint8_t transport, uint8_t sub);
 
-  /// Inject the current LTK (ltk_) into NimBLE's security store for `peer` so the
+  /// A bond with one console: who it is and the key its link encrypts with.
+  struct Bond {
+    uint8_t peer_type{0};               ///< NimBLE peer identity address type
+    std::array<uint8_t, 6> peer_val{};  ///< NimBLE peer identity address (wire/little-endian)
+    std::array<uint8_t, 6> host_addr{}; ///< console identity from exchange-addresses (wire order)
+    std::array<uint8_t, 16> ltk{};      ///< derived during key exchange (A1 ^ B1)
+    bool same_peer(const Bond &other) const {
+      return peer_type == other.peer_type && peer_val == other.peer_val;
+    }
+  };
+
+  /// Inject `bond`'s LTK into NimBLE's security store for its peer so the
   /// controller can satisfy the console's link-layer encryption request (the
   /// Switch 2 uses standard LL encryption with the app-derived LTK, not SMP).
   /// @return true if the LTK was written to the store; false on failure (LL
   ///         encryption will then fail and the console will drop the link).
-  bool inject_ltk(uint8_t peer_type, const uint8_t *peer_val_le);
-  /// Inject ltk_ for the currently-connected peer (used right after finalise).
-  /// @return true on success; false if there is no active connection or the
-  ///         store write failed.
-  bool inject_pairing_ltk();
-  /// Persist the bond {console address, LTK} to NVS so it survives reboots and
-  /// the controller can reconnect/wake without re-pairing.
-  void save_bond();
-  /// Load a persisted bond into bond_peer_* / ltk_. Returns true if one exists.
+  bool inject_ltk(const Bond &bond);
+  /// Persist `bond` to NVS so it survives reboots and the controller can
+  /// reconnect/wake without re-pairing. @return true if it was written.
+  bool save_bond(const Bond &bond);
+  /// Load a persisted bond into bond_. Returns true if one exists.
   bool load_bond();
+  /// Reset the live bond to fresh-pairing (discovery) mode: not paired, no
+  /// reconnect identity, no pending wake. Caller holds bond_mutex_.
+  void reset_bond_locked();
+  /// Delete `peer`'s NimBLE security record. NimBLE refuses that (BLE_HS_EBUSY)
+  /// while advertising, so advertising is stopped first; the caller holds
+  /// adv_mutex_ so nothing restarts it before the caller re-advertises.
+  /// @return true if deleted or nothing was stored for the peer.
+  bool unpair_peer(uint8_t peer_type, const std::array<uint8_t, 6> &peer_val);
   /// Monotonic microseconds since boot (steady_clock), for the stream telemetry.
   static int64_t now_us();
   /// Our own BT address (6 bytes) for the exchange-addresses reply.
@@ -426,7 +448,9 @@ protected:
   /// Highest completed 0x15 pairing step this connection: 0=none, 1=exchange
   /// addresses, 2=exchange keys, 3=confirm LTK. FINALISE (step 4) is only accepted
   /// when this is 3, so an out-of-order/malformed peer cannot persist a bad bond.
-  /// Reset to 0 on each new connection.
+  /// Reset to 0 on each new connection. Guarded by bond_mutex_: each step checks
+  /// and advances it in one hold, so cancel_pairing() lands wholly before or
+  /// after a step.
   uint8_t pairing_stage_{0};
   /// init() lifecycle: init_attempted_ latches on the first init() call so a retry
   /// after a partial failure is refused (it would rebuild GATT against a live
@@ -499,31 +523,37 @@ protected:
   /// Current connection handle (0xffff = BLE_HS_CONN_HANDLE_NONE). Written from the
   /// NimBLE connect/disconnect callbacks, read by the streaming/timer threads — atomic.
   std::atomic<uint16_t> active_conn_handle_{0xffff};
-  /// Guards the bond / session identity below. It is written by the pairing
-  /// handler (NimBLE host task), load/save/clear_bond (init, host task, app
-  /// task) and read by advertise() / wake_console() / inject_ltk() (host task,
-  /// wake timer, app task). Readers copy what they need under the lock and call
-  /// NimBLE after releasing it; clear_bond() resets the fields together with
-  /// reconnect_mode_ under it, so an advertisement never embeds a half-cleared
-  /// address.
+  /// Serialises choosing and starting an advertisement against the bond-state
+  /// transitions that change which one is right. advertise() (disconnect
+  /// callback, wake timer), wake_console(), start/cancel_pairing() and
+  /// clear_bond() hold it, so a wake tick that snapshotted the old bond cannot put
+  /// that advertisement back on the air after a transition, and nothing restarts
+  /// advertising while a NimBLE key record is deleted. Lock order: adv_mutex_,
+  /// then bond_mutex_. Never held while joining the wake timer.
+  std::mutex adv_mutex_;
+  /// Guards the bond / session identity and the pairing window below. Written
+  /// by the pairing handler (NimBLE host task), load_bond / clear_bond /
+  /// start_pairing / cancel_pairing (init, host task, app task) and read by
+  /// advertise() / wake_console() (host task, wake timer, app task). Holders copy
+  /// what they need and call NimBLE after releasing it; a transition changes the
+  /// fields together with reconnect_mode_ / paired_ / pairing_ in one hold, so a
+  /// reader never sees a half-changed bond.
   mutable std::mutex bond_mutex_;
-  std::array<uint8_t, 16> ltk_{};          ///< derived during key exchange (A1 ^ B1)
-  std::array<uint8_t, 6> host_addr_{};     ///< console BD_ADDR (from exchange-addresses)
-  uint8_t bond_peer_type_{0};              ///< persisted console address type
-  std::array<uint8_t, 6> bond_peer_val_{}; ///< persisted console address (wire/little-endian order)
-  /// The bond that was current when start_pairing() began (guarded by
-  /// bond_mutex_): what cancel_pairing() restores, and whose NimBLE key record a
-  /// completed pairing with a different console drops.
-  struct KeptBond {
-    bool valid{false};
-    uint8_t peer_type{0};
-    std::array<uint8_t, 6> peer_val{};
-    std::array<uint8_t, 6> host_addr{};
-    std::array<uint8_t, 16> ltk{};
-  };
-  KeptBond kept_bond_{};
-  /// A start_pairing() window is open. Written from the app task and the FINALISE
-  /// handler (host task) - atomic.
+  Bond bond_{}; ///< the current bond (all zero in discovery mode)
+  /// Handshake scratch: the console identity and LTK of a pairing in progress.
+  /// Committed into bond_ only by an accepted FINALISE, so start_pairing(),
+  /// cancel_pairing() and a restarted handshake never see or clobber each other.
+  std::array<uint8_t, 6> pending_host_addr_{};
+  std::array<uint8_t, 16> pending_ltk_{};
+  /// cancel_pairing() abandoned the handshake on the current link: reject every
+  /// further step on it. Cleared on each new connection.
+  bool handshake_closed_{false};
+  /// The bond that was current when start_pairing() began: what cancel_pairing()
+  /// restores, and whose NimBLE key record a completed pairing with a different
+  /// console drops.
+  std::optional<Bond> kept_bond_;
+  /// A start_pairing() window is open. Written under bond_mutex_; atomic so
+  /// is_pairing() can read it without the lock.
   std::atomic<bool> pairing_{false};
   uint8_t feature_mask_{switch2::PRO2_FEATURE_MASK};
   /// Features the console has actually enabled via FEATURE_SELECT (0x0c). The
