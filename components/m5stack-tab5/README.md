@@ -149,7 +149,25 @@ RGB565): 75.6 ms with full-frame double draw buffers copied into one frame buffe
 PSRAM, against 5.5 MB for one frame buffer plus two full-frame draw buffers (and
 the 1.8 MB rotation scratch buffer is not needed either). The frame buffers are
 cache-line aligned, so they also satisfy a raised `LV_DRAW_BUF_ALIGN` (e.g. 128
-for the PPA draw unit), which a plain `heap_caps_malloc()` draw buffer may not.
+for the PPA draw unit); so are the draw buffers `initialize_display()` allocates.
+
+## LVGL's PPA draw unit
+
+LVGL (9.6) can draw opaque fills and unscaled opaque images with the PPA
+(`CONFIG_LV_USE_PPA`, `CONFIG_LV_USE_PPA_IMG`). It needs
+`CONFIG_LV_DRAW_BUF_ALIGN` equal to the data cache line size (128), and short
+PPA bursts like the BSP's own (`CONFIG_LV_PPA_BURST_LENGTH_64`: the DPI panel's
+scan-out underruns under full-length ones). With it enabled, the flush waits
+for its PPA rotation before returning instead of leaving it in flight while
+LVGL draws the next area: with the two overlapping, the rotation's completion
+never arrived and LVGL waited for the flush forever.
+
+Measured on a Tab5 (a 1280 x 720 landscape launcher UI, rotated by the PPA in
+partial draw buffers), it did not pay off: redraws averaged 88-91 ms with the
+PPA draw unit, 85-88 ms with the rotation waited for but software drawing,
+and 75 ms with software drawing and the rotation left in flight (the
+default). Each PPA operation syncs the cache over the rows it touches, and
+waiting for the rotation loses the overlap with drawing.
 
 ## Saving internal DMA-capable RAM
 
