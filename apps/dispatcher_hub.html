@@ -1,0 +1,999 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>espp Device Hub (WebUSB / Web Serial)</title>
+  <meta name="description" content="Connect to an espp device over USB (WebUSB / Web Serial) and discover which modules it runs. The device answers a capability query on the reserved dispatcher discovery module (0xFF) with its name, firmware, and the list of modules — each shown as a tab that links to its hosted web app.">
+  <meta name="espp-category" content="device management">
+  <meta name="espp-transports" content="webusb webserial">
+  <style>
+    :root {
+      --bg: #0f1418; --panel: #161d24; --panel2: #1d262f; --line: #2a3540;
+      --fg: #e6edf3; --muted: #8a97a6; --accent: #4aa8ff; --ok: #3fb950; --err: #f85149;
+      --radius: 10px;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--bg); color: var(--fg);
+      font: 14px/1.5 ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, sans-serif; }
+    header { display: flex; flex-wrap: wrap; gap: 12px; align-items: center;
+      padding: 14px 20px; border-bottom: 1px solid var(--line); background: var(--panel); }
+    h1 { font-size: 17px; margin: 0; font-weight: 650; }
+    h1 .muted { font-weight: 400; }
+    .muted { color: var(--muted); }
+    .spacer { flex: 1; }
+    button { font: inherit; color: var(--fg); background: var(--panel2); border: 1px solid var(--line);
+      padding: 7px 13px; border-radius: 8px; cursor: pointer; }
+    button:hover:not(:disabled) { border-color: var(--accent); }
+    button:disabled { opacity: 0.45; cursor: default; }
+    button.primary { background: var(--accent); border-color: var(--accent); color: #06121f; font-weight: 600; }
+    .status-pill { padding: 4px 11px; border-radius: 999px; font-size: 12px; border: 1px solid var(--line);
+      color: var(--muted); }
+    .status-pill.ok { color: var(--ok); border-color: var(--ok); }
+    .status-pill.err { color: var(--err); border-color: var(--err); }
+    .status-pill.busy { color: var(--accent); border-color: var(--accent); }
+    main { max-width: 1000px; margin: 0 auto; padding: 20px; }
+    .banner { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius);
+      padding: 14px 18px; margin-bottom: 18px; }
+    .banner .dev { font-size: 16px; font-weight: 600; }
+    .layout { display: grid; grid-template-columns: 240px 1fr; gap: 18px; }
+    @media (max-width: 720px) { .layout { grid-template-columns: 1fr; } }
+    .tabs { display: flex; flex-direction: column; gap: 6px; }
+    .tab { text-align: left; padding: 11px 13px; border-radius: 8px; background: var(--panel);
+      border: 1px solid var(--line); display: flex; flex-direction: column; gap: 2px; }
+    .tab .id { font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; }
+    .tab.active { border-color: var(--accent); background: var(--panel2); }
+    .detail { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius);
+      padding: 22px; min-height: 220px; }
+    .detail h2 { margin: 0 0 4px; font-size: 20px; }
+    .detail .sub { color: var(--muted); margin-bottom: 18px; font-variant-numeric: tabular-nums; }
+    .detail p.desc { font-size: 15px; margin: 0 0 22px; }
+    .empty { color: var(--muted); display: flex; align-items: center; justify-content: center;
+      min-height: 220px; text-align: center; }
+    a.open { display: inline-block; text-decoration: none; background: var(--accent); color: #06121f;
+      font-weight: 600; padding: 9px 16px; border-radius: 8px; }
+    a.open:hover { filter: brightness(1.08); }
+    .noapp { color: var(--muted); font-style: italic; }
+    /* app registry (registry.js beside the hosted apps): device-level + per-module app lists */
+    #deviceApps { display: none; }
+    #deviceApps.show { display: block; }
+    #deviceApps .title { font-weight: 600; margin-bottom: 6px; }
+    .applist { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+    .applist li { display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: baseline; }
+    .applist a { color: var(--accent); text-decoration: none; font-weight: 600; }
+    .applist a:hover { text-decoration: underline; }
+    .applist .file { color: var(--muted); font: 12px ui-monospace, SFMono-Regular, Menlo, monospace; }
+    .applist .note { color: var(--muted); font-size: 12px; }
+    .applist .note.warn { color: #d29922; }
+    .also { margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--line); }
+    .also .title { font-weight: 600; margin-bottom: 6px; }
+    .handoff { margin: 18px 20px 0; border-color: var(--accent); }
+    .handoff-actions { display: flex; gap: 8px; margin-top: 10px; }
+    #unsupported { display: none; background: #3a1d1d; border: 1px solid var(--err);
+      border-radius: 8px; padding: 12px 16px; margin: 18px 0; }
+    #log { margin-top: 20px; background: #0b0f13; border: 1px solid var(--line); border-radius: 8px;
+      padding: 10px 12px; height: 130px; overflow-y: auto;
+      font: 12px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; }
+    #log .t { color: var(--muted); }
+    #log .err { color: var(--err); }
+    #log .ok { color: var(--ok); }
+    /* espp web-app navigation: back to the Device Hub (primary) and the apps page */
+    .espp-nav { display: inline-flex; gap: 6px; align-items: center; margin-left: 12px; font-size: 12px; font-weight: 600; vertical-align: middle; }
+    .espp-nav a { text-decoration: none; white-space: nowrap; padding: 4px 10px; border-radius: 6px;
+      border: 1px solid var(--accent, #4aa8ff); color: var(--accent, #4aa8ff); }
+    .espp-nav a.hub { background: var(--accent, #4aa8ff); color: var(--accent-contrast, #06121f); }
+    .espp-nav a:hover { filter: brightness(1.1); }
+    .espp-nav a:focus-visible { outline: 2px solid var(--accent, #4aa8ff); outline-offset: 2px; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>espp Device Hub <span class="muted">(WebUSB / Web Serial)</span></h1>
+    <nav class="espp-nav" aria-label="espp web apps"><a id="navApps" href="https://esp-cpp.github.io/espp/apps/index.html" title="All espp web apps">All apps</a></nav>
+    <div class="spacer"></div>
+    <label class="muted" style="font-size:12px;"><input type="checkbox" id="anyDevice" /> any device</label>
+    <button id="connectUsbBtn" class="primary">Connect (WebUSB)</button>
+    <button id="connectSerialBtn">Connect (Web Serial)</button>
+    <button id="disconnectBtn" disabled>Disconnect</button>
+    <span id="status" class="status-pill">idle</span>
+  </header>
+
+  <!-- hand-off: the hub released its device so the app it opened can take it -->
+  <div class="banner handoff" id="handoff" role="status" aria-live="polite" hidden>
+    <div class="dev" id="handoffTitle">Device handed off</div>
+    <div class="muted" id="handoffSub"></div>
+    <div class="handoff-actions">
+      <button id="reconnectBtn" class="primary">Reconnect</button>
+      <button id="dismissHandoffBtn">Dismiss</button>
+    </div>
+  </div>
+
+  <main>
+    <div id="unsupported">This browser supports neither WebUSB nor Web Serial. Use a Chromium-based
+      browser (Chrome / Edge) over HTTPS.</div>
+
+    <div class="banner">
+      <div class="dev" id="devName">Not connected</div>
+      <div class="muted" id="devSub">Connect to an espp device to discover the modules it runs.</div>
+    </div>
+
+    <div class="banner" id="deviceApps"></div>
+
+    <div class="layout">
+      <div class="tabs" id="tabs"></div>
+      <div class="detail" id="detail"><div class="empty">No modules yet — connect a device.</div></div>
+    </div>
+
+    <div id="log"></div>
+  </main>
+
+  <!-- Optional: the app registry generated beside the hosted apps by
+       doc/generate_apps_index.py (window.ESPP_APPS = every app + the protocols it
+       speaks). It lets the hub link every app that can drive a device, not only
+       the one page each module advertises. A missing file (file://, a copy of
+       this page on its own) just leaves window.ESPP_APPS undefined. -->
+  <script src="registry.js"></script>
+  <script>
+    "use strict";
+    // ---- stream_frame v2 constants (see components/stream_frame) ----
+    // espp devices share the pid.codes VID 0x1209 but vary by PID (ota 0x0d32,
+    // coredump 0x0d36, ...), so the hub filters by VID only to list them all.
+    const DEFAULT_VID = 0x1209, VENDOR_CLASS = 0xFF;
+    const MAGIC0 = 0x54, MAGIC1 = 0x4F, HEADER_SIZE = 9, CRC_SIZE = 4, CORRELATION_SIZE = 2;
+    const MAX_PAYLOAD = 4096, MAX_FRAME = HEADER_SIZE + CORRELATION_SIZE + MAX_PAYLOAD + CRC_SIZE;
+    const FLAGS_VERSION = 1, FLAGS_REQUEST = (FLAGS_VERSION << 4), FLAGS_REPLY_BIT = 0x01, FLAG_CORRELATION = 0x02;
+    // reserved dispatcher discovery module + its ListModules type
+    const MODULE_DISCOVERY = 0xFF, T_LIST_MODULES = 0x00;
+
+    const els = {};
+    for (const id of ["status","connectUsbBtn","connectSerialBtn","disconnectBtn","anyDevice",
+      "devName","devSub","tabs","detail","log","unsupported","deviceApps",
+      "handoff","handoffTitle","handoffSub","reconnectBtn","dismissHandoffBtn"]) els[id] = document.getElementById(id);
+
+    function logLine(cls, text) {
+      const line = document.createElement("div");
+      const t = document.createElement("span"); t.className = "t"; t.textContent = new Date().toLocaleTimeString() + " ";
+      const b = document.createElement("span"); b.className = cls; b.textContent = text;
+      line.appendChild(t); line.appendChild(b); els.log.appendChild(line);
+      while (els.log.childNodes.length > 300) els.log.removeChild(els.log.firstChild);
+      els.log.scrollTop = els.log.scrollHeight;
+    }
+    function setStatus(state, text) { els.status.className = "status-pill" + (state ? " " + state : ""); els.status.textContent = text; }
+
+    // ---- CRC-32 (zlib), golden crc32("123456789") === 0xCBF43926 ----
+    const CRC_TABLE = (() => { const t = new Uint32Array(256); for (let i=0;i<256;i++){ let c=i; for(let k=0;k<8;k++) c=(c&1)?((c>>>1)^0xEDB88320):(c>>>1); t[i]=c>>>0; } return t; })();
+    function crc32(bytes) { let c=0xFFFFFFFF; for (let i=0;i<bytes.length;i++) c=CRC_TABLE[(c^bytes[i])&0xFF]^(c>>>8); return (~c)>>>0; }
+    if (crc32(new TextEncoder().encode("123456789")) !== 0xCBF43926) throw new Error("CRC-32 self-test failed");
+
+    // The hub only ever SENDS requests, so the reply bit stays clear. (A reply is
+    // marked by stream_frame flags bit0, which is unrelated to the type value.)
+    function buildFrame(module, type, payload) {
+      payload = payload || new Uint8Array(0);
+      const frame = new Uint8Array(HEADER_SIZE + payload.length + CRC_SIZE);
+      const view = new DataView(frame.buffer);
+      view.setUint16(0, 0x4F54, true);
+      frame[2] = FLAGS_REQUEST;
+      frame[3] = module; frame[4] = type;
+      view.setUint32(5, payload.length, true);
+      view.setUint32(HEADER_SIZE + payload.length, crc32(frame.subarray(0, HEADER_SIZE + payload.length)), true);
+      return frame;
+    }
+
+    class StreamParser {
+      constructor() { this.buf = new Uint8Array(0); }
+      reset() { this.buf = new Uint8Array(0); }
+      feed(chunk) {
+        const merged = new Uint8Array(this.buf.length + chunk.length);
+        merged.set(this.buf, 0); merged.set(chunk, this.buf.length);
+        const frames = []; let pos = 0;
+        for (;;) {
+          while (pos < merged.length && !(merged[pos] === MAGIC0 && (pos + 1 >= merged.length || merged[pos + 1] === MAGIC1))) pos++;
+          if (merged.length - pos < 3) break;
+          const flags = merged[pos + 2];
+          const ext = (flags & FLAG_CORRELATION) ? CORRELATION_SIZE : 0;
+          const headerSize = HEADER_SIZE + ext;
+          if (merged.length - pos < headerSize) break;
+          const view = new DataView(merged.buffer, merged.byteOffset + pos);
+          const len = view.getUint32(5 + ext, true);
+          if (len > MAX_PAYLOAD) { pos++; continue; }
+          const total = headerSize + len + CRC_SIZE;
+          if (merged.length - pos < total) break;
+          const expected = view.getUint32(headerSize + len, true);
+          if (crc32(merged.subarray(pos, pos + headerSize + len)) !== expected) { pos++; continue; }
+          frames.push({ module: merged[pos + 3], type: merged[pos + 4], reply: (flags & FLAGS_REPLY_BIT) !== 0,
+                        payload: merged.slice(pos + headerSize, pos + headerSize + len) });
+          pos += total;
+        }
+        this.buf = merged.slice(pos);
+        return frames;
+      }
+    }
+    const parser = new StreamParser();
+
+    // ---- decode the describe() TLV payload (see espp::Dispatcher::describe) ----
+    // Latest payload version this hub understands. Version 1 records end after
+    // the description; version 2 records add [protocol str][protocol_version
+    // u16 LE] (the module's stable protocol id, e.g. "espp.ota", + version).
+    const DISCOVERY_VERSION_KNOWN = 2;
+    function parseDiscovery(payload) {
+      let i = 0;
+      const need = (n) => { if (i + n > payload.length) throw new Error("truncated discovery payload"); };
+      const u8 = () => { need(1); return payload[i++]; };
+      const u16 = () => { need(2); const v = payload[i] | (payload[i + 1] << 8); i += 2; return v; };
+      const str = () => { const n = u8(); need(n); const s = new TextDecoder().decode(payload.subarray(i, i + n)); i += n; return s; };
+      const version = u8(); u8(); // version, reserved
+      const device = str(), fw = str();
+      const count = u8();
+      const modules = [];
+      for (let m = 0; m < count; m++) {
+        const rec = { id: u8(), name: str(), app: str(), desc: str(), protocol: "", protocolVersion: 0 };
+        if (version >= 2) { rec.protocol = str(); rec.protocolVersion = u16(); }
+        modules.push(rec);
+      }
+      // A payload version we fully understand must be consumed exactly. Records
+      // carry no length, so a newer version is parsed with the exact version-2
+      // record layout and may only append bytes AFTER the record list (reported
+      // as `trailing` and ignored), never inside a record.
+      const trailing = payload.length - i;
+      if (version <= DISCOVERY_VERSION_KNOWN && trailing !== 0) throw new Error("trailing bytes in discovery payload");
+      return { version, device, fw, modules, trailing };
+    }
+    // Treat a module's `app` as an internal, same-directory page only: a safe
+    // filename ending in .html, no scheme/colon, no slash, no "..". This stops a
+    // malicious/compromised device from making the hub open javascript:/data:/
+    // external URLs via the advertised app field.
+    function safeAppName(app) {
+      return typeof app === "string" && /^[A-Za-z0-9._-]+\.html$/.test(app) && !app.includes("..");
+    }
+
+    // ===================== App registry matching =====================
+    // The registry (window.ESPP_APPS from registry.js) lists every hosted app
+    // with the protocols it speaks: [{file, title, description, category,
+    // protocols: [{id, version, optional}], transports}]. Matching is by the
+    // protocol ids a device advertises (discovery v2); a v1 payload carries no
+    // protocols, so nothing matches and only the advertised app is linked.
+    // --- begin app matching (pure; covered by web/test/apps_registry_test.js) ---
+    function registryApps(registry) {
+      if (!registry || !Array.isArray(registry.apps)) return [];
+      return registry.apps.filter(a => a && safeAppName(a.file) && Array.isArray(a.protocols));
+    }
+    // The first advertised module speaking `id` (any version), or null.
+    function moduleForProtocol(modules, id) {
+      return (modules || []).find(m => m && m.protocol === id) || null;
+    }
+    // Notes about how `app` fits the advertised `modules`: a version mismatch
+    // per protocol, and listed protocols the device does not advertise. `warn`
+    // marks notes that mean the app will not fully work.
+    function appNotes(app, modules) {
+      const notes = [];
+      for (const p of app.protocols) {
+        const m = moduleForProtocol(modules, p.id);
+        if (!m) {
+          notes.push(p.optional ? { text: "optional " + p.id + " not advertised", warn: false }
+                                : { text: "needs " + p.id + ", not advertised", warn: true });
+        } else if (m.protocolVersion && m.protocolVersion !== p.version) {
+          // an advertised version 0 means "unspecified" (same rule as the consoles' resolveModuleId)
+          notes.push({ text: "app speaks " + p.id + " v" + p.version + ", device advertises v" + m.protocolVersion, warn: true });
+        }
+      }
+      return notes;
+    }
+    // The module an app's link should carry as `?module=`: a module speaking the
+    // app's first REQUIRED protocol (an app applies ?module to its primary
+    // service only, e.g. the coredump console to espp.coredump, never to the
+    // optional crash trigger), else its first optional one, else null. When
+    // `prefer` (the module whose pane is being rendered) speaks that protocol
+    // it wins, so a device advertising the same protocol on two modules links
+    // each pane to its own module; otherwise the first advertised one is used.
+    function appAnchor(app, modules, prefer) {
+      const required = app.protocols.filter(p => !p.optional);
+      const pick = id => (prefer && prefer.protocol === id) ? prefer : moduleForProtocol(modules, id);
+      return (required.length ? required : app.protocols).map(p => pick(p.id)).find(Boolean) || null;
+    }
+    // Apps that can drive this device: every REQUIRED protocol the app lists is
+    // advertised (apps that list no espp protocol cannot be matched and are left
+    // out). Each entry links the app to its anchor module (appAnchor).
+    function appsForDevice(registry, modules) {
+      const out = [];
+      for (const app of registryApps(registry)) {
+        if (!app.protocols.length) continue;
+        const required = app.protocols.filter(p => !p.optional);
+        if (!required.every(p => moduleForProtocol(modules, p.id))) continue;
+        const anchor = appAnchor(app, modules);
+        if (!anchor) continue;
+        out.push({ app, module: anchor, notes: appNotes(app, modules) });
+      }
+      return out;
+    }
+    // Apps (other than the module's own advertised page) that speak this
+    // module's protocol. Apps whose other required protocols the device lacks
+    // are kept, with a warning note, so the user can see why they are a poor fit.
+    // The link is anchored like appsForDevice (the module speaking the app's
+    // primary protocol), falling back to this module when nothing else fits.
+    function appsForModule(registry, module, modules) {
+      if (!module || !module.protocol) return [];
+      const all = modules || [module];
+      const out = [];
+      for (const app of registryApps(registry)) {
+        if (app.file === module.app) continue;
+        if (!app.protocols.some(p => p.id === module.protocol)) continue;
+        out.push({ app, module: appAnchor(app, all, module) || module, notes: appNotes(app, all) });
+      }
+      return out;
+    }
+    // --- end app matching ---
+
+    // --- begin connection helpers (shared; byte-identical in every console + the hub, see web/test/resolve_module_id_test.js) ---
+    // Links may carry, besides ?module=, parameters that make a page connect on
+    // load WITHOUT the browser chooser to a device this origin was already
+    // granted (the Device Hub links its apps this way after releasing the
+    // device):  ?autoconnect=1&transport=usb|serial&vid=0x1209&pid=0x0d32&serial=ABC
+    // vid / pid are hex (0x..) or decimal; `serial` is the USB serial number
+    // (WebUSB only: Web Serial exposes vid / pid alone).
+    function parseConnectParams(search) {
+      const q = new URLSearchParams(search || "");
+      const num = (key) => {
+        const raw = q.get(key);
+        if (raw === null) return null;
+        const s = raw.trim();
+        if (!/^(0x[0-9a-f]+|[0-9]+)$/i.test(s)) return null;
+        const v = Number(s);
+        return Number.isInteger(v) && v >= 0 && v <= 0xFFFF ? v : null;
+      };
+      const transport = (q.get("transport") || "").trim().toLowerCase();
+      const flag = (q.get("autoconnect") || "").trim().toLowerCase();
+      return {
+        autoconnect: flag === "1" || flag === "true" || flag === "yes",
+        transport: transport === "usb" || transport === "serial" ? transport : null,
+        vid: num("vid"),
+        pid: num("pid"),
+        serial: (q.get("serial") || "").trim() || null,
+      };
+    }
+    // The identity of an open connection: enough to find the same device again
+    // (after a reboot it re-enumerates as a NEW USBDevice / SerialPort object
+    // with the same ids) and to build hand-off links.
+    function usbIdentity(device) {
+      return { transport: "usb", vid: device.vendorId, pid: device.productId, serial: device.serialNumber || null };
+    }
+    function serialIdentity(port) {
+      const info = port && typeof port.getInfo === "function" ? (port.getInfo() || {}) : {};
+      return { transport: "serial", vid: info.usbVendorId != null ? info.usbVendorId : null,
+               pid: info.usbProductId != null ? info.usbProductId : null, serial: null };
+    }
+    // Is `got` (the identity of a device that just appeared) the device `want`
+    // names? vid + pid must match; the serial number only when both sides
+    // report one (a serial-port arrival never has one). An arrival with no
+    // usable ids is never a match.
+    function identityMatches(want, got) {
+      if (!want || !got || got.vid == null || got.pid == null) return false;
+      if (want.vid != null && want.vid !== got.vid) return false;
+      if (want.pid != null && want.pid !== got.pid) return false;
+      if (want.serial && got.serial && want.serial !== got.serial) return false;
+      return true;
+    }
+    function describeIdentity(identity) {
+      if (!identity) return "device";
+      const hex = (v) => v == null ? "?" : "0x" + v.toString(16).padStart(4, "0");
+      return (identity.transport === "serial" ? "serial port" : "USB device") + " " + hex(identity.vid) + ":" + hex(identity.pid) +
+             (identity.serial ? " sn " + identity.serial : "");
+    }
+    // Pick, among the devices this origin may already use (navigator.usb
+    // .getDevices() / navigator.serial.getPorts()), the one `want` names: vid
+    // and pid must match when given; a serial number must match when both sides
+    // report one (a device that reports none is accepted only when it is the
+    // sole candidate). Several candidates without a serial -> the first. With no
+    // ids at all only a lone permitted device is accepted.
+    function pickUsbDevice(devices, want) {
+      const list = Array.isArray(devices) ? devices.filter(Boolean) : [];
+      if (!want || (want.vid == null && want.pid == null && !want.serial)) return list.length === 1 ? list[0] : null;
+      const byIds = list.filter(d => (want.vid == null || d.vendorId === want.vid) && (want.pid == null || d.productId === want.pid));
+      if (want.serial) {
+        const exact = byIds.find(d => d.serialNumber === want.serial);
+        if (exact) return exact;
+        const unnamed = byIds.filter(d => !d.serialNumber);
+        return unnamed.length === 1 ? unnamed[0] : null;
+      }
+      return byIds.length ? byIds[0] : null;
+    }
+    function pickSerialPort(ports, want) {
+      const list = Array.isArray(ports) ? ports.filter(Boolean) : [];
+      if (!want || (want.vid == null && want.pid == null)) return list.length === 1 ? list[0] : null;
+      const byIds = list.filter(p => { const id = serialIdentity(p); return (want.vid == null || id.vid === want.vid) && (want.pid == null || id.pid === want.pid); });
+      return byIds.length ? byIds[0] : null;
+    }
+    async function findPermittedUsbDevice(want) {
+      if (typeof navigator === "undefined" || !navigator.usb || typeof navigator.usb.getDevices !== "function") return null;
+      try { return pickUsbDevice(await navigator.usb.getDevices(), want); } catch (_) { return null; }
+    }
+    async function findPermittedSerialPort(want) {
+      if (typeof navigator === "undefined" || !navigator.serial || typeof navigator.serial.getPorts !== "function") return null;
+      try { return pickSerialPort(await navigator.serial.getPorts(), want); } catch (_) { return null; }
+    }
+    // "Auto-reconnect" checkbox preference, shared by every app on this origin
+    // (localStorage; default on; access may throw in private windows).
+    const AUTO_RECONNECT_KEY = "espp.autoReconnect";
+    function loadAutoReconnect() {
+      try { const v = localStorage.getItem(AUTO_RECONNECT_KEY); return v === null ? true : v === "1"; } catch (_) { return true; }
+    }
+    function saveAutoReconnect(on) { try { localStorage.setItem(AUTO_RECONNECT_KEY, on ? "1" : "0"); } catch (_) {} }
+    // One open at a time per page. Every connect entry point — the Connect
+    // button(s), the ?autoconnect path and the reconnect supervisor — runs
+    // through gate.run(fn); while an open is in progress a second entry is
+    // refused (resolves false) instead of racing the first: the later
+    // completion would otherwise overwrite a live transport without closing it
+    // or orphan a claimed USB device. The supervisor consults isBusy() and
+    // waits rather than counting a refused entry as a failed attempt.
+    // opts.connected() is the page's "already holds a device" predicate: the
+    // gate serializes opens but does not know about an adopted connection, so
+    // run() also refuses (opens nothing) while the page is connected — a
+    // reconnect callback whose permitted-device lookup outlived a manual
+    // connect must not open the same device a second time.
+    function createOpenGate(opts) {
+      const connected = opts && typeof opts.connected === "function" ? opts.connected : () => false;
+      const gate = { busy: false };
+      gate.isBusy = () => gate.busy;
+      gate.isConnected = () => !!connected();
+      gate.run = async (fn) => {
+        if (gate.busy || connected()) return false;
+        gate.busy = true;
+        try { return await fn(); } finally { gate.busy = false; }
+      };
+      return gate;
+    }
+    // Reconnect supervisor. After an UNEXPECTED link loss (unplug, reboot) it
+    // retries opts.reconnect(identity, attempt) -> bool on a bounded back-off
+    // until an attempt succeeds, the attempts run out, or stop() is called; a
+    // platform `connect` event (onDeviceAppeared) retries at once. opts.enabled()
+    // (the checkbox) is consulted on every attempt. expectReboot() marks a
+    // reboot the page itself requested (longer window, friendlier log);
+    // suppress() cancels reconnecting until the next successful connect (a
+    // bootloader reboot: the device comes back as a DIFFERENT USB device that
+    // this page cannot drive). opts.log(cls, text) receives progress lines.
+    // Attempts never overlap: one opts.reconnect() call is in flight at a time
+    // (two concurrent opens of the same device would race each other); an
+    // arrival event during an attempt is remembered and retried right after
+    // the current attempt settles. A loss that happens while an older attempt
+    // is still in flight (the device dropped again during the post-open
+    // discovery probe) starts a new generation; when the stale attempt settles
+    // it hands over by scheduling the current generation's pending retry.
+    // opts.gate (createOpenGate) is shared with the page's manual / auto-connect
+    // paths: while one of those holds it the supervisor polls instead of opening.
+    // Cancellation: stop() (the checkbox unticked, a manual disconnect) and a
+    // newer loss cancel the attempt in flight. opts.reconnect(identity, n,
+    // token) may consult token.cancelled(); when a cancelled attempt settles
+    // the supervisor ignores the page's connected() call made while it was
+    // open and runs opts.discard() (the page's close path), so an open that
+    // finished after the user said "stop" is closed instead of adopted.
+    function createReconnectSupervisor(opts) {
+      const delays = opts.delaysMs || [500, 1000, 1500, 2000, 3000, 4000, 5000, 5000, 5000, 5000];
+      const rebootDelays = opts.rebootDelaysMs || delays.concat([5000, 5000, 5000, 5000, 5000, 5000]);
+      const log = typeof opts.log === "function" ? opts.log : () => {};
+      // generations <= cancelBefore are cancelled; inFlightGen is the generation of the attempt in flight
+      const sup = { active: false, identity: null, attempt: 0, expected: false, suppressed: false, timer: null, generation: 0, inFlight: false, retryAfter: false, cancelBefore: 0, inFlightGen: 0 };
+      const cancelled = (gen) => gen <= sup.cancelBefore;
+      const cancelCurrent = () => { sup.cancelBefore = sup.generation; };
+      const clearTimer = () => { if (sup.timer) { clearTimeout(sup.timer); sup.timer = null; } };
+      const schedule = (gen, ms) => { clearTimer(); sup.timer = setTimeout(() => { sup.timer = null; attempt(gen); }, ms); };
+      async function attempt(gen) {
+        if (gen !== sup.generation || !sup.active) return;
+        if (sup.inFlight) { sup.retryAfter = true; return; } // serialized: retry once the current attempt settles
+        if (opts.gate && opts.gate.isBusy()) { schedule(gen, 250); return; } // a manual / auto-connect open is in progress: wait, not an attempt
+        if (!opts.enabled()) { sup.stop("auto-reconnect is off"); return; }
+        const plan = sup.expected ? rebootDelays : delays;
+        sup.attempt++;
+        let ok = false;
+        sup.inFlight = true; sup.inFlightGen = gen; sup.retryAfter = false;
+        const token = { cancelled: () => cancelled(gen) };
+        try { ok = await opts.reconnect(sup.identity, sup.attempt, token); }
+        catch (e) { if (!cancelled(gen)) log("warn", "reconnect attempt " + sup.attempt + " failed: " + (e && e.message ? e.message : e)); }
+        finally { sup.inFlight = false; }
+        if (cancelled(gen) && ok) {
+          // stop() / a newer loss happened while the open was pending and the
+          // open succeeded anyway: it must not stay adopted (the page's
+          // connected() was ignored). An attempt that opened nothing (lookup
+          // failed, returned false) has nothing to discard; running the page's
+          // disconnect then would drop a manual connection made meanwhile.
+          if (typeof opts.discard === "function") { try { await opts.discard(); } catch (_) {} }
+        }
+        if (gen !== sup.generation) {
+          // stale: a newer loss owns the supervisor now. Its timer may already
+          // have fired into our in-flight attempt (retryAfter) and left no timer
+          // behind, so re-arm it here or auto-reconnect would stall for good.
+          const pending = sup.retryAfter; sup.retryAfter = false;
+          if (sup.active && !sup.timer && pending) schedule(sup.generation, 100);
+          return;
+        }
+        if (!sup.active) { sup.retryAfter = false; return; }
+        if (ok) { sup.active = false; sup.expected = false; sup.retryAfter = false; clearTimer(); return; }
+        if (sup.attempt >= plan.length) { sup.stop("gave up reconnecting after " + sup.attempt + " attempts; use Connect"); return; }
+        if (sup.retryAfter) { sup.retryAfter = false; schedule(gen, 100); return; } // the device showed up meanwhile
+        schedule(gen, plan[sup.attempt]);
+      }
+      // the page lost its connection without asking for it
+      sup.onLinkLost = (identity) => {
+        clearTimer();
+        cancelCurrent();
+        sup.generation++;
+        if (sup.suppressed) { sup.suppressed = false; sup.active = false; log("sys", "Not reconnecting: the device was asked to reboot into its bootloader (it enumerates as a different USB device; use Connect once it is back in the application)."); return; }
+        if (!opts.enabled() || !identity) { sup.active = false; return; }
+        sup.active = true; sup.identity = identity; sup.attempt = 0;
+        const plan = sup.expected ? rebootDelays : delays;
+        log("sys", (sup.expected ? "Device is rebooting — reconnecting to " : "Link lost — trying to reconnect to ") + describeIdentity(identity) + " (auto-reconnect; uncheck to stop)…");
+        schedule(sup.generation, plan[0]);
+      };
+      // a permitted device re-appeared (navigator.usb / navigator.serial
+      // "connect"): only the device being recovered wakes the supervisor — an
+      // unrelated arrival would otherwise burn one of the bounded retries
+      sup.onDeviceAppeared = (identity) => {
+        if (!sup.active || !identityMatches(sup.identity, identity)) return;
+        if (sup.inFlight) sup.retryAfter = true; else schedule(sup.generation, 100);
+      };
+      sup.expectReboot = () => { sup.expected = true; sup.suppressed = false; };
+      sup.suppress = () => { sup.suppressed = true; sup.expected = false; };
+      // a connection was established (manually or by a successful attempt)
+      sup.connected = () => {
+        if (sup.inFlight && cancelled(sup.inFlightGen)) return; // a cancelled attempt's open: it is about to be discarded
+        clearTimer(); sup.generation++; sup.active = false; sup.expected = false; sup.suppressed = false; sup.attempt = 0; sup.retryAfter = false; };
+      sup.stop = (reason) => { clearTimer(); cancelCurrent(); sup.generation++; const was = sup.active; sup.active = false; sup.expected = false; sup.retryAfter = false; if (was && reason) log("sys", "Auto-reconnect stopped: " + reason + "."); };
+      sup.isActive = () => sup.active;
+      return sup;
+    }
+    // Forward the platform "a permitted device was (re)attached" events to the
+    // supervisor, with the arriving device's identity, so a reboot is caught
+    // the moment the device enumerates (and other devices are ignored).
+    function watchDeviceArrivals(sup) {
+      if (typeof navigator === "undefined") return;
+      if (navigator.usb && typeof navigator.usb.addEventListener === "function")
+        navigator.usb.addEventListener("connect", (ev) => sup.onDeviceAppeared(ev && ev.device ? usbIdentity(ev.device) : null));
+      if (navigator.serial && typeof navigator.serial.addEventListener === "function")
+        navigator.serial.addEventListener("connect", (ev) => { const port = ev && (ev.port || ev.target); sup.onDeviceAppeared(port ? serialIdentity(port) : null); });
+    }
+    // App -> hub notice that an app released its device (manual disconnect or
+    // page closed), so a hub that handed the device off can offer to reconnect.
+    // Same-origin pages only (BroadcastChannel); best effort everywhere.
+    function openDeviceChannel() {
+      let channel = null;
+      try { channel = typeof BroadcastChannel === "function" ? new BroadcastChannel("espp-device") : null; } catch (_) { return null; }
+      // Close the channel when the page goes away (no late deliveries to a page
+      // that is unloading, no leaked channel across rapid reloads). The listener
+      // is registered on a later task so it runs AFTER the page's own pagehide
+      // handler, which still needs the channel to post its released notice.
+      if (channel && typeof window !== "undefined" && typeof window.addEventListener === "function")
+        setTimeout(() => window.addEventListener("pagehide", () => { try { channel.close(); } catch (_) {} }, { once: true }), 0);
+      return channel;
+    }
+    function postReleased(channel, identity) {
+      if (!channel || !identity) return;
+      try { channel.postMessage({ type: "released", identity: identity, page: (typeof location !== "undefined" ? location.pathname : "").split("/").pop() }); } catch (_) {}
+    }
+    // --- end connection helpers ---
+    // --- begin app navigation (shared; byte-identical in every web app, see web/test/resolve_module_id_test.js) ---
+    // Links back to the Device Hub (primary) and the apps page. The static hrefs
+    // in the HTML are the hosted copies (always valid, also when this script
+    // never runs — a file:// page whose ES-module import is blocked). In the
+    // hosted apps directory (…/apps/ on the documentation site, or a local
+    // server in docs/apps) hub and apps page are siblings of every app, so the
+    // links are rewritten to the sibling files there; anywhere else — file://,
+    // a source tree served from http://localhost (where the haptics console is
+    // example/webapp/index.html itself) — they stay on the hosted copies.
+    const ESPP_APPS_BASE = "https://esp-cpp.github.io/espp/apps/";
+    function inHostedAppsDir(loc) {
+      if (!loc || !/^https?:$/.test(loc.protocol)) return false;
+      const dir = String(loc.pathname || "").replace(/[^/]*$/, "");
+      return /\/apps\/$/.test(dir);
+    }
+    function navHref(file) {
+      return inHostedAppsDir(typeof location !== "undefined" ? location : null) ? file : ESPP_APPS_BASE + file;
+    }
+    // Wire the #navHub / #navApps hrefs (every app). Returns the hub link.
+    function installAppNav() {
+      const hub = typeof document !== "undefined" ? document.getElementById("navHub") : null;
+      const apps = typeof document !== "undefined" ? document.getElementById("navApps") : null;
+      if (apps) apps.href = navHref("index.html");
+      if (hub) hub.href = navHref("dispatcher_hub.html");
+      return hub;
+    }
+    // --- end app navigation ---
+    // --- begin hub link helpers (hub only; covered by the same test) ---
+    // Query string (no leading "?") for a link that opens an app on `moduleId`
+    // and auto-connects to `identity` (null -> the module id alone).
+    function connectQuery(moduleId, identity) {
+      const q = new URLSearchParams();
+      q.set("module", String(moduleId));
+      if (identity && (identity.transport === "usb" || identity.transport === "serial")) {
+        q.set("autoconnect", "1");
+        q.set("transport", identity.transport);
+        if (identity.vid != null) q.set("vid", "0x" + identity.vid.toString(16).padStart(4, "0"));
+        if (identity.pid != null) q.set("pid", "0x" + identity.pid.toString(16).padStart(4, "0"));
+        if (identity.serial) q.set("serial", identity.serial);
+      }
+      return q.toString();
+    }
+    // --- end hub link helpers ---
+
+    // ===================== Transports (WebUSB + Web Serial) =====================
+    let transport = null;
+    class UsbTransport {
+      constructor() { this.device=null; this.iface=null; this.epIn=null; this.epOut=null; this.reading=false; }
+      // `preset`: an already-permitted USBDevice (reconnect after a hand-off) —
+      // opened directly, no chooser.
+      async open(anyDevice, preset) {
+        // WebUSB's requestDevice REQUIRES `filters` (there is no acceptAllDevices
+        // like Web Bluetooth): an empty list shows every device; a VID-only filter
+        // shows all espp devices regardless of their per-example PID.
+        const options = anyDevice ? { filters: [] } : { filters: [{ vendorId: DEFAULT_VID }] };
+        this.device = preset || await navigator.usb.requestDevice(options);
+        await this.device.open();
+        if (this.device.configuration === null) await this.device.selectConfiguration(1);
+        const config = this.device.configuration; if (!config) throw new Error("no active USB configuration");
+        let found = null;
+        for (const itf of config.interfaces) { for (const alt of itf.alternates) {
+          if (alt.interfaceClass !== VENDOR_CLASS) continue;
+          let inEp=null, outEp=null;
+          for (const ep of alt.endpoints) { if (ep.type!=="bulk") continue; if (ep.direction==="in"&&!inEp) inEp=ep; else if (ep.direction==="out"&&!outEp) outEp=ep; }
+          if (inEp && outEp) { found = { itf: itf.interfaceNumber, alt: alt.alternateSetting, inEp, outEp }; break; }
+        } if (found) break; }
+        if (!found) throw new Error("no vendor-specific (0xFF) interface with a bulk IN+OUT endpoint pair was found");
+        await this.device.claimInterface(found.itf);
+        if (found.alt !== 0) await this.device.selectAlternateInterface(found.itf, found.alt);
+        this.iface = found.itf; this.epIn = found.inEp.endpointNumber; this.epOut = found.outEp.endpointNumber;
+      }
+      describe() { const d=this.device; return (d.productName||"USB device")+" ("+d.vendorId.toString(16).padStart(4,"0")+":"+d.productId.toString(16).padStart(4,"0")+") [WebUSB]"; }
+      identity() { return usbIdentity(this.device); }
+      async send(bytes) {
+        let sent = 0;
+        while (sent < bytes.length) {
+          const out = await this.device.transferOut(this.epOut, sent === 0 ? bytes : bytes.subarray(sent));
+          if (out.status === "stall") { try { await this.device.clearHalt("out", this.epOut); } catch(_){} throw new Error("OUT endpoint stalled"); }
+          if (out.status !== "ok") throw new Error("OUT transfer status: " + out.status);
+          const n = out.bytesWritten || 0; if (n === 0) throw new Error("OUT transfer made no progress"); sent += n;
+        }
+      }
+      async readLoop(onData) {
+        this.reading = true;
+        while (this.reading && this.device) {
+          let result;
+          try { result = await this.device.transferIn(this.epIn, MAX_FRAME); } catch(e) { if (this.reading) throw e; return; }
+          if (!this.reading) return;
+          if (result.status === "stall") { try { await this.device.clearHalt("in", this.epIn); } catch(_){} continue; }
+          if (result.data && result.data.byteLength) onData(new Uint8Array(result.data.buffer, result.data.byteOffset, result.data.byteLength));
+        }
+      }
+      async close() { this.reading = false; if (this.device) { if (this.iface !== null) { try { await this.device.releaseInterface(this.iface); } catch(_){} } try { await this.device.close(); } catch(_){} } this.device = null; }
+    }
+    class SerialTransport {
+      constructor() { this.port=null; this.reader=null; this.writer=null; this.reading=false; }
+      // `preset`: an already-permitted SerialPort (reconnect after a hand-off).
+      async open(preset) { this.port = preset || await navigator.serial.requestPort(); await this.port.open({ baudRate: 115200 }); this.writer = this.port.writable.getWriter(); }
+      describe() { const info = this.port.getInfo ? this.port.getInfo() : {}; let id = "Serial port"; if (info && info.usbVendorId != null) id = "USB serial ("+info.usbVendorId.toString(16).padStart(4,"0")+":"+(info.usbProductId||0).toString(16).padStart(4,"0")+")"; return id + " [Web Serial]"; }
+      identity() { return serialIdentity(this.port); }
+      async send(bytes) { await this.writer.write(bytes); }
+      async readLoop(onData) {
+        this.reading = true; this.reader = this.port.readable.getReader();
+        try { while (this.reading) { const { value, done } = await this.reader.read(); if (done) { if (this.reading) throw new Error("serial connection closed (EOF)"); break; } if (value && value.length) onData(new Uint8Array(value.buffer, value.byteOffset, value.byteLength)); } }
+        finally { try { this.reader.releaseLock(); } catch(_){} this.reader = null; }
+      }
+      async close() {
+        this.reading = false;
+        if (this.reader) { try { await this.reader.cancel(); } catch(_){} try { this.reader.releaseLock(); } catch(_){} this.reader = null; }
+        if (this.writer) { try { await this.writer.close(); } catch(_){} try { this.writer.releaseLock(); } catch(_){} this.writer = null; }
+        if (this.port) { try { await this.port.close(); } catch(_){} this.port = null; }
+      }
+    }
+
+    // ===================== Discovery + UI =====================
+    let modules = [], selected = -1, queryTimer = null;
+
+    function onFrame(f) {
+      if (f.module !== MODULE_DISCOVERY || !f.reply || f.type !== T_LIST_MODULES) return;
+      if (queryTimer) { clearTimeout(queryTimer); queryTimer = null; }
+      let info;
+      try { info = parseDiscovery(f.payload); }
+      catch (e) { logLine("err", "malformed discovery reply"); return; }
+      els.devName.textContent = info.device || "espp device";
+      els.devSub.textContent = (info.fw ? "firmware " + info.fw + " · " : "") + info.modules.length + " module(s) · " + (transport ? transport.describe() : "");
+      modules = info.modules;
+      selected = modules.length ? 0 : -1;
+      renderTabs(); renderDetail(); renderDeviceApps();
+      logLine("ok", "discovered " + modules.length + " module(s): " + modules.map(m => m.name).join(", "));
+      if (info.version > DISCOVERY_VERSION_KNOWN)
+        logLine("warn", "discovery payload v" + info.version + " is newer than this hub understands (v" + DISCOVERY_VERSION_KNOWN + "); parsed with the v" + DISCOVERY_VERSION_KNOWN + " record layout");
+      if (info.trailing > 0)
+        logLine("t", "ignoring " + info.trailing + " trailing byte(s) after the module list (discovery v" + info.version + ")");
+    }
+
+    function renderTabs() {
+      els.tabs.innerHTML = "";
+      modules.forEach((m, idx) => {
+        const b = document.createElement("button");
+        b.className = "tab" + (idx === selected ? " active" : "");
+        const name = document.createElement("div"); name.textContent = m.name || ("module " + m.id);
+        const id = document.createElement("div"); id.className = "id"; id.textContent = "module " + m.id + (safeAppName(m.app) ? "" : " · no app");
+        b.appendChild(name); b.appendChild(id);
+        b.addEventListener("click", () => { selected = idx; renderTabs(); renderDetail(); });
+        els.tabs.appendChild(b);
+      });
+    }
+
+    function renderDetail() {
+      const d = els.detail;
+      if (selected < 0 || !modules[selected]) { d.innerHTML = '<div class="empty">No modules.</div>'; return; }
+      const m = modules[selected];
+      d.innerHTML = "";
+      const h = document.createElement("h2"); h.textContent = m.name || ("module " + m.id);
+      // The module id is only a routing key; the protocol id (v2 payloads) says
+      // what the module actually speaks.
+      const sub = document.createElement("div"); sub.className = "sub";
+      sub.textContent = "module id " + m.id + (m.protocol ? " · protocol " + m.protocol + (m.protocolVersion ? " v" + m.protocolVersion : "") : "");
+      const p = document.createElement("p"); p.className = "desc"; p.textContent = m.desc || "";
+      d.appendChild(h); d.appendChild(sub); if (m.desc) d.appendChild(p);
+      if (safeAppName(m.app)) {
+        // Pass the module id along (?module=N) so the app drives exactly this
+        // module even if the device serves the protocol on a non-default id
+        // (the app also re-discovers on connect; the id given here wins), plus
+        // the device identity so the app auto-connects (see appLink).
+        const a = appLink(m.app, m.id); a.className = "open";
+        a.textContent = "Open " + m.app + " (module " + m.id + ") ↗";
+        d.appendChild(a);
+        const note = document.createElement("div"); note.className = "muted"; note.style.marginTop = "12px";
+        note.textContent = "Opens the module's own web app in a new tab on module " + m.id + ". The hub releases the device first (only one page can hold it) and the app connects to it on load.";
+        d.appendChild(note);
+      } else {
+        const n = document.createElement("div"); n.className = "noapp";
+        n.textContent = m.app ? ("advertises an app (" + m.app + ") that is not a valid internal page — not linked")
+                              : "This module advertises no web app.";
+        d.appendChild(n);
+      }
+      // Other hosted apps that speak this module's protocol (from the registry).
+      const others = appsForModule(window.ESPP_APPS, m, modules);
+      if (others.length) {
+        const box = document.createElement("div"); box.className = "also";
+        const t = document.createElement("div"); t.className = "title";
+        t.textContent = safeAppName(m.app) ? "Also works with" : "Apps that speak " + m.protocol;
+        box.appendChild(t); box.appendChild(appList(others)); d.appendChild(box);
+      }
+    }
+
+    // An app link: `file?module=N&autoconnect=1&transport=..&vid=..&pid=..[&serial=..]`
+    // (connectQuery). Clicking it hands the device off: the hub closes its
+    // connection first — WebUSB lets one page claim an interface, Web Serial one
+    // page open a port — then opens the app, which connects to the same device
+    // on load without a chooser. The hub does NOT reconnect by itself afterwards
+    // (it cannot tell "the app released the device" from "the device rebooted"):
+    // it shows a Reconnect button instead.
+    // The href itself never carries the auto-connect parameters: a middle-click
+    // or "open link in new tab" bypasses the click handler, so the browser
+    // would open the app with autoconnect=1 while the hub still owns the
+    // device and the app's open would fail. Those activations get the plain
+    // ?module=N link (the app connects through its own chooser); only the
+    // controlled click builds the auto-connect URL, after the release.
+    function appLink(file, moduleId) {
+      const a = document.createElement("a");
+      a.href = file + "?" + connectQuery(moduleId, null);
+      a.target = "_blank"; a.rel = "noopener noreferrer";
+      a.addEventListener("click", (ev) => {
+        if (handingOff) { ev.preventDefault(); return; } // a hand-off is in progress: ignore until it settles
+        if (!transport) return; // nothing to release: a plain link
+        ev.preventDefault();
+        const tab = reserveTab(file); // synchronously, inside the user gesture
+        if (!tab) return;
+        handOff(file + "?" + connectQuery(moduleId, transport.identity()), file, tab);
+      });
+      return a;
+    }
+    // One <ul> of app links: "Title  file.html  · note · note", each link opening
+    // the app on the matched module (?module=N) in a new tab.
+    function appList(entries) {
+      const ul = document.createElement("ul"); ul.className = "applist";
+      for (const e of entries) {
+        const li = document.createElement("li");
+        const a = appLink(e.app.file, e.module.id);
+        a.textContent = (e.app.title || e.app.file) + " ↗";
+        const f = document.createElement("span"); f.className = "file"; f.textContent = e.app.file + " (module " + e.module.id + ")";
+        li.appendChild(a); li.appendChild(f);
+        for (const n of e.notes) { const s = document.createElement("span"); s.className = "note" + (n.warn ? " warn" : ""); s.textContent = "· " + n.text; li.appendChild(s); }
+        ul.appendChild(li);
+      }
+      return ul;
+    }
+
+    // "Apps for this device": every registry app whose required protocols the
+    // device advertises. Without registry.js only the advertised apps are linked
+    // (per module, in the detail pane) and a short note says so.
+    function renderDeviceApps() {
+      const box = els.deviceApps; box.innerHTML = ""; box.className = "banner";
+      if (!modules.length) return;
+      const t = document.createElement("div"); t.className = "title"; t.textContent = "Apps for this device";
+      box.appendChild(t);
+      if (!window.ESPP_APPS) {
+        const n = document.createElement("div"); n.className = "muted";
+        n.textContent = "App registry (registry.js) not loaded — only the apps the device advertises are linked. The hosted hub (docs/apps/) lists every app that speaks this device's protocols.";
+        box.appendChild(n);
+      } else {
+        const entries = appsForDevice(window.ESPP_APPS, modules);
+        if (entries.length) box.appendChild(appList(entries));
+        else { const n = document.createElement("div"); n.className = "muted"; n.textContent = "No hosted app matches the protocols this device advertises" + (modules.some(m => m.protocol) ? "." : " (the device sent a v1 discovery payload without protocol ids)."); box.appendChild(n); }
+      }
+      box.classList.add("show");
+    }
+
+    function queryDiscovery() {
+      parser.reset();
+      transport.send(buildFrame(MODULE_DISCOVERY, T_LIST_MODULES)).catch(e => logLine("err", "query send failed: " + (e.message || e)));
+      logLine("t", "querying device modules…");
+      if (queryTimer) clearTimeout(queryTimer);
+      queryTimer = setTimeout(() => { logLine("err", "no discovery reply — is the device serving discovery (serve_discovery)?"); }, 2500);
+    }
+
+    // `preset`: an already-permitted USBDevice / SerialPort to open without the
+    // chooser (Reconnect after a hand-off).
+    // One open at a time (Connect button(s), auto-connect, reconnect) — see createOpenGate.
+    async function connect(kind, preset) {
+      return openGate.run(() => connectLocked(kind, preset));
+    }
+    async function connectLocked(kind, preset) {
+      if (transport) return;
+      try {
+        setStatus("busy", "connecting…");
+        transport = kind === "usb" ? new UsbTransport() : new SerialTransport();
+        if (kind === "usb") await transport.open(els.anyDevice.checked, preset);
+        else await transport.open(preset);
+        // any successful connection ends a pending hand-off: a late `released`
+        // notice from the old app must not resurrect a banner whose Reconnect
+        // would target the wrong device
+        handedOff = null; hideHandoff();
+        setStatus("ok", "connected");
+        logLine("ok", "connected: " + transport.describe());
+        transport.readLoop((chunk) => { for (const f of parser.feed(chunk)) onFrame(f); })
+          .catch(e => { logLine("err", "read loop: " + (e.message || e)); onLinkLost(); });
+        setConnected(true);
+        queryDiscovery();
+      } catch (e) {
+        if (e && e.name === "NotFoundError" && !preset) logLine("t", "device selection cancelled");
+        else logLine("err", "connect failed: " + (e && e.message ? e.message : e));
+        setStatus("err", "error"); if (transport) { try { await transport.close(); } catch(_){} } transport = null; setConnected(false);
+      }
+    }
+
+    async function disconnect() {
+      if (queryTimer) { clearTimeout(queryTimer); queryTimer = null; }
+      if (transport) { try { await transport.close(); } catch(_){} transport = null; }
+      onLinkLost();
+    }
+
+    // ===================== Hand-off to an app =====================
+    // { identity, kind, app } of the device the hub released for an app, or null.
+    let handedOff = null;
+    // The hub only ever opens one connection at a time (Connect buttons and
+    // Reconnect share this gate); a hand-off is atomic too: `handingOff` holds
+    // from the click until the device is closed and the tab navigated, and
+    // app clicks in between are ignored (a second click would otherwise start
+    // a second hand-off on the same transport and navigate a second tab).
+    const openGate = createOpenGate({ connected: () => !!transport });
+    let handingOff = false;
+    const deviceChannel = openDeviceChannel();
+    // `tab`: the new tab, reserved synchronously inside the click (so the
+    // pop-up blocker sees a user gesture) and still blank. The app is navigated
+    // into it only after the device is closed: with WebUSB a second page cannot
+    // claim the vendor interface while this one holds it.
+    async function handOff(href, appFile, tab) {
+      if (!transport) { tab.location.href = href; return; }
+      handingOff = true;
+      try {
+        const kind = transport instanceof UsbTransport ? "usb" : "serial";
+        handedOff = { identity: transport.identity(), kind, app: appFile };
+        logLine("t", "releasing " + describeIdentity(handedOff.identity) + " for " + appFile + "…");
+        await disconnect();
+        showHandoff(appFile + " was opened on " + describeIdentity(handedOff.identity) + ". The hub released the device so the app can use it; it will not reconnect on its own.");
+        try { els.reconnectBtn.focus(); } catch (_) {} // keyboard / screen-reader users land on the next action
+        tab.location.href = href;
+      } finally {
+        handingOff = false;
+      }
+    }
+    // Reserve a blank tab for a hand-off from inside a click handler. Returns
+    // null when the browser blocked it (then nothing is released: the user is
+    // told to allow pop-ups and click again, and the hub stays connected).
+    function reserveTab(appFile) {
+      let tab = null;
+      try { tab = window.open("", "_blank"); } catch (_) { tab = null; }
+      if (!tab) {
+        logLine("err", "the browser blocked the new tab for " + appFile + " (pop-up blocker); the device was NOT released — allow pop-ups for this site and click the link again");
+        return null;
+      }
+      try { tab.opener = null; } catch (_) {} // no window.opener for the app, as with rel=noopener
+      return tab;
+    }
+    function showHandoff(text) {
+      els.handoffTitle.textContent = "Device handed off" + (handedOff ? " to " + handedOff.app : "");
+      els.handoffSub.textContent = text;
+      els.handoff.hidden = false;
+    }
+    function hideHandoff() { els.handoff.hidden = true; }
+    // Reconnect to the handed-off device without a chooser (the grant persists
+    // per origin + device); falls back to the chooser when it is not listed
+    // (e.g. still held by the app, re-enumerated with new ids after a
+    // bootloader reboot, or a file:// page whose grant did not persist).
+    async function reconnectHandedOff() {
+      if (transport || !handedOff) return;
+      const want = handedOff.identity, kind = handedOff.kind;
+      const preset = kind === "usb" ? await findPermittedUsbDevice(want) : await findPermittedSerialPort(want);
+      if (!preset) {
+        logLine("t", describeIdentity(want) + " is not among the devices this page may open (still in use by the app, or not re-granted) — choose it");
+        await connect(kind);
+        return;
+      }
+      logLine("t", "reconnecting to " + describeIdentity(want) + "…");
+      await connect(kind, preset); // success clears handedOff
+    }
+    els.reconnectBtn.addEventListener("click", reconnectHandedOff);
+    els.dismissHandoffBtn.addEventListener("click", () => { handedOff = null; hideHandoff(); });
+    // An app on this origin released a device it got from us (manual disconnect
+    // or closed tab): say so, keep the button (no automatic reconnect).
+    if (deviceChannel) {
+      deviceChannel.onmessage = (ev) => {
+        const msg = ev && ev.data;
+        if (!msg || msg.type !== "released" || !handedOff || transport) return;
+        const id = msg.identity || {};
+        const same = id.transport === handedOff.identity.transport && id.vid === handedOff.identity.vid && id.pid === handedOff.identity.pid &&
+                     (!id.serial || !handedOff.identity.serial || id.serial === handedOff.identity.serial);
+        if (!same) return;
+        logLine("ok", (msg.page || "the app") + " released " + describeIdentity(handedOff.identity));
+        showHandoff((msg.page || "The app") + " released " + describeIdentity(handedOff.identity) + ". Reconnect to pick it up again.");
+      };
+    }
+
+    // Also the unexpected-loss path (read loop error, unplug): the stale
+    // transport must be dropped here, or connect()'s one-at-a-time guard
+    // would refuse every later Connect / Reconnect.
+    function onLinkLost() {
+      if (queryTimer) { clearTimeout(queryTimer); queryTimer = null; }
+      if (transport) { const t = transport; transport = null; Promise.resolve(t.close()).catch(() => {}); }
+      setConnected(false); setStatus("", "idle");
+      els.devName.textContent = "Not connected";
+      els.devSub.textContent = "Connect to an espp device to discover the modules it runs.";
+      modules = []; selected = -1; els.tabs.innerHTML = "";
+      els.detail.innerHTML = '<div class="empty">No modules yet — connect a device.</div>';
+      renderDeviceApps();
+    }
+    function setConnected(on) {
+      els.connectUsbBtn.disabled = on || !navigator.usb;
+      els.connectSerialBtn.disabled = on || !navigator.serial;
+      els.disconnectBtn.disabled = !on;
+    }
+
+    els.connectUsbBtn.addEventListener("click", () => connect("usb"));
+    els.connectSerialBtn.addEventListener("click", () => connect("serial"));
+    els.disconnectBtn.addEventListener("click", disconnect);
+    if (!navigator.usb) els.connectUsbBtn.disabled = true;
+    if (!navigator.serial) els.connectSerialBtn.disabled = true;
+    if (!navigator.usb && !navigator.serial) els.unsupported.style.display = "block";
+    if (navigator.usb && navigator.usb.addEventListener)
+      navigator.usb.addEventListener("disconnect", (e) => { if (transport instanceof UsbTransport && e.device === transport.device) { logLine("err", "device disconnected"); onLinkLost(); } });
+
+    // ?autoconnect=1&transport=&vid=&pid=&serial=: an app handing its device back
+    // (a navigation the user started from the app's "Device Hub" link) — connect
+    // to that permitted device without a chooser, through the gate. This is
+    // unrelated to the hand-off banner: after handing a device to an app the hub
+    // still never reconnects on its own.
+    const connectParams = parseConnectParams(location.search);
+    async function autoConnectOnLoad() {
+      const want = connectParams;
+      for (const kind of want.transport ? [want.transport] : ["usb", "serial"]) {
+        const preset = kind === "usb" ? await findPermittedUsbDevice(want) : await findPermittedSerialPort(want);
+        if (!preset) continue;
+        logLine("t", "an app handed back " + describeIdentity(kind === "usb" ? usbIdentity(preset) : serialIdentity(preset)) + " — connecting…");
+        await connect(kind, preset);
+        return;
+      }
+      // not plugged in, or granted to another origin (a console opened from
+      // file:// hands back to the hosted hub: the grant does not carry over)
+      logLine("warn", "An app handed back " + describeIdentity(want) + ", but this page may not open it yet (not plugged in, or granted to the app on another origin) — click Connect and pick it once; it stays permitted here afterwards.");
+      setStatus("", "pick the device");
+    }
+    installAppNav(); // "All apps" link
+    if (connectParams.autoconnect) autoConnectOnLoad();
+  </script>
+</body>
+</html>

@@ -1,0 +1,19 @@
+TT21100 Touch Controller
+************************
+
+The `TT21100` is a touch controller that supports up to 10 touch points. It
+supports both mutual and self capacitance sensing. It can be used with `TT21100`
+touchpad sensor. This touch controller can be found in the ESP32-S3-BOX.
+
+.. ------------------------------- Example -------------------------------------
+
+.. toctree::
+
+   tt21100_example
+
+.. ---------------------------- API Reference ----------------------------------
+
+API Reference
+-------------
+
+.. include-build-file:: inc/tt21100.inc
