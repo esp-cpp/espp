@@ -47,6 +47,20 @@ espp::Switch2Pro controller({.device_name = "Pro Controller"});
 controller.init();   // verifies pairing crypto, builds GATT, advertises
 ```
 
+### Pairing with another console
+
+A bonded controller advertises for its console (reconnect / wake). To pair with
+a different console there are two ways in:
+
+- `start_pairing()` — like a real controller's sync button: advertise for
+  discovery but **keep the current bond** until a new console completes the
+  pairing handshake, which replaces it. If none does, `cancel_pairing()` (e.g.
+  when your pairing window times out) goes back to the previous console, and so
+  does a reboot, since the stored bond is never touched. If the previous console
+  reconnects during the window, the window closes on its bond.
+- `clear_bond()` — forget the stored console now (NVS + NimBLE key record) and
+  advertise for discovery; use it for a "forget" / factory-reset action.
+
 ## The 5 ms connection interval (required for sustained input, reconnect & wake)
 
 The console chooses the connection interval **in its `CONNECT_IND`, based on

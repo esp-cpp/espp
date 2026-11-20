@@ -388,6 +388,13 @@ void Switch2Pro::configure_callbacks() {
     // so a peer that merely connects and subscribes without pairing never receives
     // button/stick data.
     encrypted_ = info.isEncrypted();
+    // A link that encrypted during a start_pairing() window WITHOUT running the
+    // 0x15 handshake can only have used a stored key: the kept console came back
+    // instead of a new one pairing. Close the window on its bond.
+    if (info.isEncrypted() && pairing_ && pairing_stage_ == 0) {
+      logger_.info("pairing: the previous console reconnected during the pairing window");
+      cancel_pairing();
+    }
     // A usable (encrypted) session is now established, so any pending wake has
     // succeeded: drop the wake latches. Doing it here (not on the raw connect event)
     // means a transient connect/drop before encryption keeps the wake variant on the
@@ -1231,13 +1238,27 @@ bool Switch2Pro::clear_bond() {
   // peer's LL encryption key is not usable for the rest of this boot (a persisted
   // NVS erase alone leaves the live key in place). Do this while the peer address is
   // still in RAM, before it is zeroed below.
-  if (paired_ || reconnect_mode_) {
-    ble_addr_t peer{};
-    {
-      std::lock_guard<std::mutex> lk(bond_mutex_);
+  // A start_pairing() window keeps the previous console's record aside (the
+  // live fields are already in discovery mode): forget that one too.
+  std::vector<ble_addr_t> peers;
+  {
+    std::lock_guard<std::mutex> lk(bond_mutex_);
+    if (paired_ || reconnect_mode_) {
+      ble_addr_t peer{};
       peer.type = bond_peer_type_;
       std::copy(bond_peer_val_.begin(), bond_peer_val_.end(), peer.val);
+      peers.push_back(peer);
     }
+    if (kept_bond_.valid) {
+      ble_addr_t peer{};
+      peer.type = kept_bond_.peer_type;
+      std::copy(kept_bond_.peer_val.begin(), kept_bond_.peer_val.end(), peer.val);
+      peers.push_back(peer);
+    }
+    kept_bond_ = {};
+    pairing_ = false;
+  }
+  for (auto &peer : peers) {
     int rc = ble_gap_unpair(&peer);
     if (rc != 0 && rc != BLE_HS_ENOENT) { // ENOENT = nothing stored for this peer
       logger_.error("clear_bond: failed to delete the NimBLE security record (rc={})", rc);
@@ -1264,6 +1285,81 @@ bool Switch2Pro::clear_bond() {
   if (active_conn_handle_ == 0xffff)
     advertise();
   return ok;
+}
+
+bool Switch2Pro::start_pairing() {
+  // Keep the current bond aside (only the first call of a window: a repeat keeps
+  // the ORIGINAL console, not the cleared discovery state), then reset the
+  // in-memory identity to fresh-pairing mode exactly like clear_bond() does - but
+  // leave NVS and NimBLE's security record alone, so cancel_pairing() (or a
+  // reboot) can go back to that console.
+  bool kept = false;
+  {
+    std::lock_guard<std::mutex> lk(bond_mutex_);
+    if (!pairing_) {
+      kept_bond_ = {};
+      if (reconnect_mode_ && paired_) {
+        kept_bond_.valid = true;
+        kept_bond_.peer_type = bond_peer_type_;
+        kept_bond_.peer_val = bond_peer_val_;
+        kept_bond_.host_addr = host_addr_;
+        kept_bond_.ltk = ltk_;
+      }
+    }
+    pairing_ = true;
+    reconnect_mode_ = false;
+    paired_ = false;
+    wake_pending_ = false;
+    boot_wake_pending_ = false;
+    bond_peer_type_ = 0;
+    bond_peer_val_ = {};
+    host_addr_ = {};
+    ltk_ = {};
+    kept = kept_bond_.valid;
+  }
+  logger_.info("pairing: advertising for a new console ({} bond kept until one pairs)",
+               kept ? "the current" : "no");
+  // An explicit pairing request re-enables the automatic re-advertise a prior
+  // stop_advertising() had suppressed; a live link re-advertises (for discovery)
+  // when it drops.
+  readvertise_suppressed_ = false;
+  if (active_conn_handle_ != 0xffff)
+    return true;
+  return advertise(); // reconnect_mode_ is off: the discovery variant
+}
+
+bool Switch2Pro::cancel_pairing() {
+  if (!pairing_)
+    return false;
+  KeptBond kept{};
+  {
+    std::lock_guard<std::mutex> lk(bond_mutex_);
+    pairing_ = false;
+    pairing_stage_ = 0; // abandon a half-done handshake: its FINALISE is rejected
+    kept = kept_bond_;
+    kept_bond_ = {};
+    if (kept.valid) {
+      bond_peer_type_ = kept.peer_type;
+      bond_peer_val_ = kept.peer_val;
+      host_addr_ = kept.host_addr;
+      ltk_ = kept.ltk;
+      paired_ = true;
+      reconnect_mode_ = true;
+    }
+  }
+  if (!kept.valid) {
+    logger_.info("pairing: window ended with no new console and no previous bond");
+    return false;
+  }
+  // The record was never deleted, but a handshake that reached FINALISE's LTK
+  // injection for another peer may have shared the store; re-inject to be sure
+  // the restored console can encrypt straight away.
+  if (!inject_ltk(kept.peer_type, kept.peer_val.data()))
+    logger_.error("pairing: re-injecting the previous console's LTK failed");
+  logger_.info("pairing: window ended with no new console - back to the previous one");
+  if (active_conn_handle_ == 0xffff && !readvertise_suppressed_)
+    advertise(); // reconnect_mode_ is back on: the reconnect variant
+  return true;
 }
 
 bool Switch2Pro::erase_stored_bond() {
@@ -1463,6 +1559,29 @@ void Switch2Pro::handle_pairing(bool via_vibration_command, uint8_t transport, P
     // without re-running the pairing exchange.
     save_bond();
     reconnect_mode_ = true;
+    // A start_pairing() window is complete: the new bond replaced the kept one.
+    // Drop the previous console's NimBLE key record unless it was this console
+    // pairing again (same address: the injection above already overwrote it).
+    if (pairing_.exchange(false)) {
+      ble_addr_t old_peer{};
+      bool drop_old = false;
+      {
+        std::lock_guard<std::mutex> lk(bond_mutex_);
+        if (kept_bond_.valid &&
+            (kept_bond_.peer_type != bond_peer_type_ || kept_bond_.peer_val != bond_peer_val_)) {
+          drop_old = true;
+          old_peer.type = kept_bond_.peer_type;
+          std::copy(kept_bond_.peer_val.begin(), kept_bond_.peer_val.end(), old_peer.val);
+        }
+        kept_bond_ = {};
+      }
+      if (drop_old) {
+        const int rc = ble_gap_unpair(&old_peer);
+        if (rc != 0 && rc != BLE_HS_ENOENT)
+          logger_.warn("pairing: dropping the previous console's key record failed (rc={})", rc);
+      }
+      logger_.info("pairing: the new console replaced the previous bond");
+    }
     if (callbacks_.on_paired)
       callbacks_.on_paired();
     break;

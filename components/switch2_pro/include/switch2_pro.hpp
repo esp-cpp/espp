@@ -164,6 +164,35 @@ public:
   /// (or none was stored); false if the NVS erase/commit failed.
   bool clear_bond();
 
+  /// Pair with a (new) console WITHOUT forgetting the current one first, the way
+  /// a real controller's sync button behaves: advertise for discovery (fresh
+  /// pairing) while the stored bond stays in NVS and in NimBLE's security store.
+  /// A console that completes the pairing handshake replaces it (the old
+  /// console's NimBLE key record is then dropped); if none does, cancel_pairing()
+  /// returns to the previous console - and so does a reboot, since NVS is never
+  /// touched. With no bond stored this is the same discovery mode clear_bond()
+  /// leaves. While pairing, is_paired() is false and bonded_console_address()
+  /// empty, exactly as after clear_bond(). Re-enables the automatic re-advertise
+  /// a prior stop_advertising() suppressed. A live console link is NOT dropped
+  /// (use disconnect() for that); discovery advertising starts once nothing is
+  /// connected. Calling it again while pairing restarts the advertisement and
+  /// keeps the original bond. @return true if discovery advertising is on the
+  /// air or will start on the next disconnect.
+  bool start_pairing();
+
+  /// End a start_pairing() window that no console completed: restore the bond
+  /// that was stored when it began (reconnect mode, its LTK re-injected) and,
+  /// unless advertising is suppressed by stop_advertising() or a console is
+  /// connected, advertise for that console again (passive reconnect variant). An
+  /// unfinished handshake on a live link is abandoned (its FINALISE is then
+  /// rejected). @return true if a previous bond was restored; false if not
+  /// pairing, or there was no bond to go back to (discovery mode stays).
+  bool cancel_pairing();
+
+  /// Whether a start_pairing() window is open (no console has completed pairing
+  /// since, and cancel_pairing() / clear_bond() has not been called).
+  bool is_pairing() const { return pairing_; }
+
   /// Whether the console has subscribed to the input characteristic (0x000e) on an
   /// LL-encrypted connection, i.e. the stream loop is actually sending input
   /// reports. Goes true once the subscribed link is encrypted and false on
@@ -482,6 +511,20 @@ protected:
   std::array<uint8_t, 6> host_addr_{};     ///< console BD_ADDR (from exchange-addresses)
   uint8_t bond_peer_type_{0};              ///< persisted console address type
   std::array<uint8_t, 6> bond_peer_val_{}; ///< persisted console address (wire/little-endian order)
+  /// The bond that was current when start_pairing() began (guarded by
+  /// bond_mutex_): what cancel_pairing() restores, and whose NimBLE key record a
+  /// completed pairing with a different console drops.
+  struct KeptBond {
+    bool valid{false};
+    uint8_t peer_type{0};
+    std::array<uint8_t, 6> peer_val{};
+    std::array<uint8_t, 6> host_addr{};
+    std::array<uint8_t, 16> ltk{};
+  };
+  KeptBond kept_bond_{};
+  /// A start_pairing() window is open. Written from the app task and the FINALISE
+  /// handler (host task) - atomic.
+  std::atomic<bool> pairing_{false};
   uint8_t feature_mask_{switch2::PRO2_FEATURE_MASK};
   /// Features the console has actually enabled via FEATURE_SELECT (0x0c). The
   /// input report must reflect these: rumble (bit 5) sets report byte 0x0B to
