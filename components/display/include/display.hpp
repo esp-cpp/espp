@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstdint>
 #include <functional>
 #include <vector>
 
@@ -7,6 +8,7 @@
 #include <sdkconfig.h>
 
 #include <driver/gpio.h>
+#include <esp_heap_caps.h>
 
 #include "base_component.hpp"
 #include "led.hpp"
@@ -116,6 +118,8 @@ public:
    * @brief Used if you want to manage allocation / lifecycle of the display
    * buffer memory separately from this class. This structure allows you to
    * configure the Display with up to two display buffers.
+   * \note The buffers must be aligned to LV_DRAW_BUF_ALIGN (see
+   *       vram_alignment()), or LVGL will not use them.
    */
   struct StaticMemoryConfig {
     size_t pixel_buffer_size; /**< Size of the display buffer in pixels. */
@@ -217,8 +221,8 @@ public:
    */
   ~Display() {
     if (created_vram_) {
-      free(vram_0_);
-      free(vram_1_);
+      heap_caps_free(vram_0_);
+      heap_caps_free(vram_1_);
     }
   }
 
@@ -297,6 +301,18 @@ public:
    * @return size_t Number of bytes that fit in the display buffer.
    */
   size_t vram_size_bytes() const { return display_buffer_px_size_ * sizeof(Pixel); }
+
+  /**
+   * @brief The alignment of the display buffers: LV_DRAW_BUF_ALIGN, which LVGL
+   *        requires of the buffers given to lv_display_set_buffers() (it
+   *        refuses others, and the display then draws nothing). LVGL's PPA
+   *        draw unit on the ESP32-P4 (LV_USE_PPA), for example, needs it to be
+   *        the data cache line size.
+   */
+  static constexpr size_t vram_alignment() {
+    // (heap_caps_aligned_alloc() takes a power of two of at least a pointer)
+    return LV_DRAW_BUF_ALIGN < sizeof(void *) ? sizeof(void *) : LV_DRAW_BUF_ALIGN;
+  }
 
   /**
    * @brief Set the rotation of the display.
@@ -406,7 +422,16 @@ protected:
     // access it in the flush callback
     lv_display_set_user_data(display_, this);
 
-    // Configure the lvgl display buffer with our pixel buffers
+    // Configure the lvgl display buffer with our pixel buffers. LVGL refuses
+    // buffers that are not aligned to LV_DRAW_BUF_ALIGN (the ones allocated
+    // here are; a StaticMemoryConfig's may not be), and then draws nothing.
+    for (const Pixel *buf : {vram_0_, vram_1_}) {
+      if (buf != nullptr && reinterpret_cast<uintptr_t>(buf) % LV_DRAW_BUF_ALIGN != 0) {
+        logger_.error("Display buffer {} is not aligned to LV_DRAW_BUF_ALIGN ({} bytes): LVGL "
+                      "will not use it",
+                      static_cast<const void *>(buf), LV_DRAW_BUF_ALIGN);
+      }
+    }
     lv_display_set_buffers(display_, vram_0_, vram_1_, vram_size_bytes(),
                            LV_DISPLAY_RENDER_MODE_PARTIAL);
     lv_display_set_flush_cb(display_, Display::flush_cb);
@@ -443,16 +468,29 @@ protected:
   }
 
   /**
-   * @brief Allocate the display buffer(s).
+   * @brief Allocate one display buffer, aligned to vram_alignment(), its size
+   *        rounded up to a multiple of it (so no other allocation shares its
+   *        last cache line: DMA engines and cache syncs work in whole lines).
+   * @param allocation_flags Flags passed to heap_caps_aligned_alloc.
+   * @return The buffer, or nullptr if it could not be allocated.
+   */
+  Pixel *allocate_vram(const uint32_t allocation_flags) const {
+    constexpr size_t align = vram_alignment();
+    const size_t bytes = (vram_size_bytes() + align - 1) / align * align;
+    return static_cast<Pixel *>(heap_caps_aligned_alloc(align, bytes, allocation_flags));
+  }
+
+  /**
+   * @brief Allocate the display buffer(s), aligned to vram_alignment().
    * @param double_buffered Whether to use double buffered rendering or not, will allocate a second
    * buffer if true.
-   * @param allocation_flags Flags passed to heap_caps_malloc for memory allocation.
+   * @param allocation_flags Flags passed to heap_caps_aligned_alloc for memory allocation.
    */
   void init_memory(const bool double_buffered, const uint32_t allocation_flags) {
-    vram_0_ = static_cast<Pixel *>(heap_caps_malloc(vram_size_bytes(), allocation_flags));
+    vram_0_ = allocate_vram(allocation_flags);
     assert(vram_0_ != NULL && "Failed to allocate display buffer vram_0");
     if (double_buffered) {
-      vram_1_ = static_cast<Pixel *>(heap_caps_malloc(vram_size_bytes(), allocation_flags));
+      vram_1_ = allocate_vram(allocation_flags);
       assert(vram_1_ != NULL && "Failed to allocate display buffer vram_1");
     }
     created_vram_ = true;
