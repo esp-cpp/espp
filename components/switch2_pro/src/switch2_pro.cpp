@@ -6,6 +6,7 @@
 #include <cstring>
 #include <string>
 #include <system_error>
+#include <utility>
 #include <vector>
 
 #include "esp_mac.h"
@@ -175,14 +176,12 @@ bool Switch2Pro::init() {
   // On reconnect the console skips the 0x15 pairing and jumps straight to LL
   // encryption, so the LTK must already be in NimBLE's store before it connects.
   if (reconnect_mode_) {
-    uint8_t peer_type = 0;
-    std::array<uint8_t, 6> peer_val{};
+    Bond bond;
     {
       std::lock_guard<std::mutex> lk(bond_mutex_);
-      peer_type = bond_peer_type_;
-      peer_val = bond_peer_val_;
+      bond = bond_;
     }
-    if (!inject_ltk(peer_type, peer_val.data()))
+    if (!inject_ltk(bond))
       logger_.error("reconnect: pre-loading the stored LTK failed — a bonded reconnect/wake "
                     "will not encrypt; call clear_bond() and re-pair to recover");
     if (wake_console_on_boot_enabled_) {
@@ -290,7 +289,12 @@ void Switch2Pro::configure_callbacks() {
     // over-the-air address the console connected to (see local_bt_address()).
     active_conn_handle_ = info.getConnHandle();
     encrypted_ = false; // not yet encrypted — set on authentication_complete
-    pairing_stage_ = 0; // a fresh connection restarts the 0x15 handshake sequence
+    {
+      // a fresh connection restarts the 0x15 handshake sequence
+      std::lock_guard<std::mutex> lk(bond_mutex_);
+      pairing_stage_ = 0;
+      handshake_closed_ = false;
+    }
     // NOTE: the wake latches (wake_pending_ / boot_wake_pending_) are deliberately
     // NOT cleared here. A console we just woke can connect and then drop again before
     // encryption/init completes; clearing on the raw connect event would make the
@@ -387,7 +391,27 @@ void Switch2Pro::configure_callbacks() {
     // link (established by the console's LL encryption after the 0x15 handshake),
     // so a peer that merely connects and subscribes without pairing never receives
     // button/stick data.
-    encrypted_ = info.isEncrypted();
+    const bool was_encrypted = encrypted_.exchange(info.isEncrypted());
+    // The kept console encrypting a link during a start_pairing() window WITHOUT
+    // running the 0x15 handshake means it came back instead of a new console
+    // pairing: close the window on its bond. Only the first encryption of the
+    // link counts (not a later key refresh), and only for that console's address.
+    if (info.isEncrypted() && !was_encrypted && pairing_) {
+      struct ble_gap_conn_desc desc;
+      bool kept_console = false;
+      if (ble_gap_conn_find(info.getConnHandle(), &desc) == 0) {
+        Bond peer;
+        peer.peer_type = desc.peer_id_addr.type;
+        std::copy(std::begin(desc.peer_id_addr.val), std::end(desc.peer_id_addr.val),
+                  peer.peer_val.begin());
+        std::lock_guard<std::mutex> lk(bond_mutex_);
+        kept_console = pairing_stage_ == 0 && kept_bond_ && kept_bond_->same_peer(peer);
+      }
+      if (kept_console) {
+        logger_.info("pairing: the previous console reconnected during the pairing window");
+        cancel_pairing();
+      }
+    }
     // A usable (encrypted) session is now established, so any pending wake has
     // succeeded: drop the wake latches. Doing it here (not on the raw connect event)
     // means a transient connect/drop before encryption keeps the wake variant on the
@@ -585,10 +609,15 @@ bool Switch2Pro::start_advertising(AdvMode mode, const std::array<uint8_t, 6> &h
 }
 
 bool Switch2Pro::advertise() {
+  std::lock_guard<std::mutex> lk(adv_mutex_);
+  return advertise_locked();
+}
+
+bool Switch2Pro::advertise_locked() {
   // Embed the console's STABLE IDENTITY address (from the 0x15 exchange, persisted
   // in the bond) — that is what the real controller advertises on reconnect, and
   // what the console matches to recognise us and grant the fast 5 ms interval. Do
-  // NOT use bond_peer_val_ (the NimBLE connection address), which can be a
+  // NOT use bond_.peer_val (the NimBLE connection address), which can be a
   // rotating private address we cannot resolve without an SMP bond.
   //
   // Use the WAKE variant (0x81 flag = "user pressed a button, connect to me")
@@ -599,11 +628,11 @@ bool Switch2Pro::advertise() {
   bool reconnect = false;
   std::array<uint8_t, 6> host_addr{};
   {
-    // snapshot the mode and the address together (clear_bond resets both under
-    // this lock), then advertise without holding it
+    // snapshot the mode and the address together (every transition changes both
+    // under this lock), then advertise without holding it
     std::lock_guard<std::mutex> lk(bond_mutex_);
     reconnect = reconnect_mode_;
-    host_addr = host_addr_;
+    host_addr = bond_.host_addr;
   }
   if (reconnect && (boot_wake_pending_ || wake_pending_))
     return start_advertising(AdvMode::Wake, host_addr);
@@ -616,16 +645,15 @@ bool Switch2Pro::wake_console() {
   if (active_conn_handle_ != 0xffff)
     return false; // already connected — nothing to wake
   // Require a real persisted bond. reconnect_mode_ is set only after a completed
-  // pairing (FINALISE) or a bond loaded from NVS. host_addr_ alone is not enough:
-  // it becomes nonzero mid-pairing (EXCHANGE_ADDRESSES), before any bond exists, so
-  // a failed pairing would otherwise let this emit a wake advertisement.
+  // pairing (FINALISE) or a bond loaded from NVS.
   static constexpr std::array<uint8_t, 6> kZeroAddr{};
+  std::lock_guard<std::mutex> adv_lk(adv_mutex_);
   bool reconnect = false;
   std::array<uint8_t, 6> host_addr{};
   {
     std::lock_guard<std::mutex> lk(bond_mutex_);
     reconnect = reconnect_mode_;
-    host_addr = host_addr_;
+    host_addr = bond_.host_addr;
   }
   if (!reconnect || host_addr == kZeroAddr)
     return false; // no bonded console to wake
@@ -779,7 +807,7 @@ struct StoredBond {
   uint8_t magic;
   uint8_t peer_type;
   uint8_t peer_val[6];  // NimBLE peer_id_addr (wire/little-endian order)
-  uint8_t ltk[16];      // ltk_ (= A1 ^ B1), natural order
+  uint8_t ltk[16];      // the LTK (= A1 ^ B1), natural order
   uint8_t host_addr[6]; // console identity addr from 0x15/01 (embedded in reconnect adv)
 };
 } // namespace
@@ -1100,21 +1128,18 @@ bool Switch2Pro::send_input_report(
   return sent;
 }
 
-bool Switch2Pro::inject_ltk(uint8_t peer_type, const uint8_t *peer_val_le) {
+bool Switch2Pro::inject_ltk(const Bond &bond) {
   struct ble_store_value_sec sec = {};
-  sec.peer_addr.type = peer_type;
-  std::copy(peer_val_le, peer_val_le + 6, sec.peer_addr.val);
+  sec.peer_addr.type = bond.peer_type;
+  std::copy(bond.peer_val.begin(), bond.peer_val.end(), sec.peer_addr.val);
   sec.key_size = 16;
   sec.ediv = 0; // no SMP key distribution — the console uses the LTK directly
   sec.rand_num = 0;
   // NimBLE hands ltk[] straight to the controller with no byte-swap, so it must
-  // be in the same order the console's controller uses: ltk_ (= A1 ^ B1) as
+  // be in the same order the console's controller uses: the LTK (= A1 ^ B1) as
   // computed. (The 0x03/0x07 "send pairing info" blob is this value reversed,
   // but that is just the on-wire transmission form, not the key order.)
-  {
-    std::lock_guard<std::mutex> lk(bond_mutex_);
-    std::copy(ltk_.begin(), ltk_.end(), sec.ltk);
-  }
+  std::copy(bond.ltk.begin(), bond.ltk.end(), sec.ltk);
   sec.ltk_present = 1;
   sec.authenticated = 1;
   int rc = ble_store_write_our_sec(&sec);
@@ -1130,47 +1155,28 @@ bool Switch2Pro::inject_ltk(uint8_t peer_type, const uint8_t *peer_val_le) {
   return true;
 }
 
-bool Switch2Pro::inject_pairing_ltk() {
-  struct ble_gap_conn_desc desc;
-  if (active_conn_handle_ == 0xffff || ble_gap_conn_find(active_conn_handle_, &desc) != 0) {
-    logger_.warn("cannot inject LTK: no active connection");
-    return false;
-  }
-  return inject_ltk(desc.peer_id_addr.type, desc.peer_id_addr.val);
-}
-
-void Switch2Pro::save_bond() {
-  struct ble_gap_conn_desc desc;
-  if (active_conn_handle_ == 0xffff || ble_gap_conn_find(active_conn_handle_, &desc) != 0)
-    return;
+bool Switch2Pro::save_bond(const Bond &bond) {
   StoredBond b{};
   b.magic = kBondMagic;
-  b.peer_type = desc.peer_id_addr.type;
-  std::copy(std::begin(desc.peer_id_addr.val), std::end(desc.peer_id_addr.val), b.peer_val);
-  {
-    std::lock_guard<std::mutex> lk(bond_mutex_);
-    std::copy(ltk_.begin(), ltk_.end(), b.ltk);
-    std::copy(host_addr_.begin(), host_addr_.end(), b.host_addr);
-  }
+  b.peer_type = bond.peer_type;
+  std::copy(bond.peer_val.begin(), bond.peer_val.end(), b.peer_val);
+  std::copy(bond.ltk.begin(), bond.ltk.end(), b.ltk);
+  std::copy(bond.host_addr.begin(), bond.host_addr.end(), b.host_addr);
   // Persist via the espp NVS component (set_var writes the blob and commits).
   std::vector<uint8_t> blob(sizeof(b));
   std::memcpy(blob.data(), &b, sizeof(b));
   espp::Nvs nvs;
   std::error_code ec;
   nvs.set_var(kNvsNamespace, kNvsBondKey, blob, ec);
-  // Keep the bond in RAM regardless so this session can still reconnect/wake; only
-  // persistence across a reboot is lost if the write failed.
-  {
-    std::lock_guard<std::mutex> lk(bond_mutex_);
-    bond_peer_type_ = b.peer_type;
-    std::copy(std::begin(b.peer_val), std::end(b.peer_val), bond_peer_val_.begin());
-  }
-  if (ec)
-    logger_.error("save_bond: NVS write failed ({}) — bond kept in RAM for this boot, but "
-                  "reconnect/wake after a reboot will not work",
+  if (ec) {
+    // The bond stays in RAM, so this boot can still reconnect/wake; only the
+    // NVS copy is stale (a previously stored bond, if any, returns on reboot).
+    logger_.error("save_bond: NVS write failed ({}) — the new bond holds for this boot only",
                   ec.message());
-  else
-    logger_.info("saved bond to NVS (console addr + LTK)");
+    return false;
+  }
+  logger_.info("saved bond to NVS (console addr + LTK)");
+  return true;
 }
 
 bool Switch2Pro::load_bond() {
@@ -1185,11 +1191,32 @@ bool Switch2Pro::load_bond() {
   if (b.magic != kBondMagic)
     return false;
   std::lock_guard<std::mutex> lk(bond_mutex_);
-  bond_peer_type_ = b.peer_type;
-  std::copy(std::begin(b.peer_val), std::end(b.peer_val), bond_peer_val_.begin());
-  std::copy(std::begin(b.ltk), std::end(b.ltk), ltk_.begin());
-  std::copy(std::begin(b.host_addr), std::end(b.host_addr), host_addr_.begin());
+  bond_.peer_type = b.peer_type;
+  std::copy(std::begin(b.peer_val), std::end(b.peer_val), bond_.peer_val.begin());
+  std::copy(std::begin(b.ltk), std::end(b.ltk), bond_.ltk.begin());
+  std::copy(std::begin(b.host_addr), std::end(b.host_addr), bond_.host_addr.begin());
   return true;
+}
+
+void Switch2Pro::reset_bond_locked() {
+  reconnect_mode_ = false;
+  paired_ = false;
+  wake_pending_ = false;
+  boot_wake_pending_ = false;
+  bond_ = {};
+}
+
+bool Switch2Pro::unpair_peer(uint8_t peer_type, const std::array<uint8_t, 6> &peer_val) {
+  if (ble_gap_adv_active())
+    ble_gatt_server_.stop_advertising();
+  ble_addr_t peer{};
+  peer.type = peer_type;
+  std::copy(peer_val.begin(), peer_val.end(), peer.val);
+  const int rc = ble_gap_unpair(&peer);
+  if (rc == 0 || rc == BLE_HS_ENOENT) // ENOENT = nothing stored for this peer
+    return true;
+  logger_.error("deleting a console's NimBLE security record failed (rc={})", rc);
+  return false;
 }
 
 bool Switch2Pro::clear_bond() {
@@ -1229,41 +1256,115 @@ bool Switch2Pro::clear_bond() {
   }
   // Also delete the NimBLE security-store record for the injected LTK, so the old
   // peer's LL encryption key is not usable for the rest of this boot (a persisted
-  // NVS erase alone leaves the live key in place). Do this while the peer address is
-  // still in RAM, before it is zeroed below.
-  if (paired_ || reconnect_mode_) {
-    ble_addr_t peer{};
-    {
-      std::lock_guard<std::mutex> lk(bond_mutex_);
-      peer.type = bond_peer_type_;
-      std::copy(bond_peer_val_.begin(), bond_peer_val_.end(), peer.val);
-    }
-    int rc = ble_gap_unpair(&peer);
-    if (rc != 0 && rc != BLE_HS_ENOENT) { // ENOENT = nothing stored for this peer
-      logger_.error("clear_bond: failed to delete the NimBLE security record (rc={})", rc);
-      ok = false;
-    }
-  }
-  // Reset in-memory bond state back to fresh-pairing (discovery) mode. The mode
-  // flag and the identity are reset under one lock, so a concurrent advertise()
-  // sees either the old bond or none -- never a half-cleared address.
+  // NVS erase alone leaves the live key in place). A start_pairing() window keeps
+  // the previous console's bond aside (the live bond is already in discovery
+  // mode): forget that one too. adv_mutex_ is held from the reset to the
+  // re-advertise, so no advertisement of the old bond can start in between and
+  // nothing restarts advertising while the records are deleted.
+  std::lock_guard<std::mutex> adv_lk(adv_mutex_);
+  std::array<Bond, 2> peers{};
+  size_t peer_count = 0;
   {
     std::lock_guard<std::mutex> lk(bond_mutex_);
-    reconnect_mode_ = false;
-    paired_ = false;
-    wake_pending_ = false;
-    boot_wake_pending_ = false;
-    bond_peer_type_ = 0;
-    bond_peer_val_ = {};
-    host_addr_ = {};
-    ltk_ = {};
+    if (paired_ || reconnect_mode_)
+      peers[peer_count++] = bond_;
+    if (kept_bond_)
+      peers[peer_count++] = *kept_bond_;
+    kept_bond_.reset();
+    pairing_ = false;
+    reset_bond_locked();
+  }
+  for (size_t i = 0; i < peer_count; ++i) {
+    if (!unpair_peer(peers[i].peer_type, peers[i].peer_val))
+      ok = false;
   }
   logger_.info("bond cleared — returning to fresh-pairing (discovery) mode");
   // If nothing is connected, re-advertise now so we are discoverable for a fresh
   // pairing immediately (advertise() picks Discovery since reconnect_mode_ is off).
   if (active_conn_handle_ == 0xffff)
-    advertise();
+    advertise_locked();
   return ok;
+}
+
+bool Switch2Pro::start_pairing() {
+  // Keep the current bond aside (only the first call of a window: a repeat keeps
+  // the ORIGINAL console, not the cleared discovery state), then reset the live
+  // bond to fresh-pairing mode exactly like clear_bond() does - but leave NVS and
+  // NimBLE's security record alone, so cancel_pairing() (or a reboot) can go back
+  // to that console. A handshake already running on a live link keeps its own
+  // scratch state, so a repeat call does not disturb it.
+  std::lock_guard<std::mutex> adv_lk(adv_mutex_);
+  bool opened = false;
+  bool kept = false;
+  {
+    std::lock_guard<std::mutex> lk(bond_mutex_);
+    opened = !pairing_;
+    if (opened) {
+      kept_bond_.reset();
+      if (reconnect_mode_ && paired_)
+        kept_bond_ = bond_;
+    }
+    pairing_ = true;
+    reset_bond_locked();
+    kept = kept_bond_.has_value();
+  }
+  logger_.info("pairing: advertising for a new console ({} bond kept until one pairs)",
+               kept ? "the current" : "no");
+  // An explicit pairing request re-enables the automatic re-advertise a prior
+  // stop_advertising() had suppressed; a live link re-advertises (for discovery)
+  // when it drops.
+  readvertise_suppressed_ = false;
+  if (active_conn_handle_ != 0xffff)
+    return true;
+  if (advertise_locked()) // reconnect_mode_ is off: the discovery variant
+    return true;
+  // Nothing is on the air: do not leave a window open that the caller will not
+  // know to cancel. Put the previous bond back if this call opened the window.
+  if (opened) {
+    std::lock_guard<std::mutex> lk(bond_mutex_);
+    if (kept_bond_) {
+      bond_ = *kept_bond_;
+      paired_ = true;
+      reconnect_mode_ = true;
+    }
+    kept_bond_.reset();
+    pairing_ = false;
+  }
+  logger_.error("pairing: discovery advertising failed to start - pairing window not opened");
+  return false;
+}
+
+bool Switch2Pro::cancel_pairing() {
+  std::lock_guard<std::mutex> adv_lk(adv_mutex_);
+  std::optional<Bond> kept;
+  {
+    std::lock_guard<std::mutex> lk(bond_mutex_);
+    if (!pairing_)
+      return false;
+    pairing_ = false;
+    // Abandon a half-done handshake on a live link: its remaining steps and its
+    // FINALISE are rejected until the console reconnects.
+    pairing_stage_ = 0;
+    handshake_closed_ = true;
+    kept = std::exchange(kept_bond_, std::nullopt);
+    if (kept) {
+      bond_ = *kept;
+      paired_ = true;
+      reconnect_mode_ = true;
+    }
+  }
+  if (!kept) {
+    logger_.info("pairing: window ended with no new console and no previous bond");
+    return false;
+  }
+  // The record was never deleted, but re-inject it so the restored console can
+  // encrypt straight away whatever the store went through during the window.
+  if (!inject_ltk(*kept))
+    logger_.error("pairing: re-injecting the previous console's LTK failed");
+  logger_.info("pairing: window ended with no new console - back to the previous one");
+  if (active_conn_handle_ == 0xffff && !readvertise_suppressed_)
+    advertise_locked(); // reconnect_mode_ is back on: the reconnect variant
+  return true;
 }
 
 bool Switch2Pro::erase_stored_bond() {
@@ -1311,6 +1412,9 @@ void Switch2Pro::stop_advertising() {
   boot_wake_pending_ = false;
   if (wake_timer_)
     wake_timer_->stop();
+  // After the join (never hold adv_mutex_ while joining the wake timer, whose
+  // tick takes it): waits out an advertise() already choosing a variant.
+  std::lock_guard<std::mutex> lk(adv_mutex_);
   ble_gatt_server_.stop_advertising();
 }
 
@@ -1332,16 +1436,16 @@ std::optional<NimBLEAddress> Switch2Pro::bonded_console_address() const {
   std::lock_guard<std::mutex> lk(bond_mutex_);
   if (!paired_.load())
     return std::nullopt;
-  // Return the console's STABLE IDENTITY (host_addr_, from the 0x15 exchange and
-  // persisted in the bond) — the value the component itself trusts for reconnect
-  // (see advertise()), set during the handshake before paired_ flips. NOT
-  // bond_peer_val_, which is the NimBLE connection address and can be a rotating
-  // private address (this component does no SMP resolution). The identity is
-  // matched at the application layer, so its address type is not tracked; report
-  // it as public. host_addr_ is little-endian wire order, as ble_addr_t.val wants.
+  // Return the console's STABLE IDENTITY (bond_.host_addr, from the 0x15 exchange
+  // and persisted in the bond) — the value the component itself trusts for
+  // reconnect (see advertise()). NOT bond_.peer_val, which is the NimBLE
+  // connection address and can be a rotating private address (this component
+  // does no SMP resolution). The identity is matched at the application layer,
+  // so its address type is not tracked; report it as public. It is little-endian
+  // wire order, as ble_addr_t.val wants.
   ble_addr_t a{};
   a.type = BLE_ADDR_PUBLIC;
-  std::copy(host_addr_.begin(), host_addr_.end(), a.val);
+  std::copy(bond_.host_addr.begin(), bond_.host_addr.end(), a.val);
   return NimBLEAddress(a);
 }
 
@@ -1362,18 +1466,29 @@ void Switch2Pro::handle_pairing(bool via_vibration_command, uint8_t transport, P
     // A malformed request cannot start a handshake that could ever complete:
     // reject it without the success reply (like FINALISE below) so the console
     // does not carry on, and restart the sequence.
-    if (len < 8) {
-      logger_.warn("pairing: exchange-addresses rejected — payload too short ({} bytes)", len);
-      pairing_stage_ = 0;
-      break;
-    }
+    // The identity goes into the handshake scratch; only FINALISE commits it.
     std::array<uint8_t, 6> host_addr{};
-    std::copy(payload + 2, payload + 8, host_addr.begin());
+    bool closed = false;
     {
       std::lock_guard<std::mutex> lk(bond_mutex_);
-      host_addr_ = host_addr;
+      closed = handshake_closed_;
+      if (len >= 8 && !closed) {
+        std::copy(payload + 2, payload + 8, host_addr.begin());
+        pending_host_addr_ = host_addr;
+        pairing_stage_ = 1;
+      } else {
+        pairing_stage_ = 0;
+      }
     }
-    pairing_stage_ = 1;
+    if (closed) {
+      logger_.warn("pairing: exchange-addresses rejected — the pairing window was cancelled on "
+                   "this connection");
+      break;
+    }
+    if (len < 8) {
+      logger_.warn("pairing: exchange-addresses rejected — payload too short ({} bytes)", len);
+      break;
+    }
     logger_.info("pairing: stored console identity addr {:02x}:{:02x}:{:02x}:{:02x}:{:02x}:{:02x}",
                  host_addr[5], host_addr[4], host_addr[3], host_addr[2], host_addr[1],
                  host_addr[0]);
@@ -1391,20 +1506,30 @@ void Switch2Pro::handle_pairing(bool via_vibration_command, uint8_t transport, P
   }
   case PairingSub::EXCHANGE_KEYS: {
     // Request data is [0x00][A1 (16 bytes)] — skip the leading 0x00.
-    if (pairing_stage_ < 1 || len < 17) {
-      logger_.warn("pairing: exchange-keys rejected — out of order or short (stage={}, len={})",
-                   pairing_stage_, len);
-      pairing_stage_ = 0;
-      break;
-    }
-    {
+    std::array<uint8_t, 16> ltk{};
+    if (len >= 17) {
       std::array<uint8_t, 16> a1{};
       std::copy(payload + 1, payload + 17, a1.begin());
-      const auto ltk = PairingCrypto::derive_ltk(a1);
-      std::lock_guard<std::mutex> lk(bond_mutex_);
-      ltk_ = ltk;
+      ltk = PairingCrypto::derive_ltk(a1);
     }
-    pairing_stage_ = 2;
+    uint8_t stage = 0;
+    bool accepted = false;
+    {
+      std::lock_guard<std::mutex> lk(bond_mutex_);
+      stage = pairing_stage_;
+      accepted = stage >= 1 && len >= 17 && !handshake_closed_;
+      if (accepted) {
+        pending_ltk_ = ltk;
+        pairing_stage_ = 2;
+      } else {
+        pairing_stage_ = 0;
+      }
+    }
+    if (!accepted) {
+      logger_.warn("pairing: exchange-keys rejected — out of order or short (stage={}, len={})",
+                   stage, len);
+      break;
+    }
     // Reply: {0x01} + fixed controller key B1.
     std::array<uint8_t, 17> reply{0x01};
     std::copy(CONTROLLER_KEY_B1.begin(), CONTROLLER_KEY_B1.end(), reply.begin() + 1);
@@ -1415,21 +1540,28 @@ void Switch2Pro::handle_pairing(bool via_vibration_command, uint8_t transport, P
   }
   case PairingSub::CONFIRM_LTK: {
     // Request data is [0x00][A2 challenge (16 bytes)] — skip the leading 0x00.
-    if (pairing_stage_ < 2 || len < 17) {
-      logger_.warn("pairing: confirm rejected — out of order or short (stage={}, len={})",
-                   pairing_stage_, len);
-      pairing_stage_ = 0;
+    std::array<uint8_t, 16> ltk{};
+    uint8_t stage = 0;
+    bool accepted = false;
+    {
+      std::lock_guard<std::mutex> lk(bond_mutex_);
+      stage = pairing_stage_;
+      accepted = stage >= 2 && len >= 17 && !handshake_closed_;
+      if (accepted) {
+        ltk = pending_ltk_;
+        pairing_stage_ = 3;
+      } else {
+        pairing_stage_ = 0;
+      }
+    }
+    if (!accepted) {
+      logger_.warn("pairing: confirm rejected — out of order or short (stage={}, len={})", stage,
+                   len);
       break;
     }
     std::array<uint8_t, 16> a2{};
     std::copy(payload + 1, payload + 17, a2.begin());
-    std::array<uint8_t, 16> ltk{};
-    {
-      std::lock_guard<std::mutex> lk(bond_mutex_);
-      ltk = ltk_;
-    }
     const std::array<uint8_t, 16> b2 = PairingCrypto::confirm(ltk, a2);
-    pairing_stage_ = 3;
     // Reply: {0x01} + B2 = AES-128-ECB(rev(LTK), rev(A2)).
     std::array<uint8_t, 17> reply{0x01};
     std::copy(b2.begin(), b2.end(), reply.begin() + 1);
@@ -1443,26 +1575,73 @@ void Switch2Pro::handle_pairing(bool via_vibration_command, uint8_t transport, P
     // completed in order (stage 3). Otherwise an out-of-order/malformed peer could
     // mark us paired and persist an all-zero/partial bond, sending future boots
     // into reconnect mode with a useless bond. Reject without replying/persisting.
-    if (pairing_stage_ < 3) {
-      logger_.warn("pairing: FINALISE rejected — handshake incomplete (stage={})", pairing_stage_);
+    // The bond is keyed by the connected console's identity address, so there
+    // must be a live link to read it from.
+    struct ble_gap_conn_desc desc {};
+    const bool have_link =
+        active_conn_handle_ != 0xffff && ble_gap_conn_find(active_conn_handle_, &desc) == 0;
+    // Check the handshake and commit its result in ONE hold of bond_mutex_, so a
+    // concurrent start_pairing() / cancel_pairing() / clear_bond() lands wholly
+    // before (and rejects or restarts it) or after (and sees the new bond).
+    Bond bond;
+    std::optional<Bond> replaced;
+    bool closed_window = false;
+    uint8_t stage = 0;
+    bool closed = false;
+    {
+      std::lock_guard<std::mutex> lk(bond_mutex_);
+      stage = pairing_stage_;
+      closed = handshake_closed_;
+      if (stage >= 3 && !closed && have_link) {
+        bond.peer_type = desc.peer_id_addr.type;
+        std::copy(std::begin(desc.peer_id_addr.val), std::end(desc.peer_id_addr.val),
+                  bond.peer_val.begin());
+        bond.host_addr = pending_host_addr_;
+        bond.ltk = pending_ltk_;
+        bond_ = bond;
+        paired_ = true;
+        reconnect_mode_ = true;
+        closed_window = pairing_.exchange(false);
+        replaced = std::exchange(kept_bond_, std::nullopt);
+      }
+    }
+    if (stage < 3 || closed || !have_link) {
+      logger_.warn("pairing: FINALISE rejected — handshake incomplete or abandoned (stage={}, "
+                   "cancelled={}, link={})",
+                   stage, closed, have_link);
       break;
     }
     static constexpr std::array<uint8_t, 1> reply{0x01};
     send_response(via_vibration_command, 0x15, transport, 0x03, 0x10, 0x78, reply.data(),
                   reply.size());
-    paired_ = true;
     logger_.info("pairing: finalised — bonded");
     // Right after finalise the console starts standard BLE link-layer encryption
     // using the LTK we just negotiated (there is no SMP key distribution). Inject
     // the LTK into NimBLE's security store so the controller can answer the
     // console's LTK request; without it encryption fails and the console drops us.
-    if (!inject_pairing_ltk())
+    if (!inject_ltk(bond))
       logger_.error("pairing: LTK injection failed — the console's encryption request will "
                     "fail and it will drop the link; re-pair to retry");
     // Persist {console address, LTK} so we can reconnect/wake after a reboot
     // without re-running the pairing exchange.
-    save_bond();
-    reconnect_mode_ = true;
+    const bool persisted = save_bond(bond);
+    // A start_pairing() window is complete. If another console's bond was kept
+    // aside, drop its NimBLE key record - but only once NVS holds the new bond:
+    // otherwise NVS still holds the previous console and a reboot returns to it,
+    // so its key must stay. (The same console pairing again needs nothing: the
+    // injection above overwrote its record.)
+    if (replaced && !replaced->same_peer(bond)) {
+      if (persisted) {
+        std::lock_guard<std::mutex> adv_lk(adv_mutex_);
+        if (unpair_peer(replaced->peer_type, replaced->peer_val))
+          logger_.info("pairing: the new console replaced the previous one");
+      } else {
+        logger_.warn("pairing: the new bond is not persisted; NVS still holds the previous "
+                     "console, which a reboot returns to, so its key record is kept");
+      }
+    } else if (closed_window) {
+      logger_.info("pairing: window closed by a completed pairing");
+    }
     if (callbacks_.on_paired)
       callbacks_.on_paired();
     break;
