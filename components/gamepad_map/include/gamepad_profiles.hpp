@@ -156,17 +156,17 @@ public:
 
   /**
    * @brief Add a profile, or replace the one for the same controller, and save.
-   * @param profile The profile (its map must be valid(); with VID and PID 0 it
+   * @param entry The profile (its map must be valid(); with VID and PID 0 it
    *                needs a name).
    * @param ec Set on failure: std::errc::invalid_argument for an invalid
    *           profile, std::errc::no_buffer_space when the store is full, else
    *           the save error.
    * @return true if saved.
    */
-  bool set_profile(const GamepadProfile &profile, std::error_code &ec) {
-    if (!check(profile.map, ec))
+  bool set_profile(const GamepadProfile &entry, std::error_code &ec) {
+    if (!check(entry.map, ec))
       return false;
-    if (profile.vid == 0 && profile.pid == 0 && profile.name.empty()) {
+    if (entry.vid == 0 && entry.pid == 0 && entry.name.empty()) {
       ec = std::make_error_code(std::errc::invalid_argument);
       return false;
     }
@@ -174,15 +174,15 @@ public:
     Data next = data_;
     auto it =
         std::find_if(next.profiles.begin(), next.profiles.end(), [&](const GamepadProfile &p) {
-          return p.matches(profile.vid, profile.pid, profile.name);
+          return p.matches(entry.vid, entry.pid, entry.name);
         });
     if (it != next.profiles.end()) {
-      *it = profile;
+      *it = entry;
     } else if (next.profiles.size() >= max_profiles_) {
       ec = std::make_error_code(std::errc::no_buffer_space);
       return false;
     } else {
-      next.profiles.push_back(profile);
+      next.profiles.push_back(entry);
     }
     return commit(std::move(next), ec);
   }

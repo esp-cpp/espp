@@ -75,11 +75,11 @@ struct GamepadState {
     return b < Button::Count && (buttons >> static_cast<uint8_t>(b)) & 1u;
   }
   /// @brief Press or release a button.
-  constexpr void set(Button b, bool pressed) {
+  constexpr void set(Button b, bool down) {
     if (b >= Button::Count)
       return;
     const uint32_t bit = 1u << static_cast<uint8_t>(b);
-    buttons = pressed ? (buttons | bit) : (buttons & ~bit);
+    buttons = down ? (buttons | bit) : (buttons & ~bit);
   }
   /// @brief The value of an axis (0 for an invalid axis).
   constexpr int16_t axis(Axis a) const {

@@ -42,7 +42,8 @@ using espp::GamepadState;
 using B = GamepadState::Button;
 using A = GamepadState::Axis;
 
-static GamepadState state(std::initializer_list<B> pressed, std::array<int16_t, 6> axes = {}) {
+static GamepadState state(std::initializer_list<B> pressed,
+                          const std::array<int16_t, 6> &axes = {}) {
   GamepadState s;
   for (auto b : pressed)
     s.set(b, true);
