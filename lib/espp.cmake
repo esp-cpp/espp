@@ -295,6 +295,7 @@ set(ESPP_INCLUDES
   ${ESPP_COMPONENTS}/filters/include
   ${ESPP_COMPONENTS}/ftp/include
   ${ESPP_COMPONENTS}/format/include
+  ${ESPP_COMPONENTS}/gamepad_map/include
   ${ESPP_COMPONENTS}/hid-rp/include
   ${ESPP_COMPONENTS}/joystick/include
   ${ESPP_COMPONENTS}/logger/include

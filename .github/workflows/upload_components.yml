@@ -119,6 +119,7 @@ jobs:
             components/format
             components/ft5x06
             components/ftp
+            components/gamepad_map
             components/gfps_service
             components/gps
             components/gt911

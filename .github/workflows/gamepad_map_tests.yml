@@ -1,0 +1,69 @@
+name: Gamepad map host test
+
+# Builds and runs, on the host with g++ -std=c++23:
+#  - components/gamepad_map/test/gamepad_map_host_test.cpp (GamepadState,
+#    GamepadMap rules + validation, the hid-rp conversion, GamepadProfiles'
+#    file round trip)
+#  - components/hid-rp/test/hid_rp_report_map_host_test.cpp (the runtime
+#    report map + Gamepad / Keyboard / Mouse decoders the map is fed from)
+# Runs whenever either component, or what they store / log with, changes.
+
+# Minimal token scope: build + run tests, never writes.
+permissions:
+  contents: read
+
+on:
+  pull_request:
+    paths:
+      - "components/gamepad_map/**"
+      - "components/hid-rp/**"
+      - "components/persistent_data/**"
+      - "components/serialization/**"
+      - ".github/workflows/gamepad_map_tests.yml"
+  push:
+    branches:
+      - main
+    paths:
+      - "components/gamepad_map/**"
+      - "components/hid-rp/**"
+      - "components/persistent_data/**"
+      - "components/serialization/**"
+      - ".github/workflows/gamepad_map_tests.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  host-test:
+    name: C++ host tests (gamepad map, hid-rp report map)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          submodules: recursive
+      - name: Build and run hid_rp_report_map_host_test
+        run: |
+          g++ --version | head -1
+          g++ -std=c++23 -Wall -Wextra -Werror -Wno-comment \
+            -isystem components/hid-rp/include \
+            -isystem components/hid-rp/detail/hid-rp/hid-rp \
+            -isystem components/format/include \
+            -isystem components/format/detail/fmt/include \
+            components/hid-rp/test/hid_rp_report_map_host_test.cpp -o hid_rp_report_map_host_test
+          ./hid_rp_report_map_host_test
+      - name: Build and run gamepad_map_host_test
+        run: |
+          g++ -std=c++23 -Wall -Wextra -Werror -Wno-comment \
+            -I components/gamepad_map/include -I components/persistent_data/include \
+            -I components/serialization/include -I components/base_component/include \
+            -I components/logger/include -I components/format/include \
+            -isystem components/serialization/detail/alpaca/include \
+            -isystem components/format/detail/fmt/include \
+            -isystem components/hid-rp/include \
+            -isystem components/hid-rp/detail/hid-rp/hid-rp \
+            components/gamepad_map/test/gamepad_map_host_test.cpp components/logger/src/logger.cpp \
+            -o gamepad_map_host_test
+          ./gamepad_map_host_test

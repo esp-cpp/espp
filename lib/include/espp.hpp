@@ -28,6 +28,10 @@ extern "C" {
 #include "file_system.hpp"
 #include "ftp_client_session.hpp"
 #include "ftp_server.hpp"
+#include "gamepad_map.hpp"
+#include "gamepad_profiles.hpp"
+#include "gamepad_state.hpp"
+#include "gamepad_state_formatters.hpp"
 #include "gaussian.hpp"
 // TODO: these are not working
 // #include "hid-rp.hpp"

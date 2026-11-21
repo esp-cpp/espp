@@ -131,6 +131,7 @@ EXAMPLE_PATH = \
   $(PROJECT_PATH)/components/filters/example/main/filters_example.cpp \
   $(PROJECT_PATH)/components/ftp/example/main/ftp_example.cpp \
   $(PROJECT_PATH)/components/ft5x06/example/main/ft5x06_example.cpp \
+  $(PROJECT_PATH)/components/gamepad_map/example/main/gamepad_map_example.cpp \
   $(PROJECT_PATH)/components/gfps_service/example/main/gfps_service_example.cpp \
   $(PROJECT_PATH)/components/gps/example/main/gps_example.cpp \
   $(PROJECT_PATH)/components/gt911/example/main/gt911_example.cpp \
@@ -353,6 +354,10 @@ INPUT = \
   $(PROJECT_PATH)/components/ftp/include/ftp_server.hpp \
   $(PROJECT_PATH)/components/ftp/include/ftp_client_session.hpp \
   $(PROJECT_PATH)/components/ft5x06/include/ft5x06.hpp \
+  $(PROJECT_PATH)/components/gamepad_map/include/gamepad_map.hpp \
+  $(PROJECT_PATH)/components/gamepad_map/include/gamepad_profiles.hpp \
+  $(PROJECT_PATH)/components/gamepad_map/include/gamepad_state.hpp \
+  $(PROJECT_PATH)/components/gamepad_map/include/gamepad_state_hid_rp.hpp \
   $(PROJECT_PATH)/components/gfps_service/include/gfps.hpp \
   $(PROJECT_PATH)/components/gfps_service/include/gfps_characteristic_callbacks.hpp \
   $(PROJECT_PATH)/components/gfps_service/include/gfps_service.hpp \

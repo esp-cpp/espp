@@ -1,0 +1,24 @@
+## IDF Component Manager Manifest File
+license: "MIT"
+description: "Gamepad button / axis remapping with per-controller profiles for ESP-IDF"
+url: "https://github.com/esp-cpp/espp/tree/main/components/gamepad_map"
+repository: "git://github.com/esp-cpp/espp.git"
+maintainers:
+  - William Emfinger <waemfinger@gmail.com>
+documentation: "https://esp-cpp.github.io/espp/input/gamepad_map.html"
+examples:
+  - path: example
+tags:
+  - cpp
+  - Component
+  - Input
+  - Gamepad
+  - HID
+dependencies:
+  idf:
+    version: '>=5.0'
+  espp/base_component: '>=1.0'
+  espp/format: '>=1.0'
+  # GamepadReport::lt / rt / capture and GamepadDecoder::set_combine_controls()
+  espp/hid-rp: '>=1.4.6'
+  espp/persistent_data: '>=1.0'
