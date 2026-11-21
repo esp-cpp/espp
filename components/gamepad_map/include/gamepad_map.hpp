@@ -123,6 +123,11 @@ struct GamepadMapRule {
       return fail("target out of range");
     if (kind == Kind::AxisToButton && param == 0)
       return fail("axis -> button needs a non-zero threshold");
+    if (kind == Kind::AxisToButton && param < 0 &&
+        GamepadState::is_trigger(static_cast<Axis>(source)))
+      return fail("a trigger never goes below 0: its threshold must be positive");
+    if (target == NONE && keeps_source())
+      return fail("a rule that keeps its source needs a target");
     if (kind == Kind::AxisToAxis && (param < -MAX_SCALE_PERCENT || param > MAX_SCALE_PERCENT))
       return fail("axis -> axis scale out of range");
     return true;

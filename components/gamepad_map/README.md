@@ -18,8 +18,9 @@ whatever comes next (an emulated USB controller, an emulator's input).
   - [Rules](#rules)
   - [Profiles](#profiles)
   - [From a HID gamepad](#from-a-hid-gamepad)
+  - [Web console](#web-console)
   - [Host test](#host-test)
-  - [Example](#example)
+  - [Examples](#examples)
 
 <!-- markdown-toc end -->
 
@@ -32,6 +33,7 @@ whatever comes next (an emulated USB controller, an emulator's input).
 | `espp::GamepadMap` | Stick dead zones plus a list of rules; `apply()` maps one state to another |
 | `espp::GamepadProfiles` | A default map plus one map per controller type, saved in a file |
 | `espp::to_gamepad_state()` | A state from a `hid_rp::GamepadReport` (`gamepad_state_hid_rp.hpp`) |
+| `espp::GamepadMapService` | Serves a `GamepadProfiles` store to the web console (dispatcher module 11) |
 
 Everything except `GamepadProfiles` is header-only plain data with no
 allocation in `apply()`, so it can run on every report.
@@ -120,15 +122,46 @@ if (decoder.update(report_id, payload, report))   // BLE: the ID comes out of ba
   send(map.apply(espp::to_gamepad_state(report)));
 ```
 
+## Web console
+
+`espp::GamepadMapService` serves a `GamepadProfiles` store over any framed byte
+stream (WebUSB vendor, Web Serial CDC...) through an `espp::Dispatcher`. Its
+protocol is `espp.gamepad_map` v1 on module 11 by default
+(`include/detail/gamepad_map_protocol.hpp` is the wire spec). The hosted
+[Gamepad Map Console](https://esp-cpp.github.io/espp/apps/gamepad_map_console.html)
+uses it to edit the maps and to show the controller's input before and after
+mapping, live. The application tells the service about the controller and feeds
+it the input:
+
+```cpp
+espp::GamepadMapService service({.send = send_to_host,
+                                 .profiles = &profiles,
+                                 .on_active_map_changed = [&](const espp::GamepadMap &m) {
+                                   std::lock_guard lock(map_mutex);
+                                   active_map = m; // the console changed this controller's map
+                                 }});
+dispatcher.register_module(service);
+
+active_map = service.set_controller(vid, pid, name); // on connect; clear_controller() on disconnect
+// for every report:
+service.publish_input(raw, mapped); // an atomic load while nobody is streaming
+```
+
+The INPUT stream ends by itself when the host stops renewing it
+(`Config::stream_lease`), so a closed browser tab does not leave it running.
+
 ## Host test
 
 `test/gamepad_map_host_test.cpp` covers the rule semantics, validation, the
 hid-rp conversion (with a real BLE gamepad's descriptor) and the profile store's
-file round trip. The build command is at the top of the file, and CI runs it in
+file round trip. `test/gamepad_map_protocol_host_test.cpp` checks the wire
+protocol against golden encodings. The build command is at the top of the file, and CI runs it in
 `.github/workflows/gamepad_map_tests.yml` together with the hid-rp report-map
 test.
 
-## Example
+## Examples
 
-The [example](./example) decodes a BLE gamepad report, remaps it, and stores
-per-controller profiles on a LittleFS partition.
+- [example](./example) decodes a BLE gamepad report, remaps it, and stores
+  per-controller profiles on a LittleFS partition.
+- [webapp_example](./webapp_example) serves the profiles over USB (WebUSB /
+  Web Serial) to the Gamepad Map Console, with a demo controller.

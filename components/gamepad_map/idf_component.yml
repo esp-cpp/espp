@@ -8,6 +8,7 @@ maintainers:
 documentation: "https://esp-cpp.github.io/espp/input/gamepad_map.html"
 examples:
   - path: example
+  - path: webapp_example
 tags:
   - cpp
   - Component
@@ -18,7 +19,10 @@ dependencies:
   idf:
     version: '>=5.0'
   espp/base_component: '>=1.0'
+  espp/dispatcher: '>=1.0'
   espp/format: '>=1.0'
   # GamepadReport::lt / rt / capture and GamepadDecoder::set_combine_controls()
   espp/hid-rp: '>=1.4.6'
   espp/persistent_data: '>=1.0'
+  espp/stream_frame: '>=1.0'
+  espp/task: '>=1.0'

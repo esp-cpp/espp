@@ -61,7 +61,8 @@ for (const p of pages) {
   // constants are declared as `<PREFIX_>PROTOCOL = "id", <PREFIX_>PROTOCOL_VERSION = n`
   // with the same (possibly empty) prefix, e.g. OTA_PROTOCOL / OTA_PROTOCOL_VERSION
   // or the bare PROTOCOL / PROTOCOL_VERSION pair
-  for (const m of src.matchAll(/\b[A-Z0-9_]*PROTOCOL\s*=\s*"(espp\.[a-z0-9.-]+)"/g)) idsInScript.add(m[1]);
+  // (ids may contain `_`, e.g. espp.gamepad_map, as the generator's PROTOCOL_RE allows)
+  for (const m of src.matchAll(/\b[A-Z0-9_]*PROTOCOL\s*=\s*"(espp\.[a-z0-9._-]+)"/g)) idsInScript.add(m[1]);
   for (const id of idsInScript) assert.ok(protocols.some((p) => p.id === id), rel + ": script defines protocol " + id + " not declared in espp-protocols");
   // and the version it implements: every declared protocol must have its pair
   for (const pr of protocols) {
