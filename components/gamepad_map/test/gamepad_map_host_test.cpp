@@ -3,14 +3,14 @@
 // repository root (third-party headers are -isystem so their own warnings do
 // not fail the build):
 //
-//   g++ -std=c++23 -Wall -Wextra -Werror -Wno-comment
-//       -I components/gamepad_map/include -I components/persistent_data/include
-//       -I components/serialization/include -I components/base_component/include
-//       -I components/logger/include -I components/format/include
-//       -isystem components/serialization/detail/alpaca/include
-//       -isystem components/format/detail/fmt/include
-//       -isystem components/hid-rp/include -isystem components/hid-rp/detail/hid-rp/hid-rp
-//       components/gamepad_map/test/gamepad_map_host_test.cpp components/logger/src/logger.cpp
+//   g++ -std=c++23 -Wall -Wextra -Werror -Wno-comment \
+//       -I components/gamepad_map/include -I components/persistent_data/include \
+//       -I components/serialization/include -I components/base_component/include \
+//       -I components/logger/include -I components/format/include \
+//       -isystem components/serialization/detail/alpaca/include \
+//       -isystem components/format/detail/fmt/include \
+//       -isystem components/hid-rp/include -isystem components/hid-rp/detail/hid-rp/hid-rp \
+//       components/gamepad_map/test/gamepad_map_host_test.cpp components/logger/src/logger.cpp \
 //       -o gamepad_map_host_test
 //   ./gamepad_map_host_test
 //
@@ -19,6 +19,7 @@
 #include <cstdint>
 #include <cstdio>
 #include <filesystem>
+#include <fstream>
 #include <string>
 #include <vector>
 
@@ -153,6 +154,17 @@ static void test_axis_to_axis() {
   out = trig.apply(state({}, {0, 0, 0, 32767, 0, 0}));
   CHECK(out.axis(A::RightTrigger) == 0); // clamped at released
 
+  // an inverted trigger reads from full instead of never moving
+  GamepadMap inv_trigger;
+  inv_trigger.invert(A::LeftTrigger);
+  CHECK(inv_trigger.apply(state({}, {0, 0, 0, 0, 0, 0})).axis(A::LeftTrigger) == 32767);
+  CHECK(inv_trigger.apply(state({}, {0, 0, 0, 0, 32767, 0})).axis(A::LeftTrigger) == 0);
+  CHECK(inv_trigger.apply(state({}, {0, 0, 0, 0, 1000, 0})).axis(A::LeftTrigger) == 31767);
+  // ... while a trigger inverted onto a stick goes negative
+  GamepadMap trig_to_stick;
+  trig_to_stick.add(GamepadMapRule::axis(A::RightTrigger, A::LeftY, -100));
+  CHECK(trig_to_stick.apply(state({}, {0, 0, 0, 0, 0, 32767})).axis(A::LeftY) == -32767);
+
   GamepadMap gone;
   gone.add(GamepadMapRule::disable(A::LeftTrigger));
   CHECK(gone.apply(state({}, {0, 0, 0, 0, 9000, 9000})).axis(A::LeftTrigger) == 0);
@@ -168,6 +180,10 @@ static void test_deadzone() {
   CHECK(out.axis(A::LeftX) == 32767); // full deflection still full
   out = map.apply(state({}, {-20000, 0, 0, 0, 0, 0}));
   CHECK(out.axis(A::LeftX) < -18000 && out.axis(A::LeftX) > -20000); // rescaled
+  // a square-gate corner (both axes full) stays a full diagonal
+  map.left_deadzone_percent = 1;
+  out = map.apply(state({}, {32767, 32767, 0, 0, 0, 0}));
+  CHECK(out.axis(A::LeftX) == 32767 && out.axis(A::LeftY) == 32767);
 }
 
 static void test_validation() {
@@ -286,11 +302,53 @@ static void test_profiles() {
   }
   {
     espp::GamepadProfiles profiles({.file_path = file, .max_profiles = 1});
+    CHECK(!profiles.load_error());
+    CHECK(profiles.profile_count() == 1 && profiles.has_profile(0, 0, "NoPnP"));
+    CHECK(!profiles.has_profile(0x1949, 0x0402));
     CHECK(profiles.profiles().size() == 1); // NoPnP
     CHECK(!profiles.set_profile({.vid = 5, .pid = 6, .name = "full", .map = {}}, ec));
     CHECK(ec == std::errc::no_buffer_space);
     CHECK(profiles.reset(ec) && profiles.profiles().empty() &&
           profiles.default_map().is_identity());
+  }
+  {
+    // names are stored cut to MAX_NAME_LENGTH and still match by name
+    espp::GamepadProfiles profiles({.file_path = file});
+    const std::string long_name(100, 'n');
+    CHECK(profiles.set_profile({.vid = 0, .pid = 0, .name = long_name, .map = {}}, ec));
+    CHECK(profiles.has_profile(0, 0, long_name));
+    CHECK(profiles.profiles().back().name.size() == espp::GamepadProfile::MAX_NAME_LENGTH);
+  }
+  {
+    // a file that cannot be read is set aside, never overwritten
+    {
+      std::ofstream garbage(file, std::ios::binary | std::ios::trunc);
+      garbage << "definitely not a profile store";
+    }
+    espp::GamepadProfiles profiles({.file_path = file});
+    CHECK(profiles.load_error());
+    CHECK(fs::exists(fs::path(file.string() + ".unreadable")));
+    CHECK(!fs::exists(file));
+    CHECK(profiles.profiles().empty());
+    CHECK(profiles.set_default_map(GamepadMap{}, ec) && fs::exists(file));
+    CHECK(fs::exists(fs::path(file.string() + ".unreadable"))); // still there
+  }
+  {
+    // stored entries are sanitized: an invalid rule is dropped (the rest of
+    // its map kept), a profile nothing can match is dropped
+    espp::GamepadProfiles::Data d;
+    GamepadMap m;
+    m.add(GamepadMapRule::button(B::South, B::East));
+    m.add({GamepadMapRule::Kind::ButtonToButton, 99, 0, 0, 0}); // invalid source
+    d.profiles.push_back({.vid = 1, .pid = 2, .name = "ok", .map = m});
+    d.profiles.push_back({.vid = 0, .pid = 0, .name = "", .map = {}}); // unmatchable
+    espp::GamepadProfiles::Storage raw({.file_path = file, .auto_load = false});
+    CHECK(raw.save(d, ec));
+    espp::GamepadProfiles profiles({.file_path = file});
+    CHECK(!profiles.load_error());
+    CHECK(profiles.profile_count() == 1);
+    const auto kept = profiles.profile(1, 2);
+    CHECK(kept.has_value() && kept->map.rules.size() == 1 && kept->map.valid());
   }
   fs::remove_all(dir);
 }

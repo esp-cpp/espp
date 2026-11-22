@@ -26,13 +26,23 @@ namespace espp {
  *            as a full trigger);
  *          - **axis -> axis**: the source axis, scaled by a percentage (a
  *            negative scale inverts), is added to the target (swap or invert
- *            sticks, a stick as a trigger).
+ *            sticks, a stick as a trigger). A trigger inverted onto a trigger
+ *            reads from full: (32767 - value) x |scale|, so it rests pressed.
  *
  *          A control that is the source of a rule no longer reaches its own
  *          position (it is "moved", not copied) unless the rule sets
  *          KEEP_SOURCE; a rule whose target is NONE just removes its source.
  *          Several rules may feed one target: buttons are OR-ed, axis
  *          contributions are summed and clamped.
+ *
+ *          The rules of a map form a table applied to the controller's input
+ *          all at once, not one after the other: every rule reads the input
+ *          as the controller reported it, never another rule's output. So a
+ *          control that is the source of two rules feeds both targets
+ *          (`swap(South, East).swap(East, North)` makes East press South AND
+ *          North), and `invert(LeftY).swap_sticks()` sends the left stick's Y
+ *          inverted to itself and as is to the right stick. Give each source
+ *          the one rule (or, with KEEP_SOURCE, the rules) it should have.
  *
  *          The struct is plain data (it is stored with PersistentData and
  *          sent over the wire as is); build rules with the static helpers.
@@ -233,9 +243,17 @@ struct GamepadMap {
         if ((in.buttons >> r.source) & 1u)
           sum[r.target] += r.param;
         break;
-      case Rule::Kind::AxisToAxis:
-        sum[r.target] += static_cast<int32_t>(in.axes[r.source]) * r.param / 100;
+      case Rule::Kind::AxisToAxis: {
+        const int32_t v = in.axes[r.source];
+        const bool trigger_to_trigger = GamepadState::is_trigger(static_cast<Axis>(r.source)) &&
+                                        GamepadState::is_trigger(static_cast<Axis>(r.target));
+        // an inverted trigger onto a trigger reads from full instead of
+        // going negative (which would clamp to "never pressed")
+        sum[r.target] += trigger_to_trigger && r.param < 0
+                             ? (GamepadState::AXIS_MAX - v) * -r.param / 100
+                             : v * r.param / 100;
         break;
+      }
       }
     }
     out.buttons = buttons;
@@ -261,7 +279,7 @@ struct GamepadMap {
   GamepadMap &swap(Button a, Button b) { return add(Rule::button(a, b)).add(Rule::button(b, a)); }
   /// @brief Exchange two axes (e.g. the sticks, one axis at a time).
   GamepadMap &swap(Axis a, Axis b) { return add(Rule::axis(a, b)).add(Rule::axis(b, a)); }
-  /// @brief Invert an axis (stick Y up-positive, say).
+  /// @brief Invert an axis (stick Y up-positive, say; a trigger then rests fully pressed).
   GamepadMap &invert(Axis a) { return add(Rule::axis(a, a, -100)); }
   /// @brief Exchange the left and right sticks.
   GamepadMap &swap_sticks() {
@@ -323,9 +341,10 @@ private:
       return;
     }
     // rescale what is left so the edge of the dead zone reads 0 and full
-    // deflection still reads full
-    const float scale = std::min(1.0f, (mag - dead) / (GamepadState::AXIS_MAX - dead)) *
-                        GamepadState::AXIS_MAX / mag;
+    // deflection still reads full; the magnitude is not capped (each axis is
+    // clamped on its own), so a square-gate corner stays a full diagonal
+    const float scale =
+        ((mag - dead) / (GamepadState::AXIS_MAX - dead)) * GamepadState::AXIS_MAX / mag;
     s.set(x_axis, static_cast<int32_t>(std::lround(x * scale)));
     s.set(y_axis, static_cast<int32_t>(std::lround(y * scale)));
   }

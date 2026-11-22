@@ -19,6 +19,9 @@ on:
       - "components/hid-rp/**"
       - "components/persistent_data/**"
       - "components/serialization/**"
+      - "components/logger/**"
+      - "components/format/**"
+      - "components/base_component/**"
       - ".github/workflows/gamepad_map_tests.yml"
   push:
     branches:
@@ -28,6 +31,9 @@ on:
       - "components/hid-rp/**"
       - "components/persistent_data/**"
       - "components/serialization/**"
+      - "components/logger/**"
+      - "components/format/**"
+      - "components/base_component/**"
       - ".github/workflows/gamepad_map_tests.yml"
   workflow_dispatch:
 

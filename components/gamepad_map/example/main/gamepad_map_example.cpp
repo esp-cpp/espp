@@ -47,6 +47,10 @@ extern "C" void app_main(void) {
     // At connect: parse the controller's report map once and keep a decoder.
     // A bridge decodes every control as only itself and lets the map decide.
     auto report_map = espp::hid_rp::ReportMap::parse(from_hex(kReportMapHex));
+    if (!report_map || !espp::hid_rp::GamepadDecoder::looks_like_gamepad(*report_map)) {
+      logger.error("Not a gamepad report map");
+      return;
+    }
     espp::hid_rp::GamepadDecoder decoder(std::move(*report_map));
     decoder.set_combine_controls(false);
 
