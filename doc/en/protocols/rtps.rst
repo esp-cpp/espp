@@ -281,6 +281,13 @@ menuconfig under ``RTPS`` on ESP32; ``include/rtps/config.hpp`` defaults on host
      - on (default)
      - Compile in services + actions (RMI/AMI). Disable to drop that code and its
        threads on a pure-pub/sub device.
+   * - ``RTPS_PAYLOAD_PREFER_PSRAM``
+     - on when PSRAM is enabled
+     - Allocate payload bytes (history-cache samples, built messages, parsed
+       datagrams) from PSRAM first, internal RAM only as a fallback, so a
+       participant joining a busy domain does not exhaust the internal RAM that
+       task stacks and FreeRTOS locks need. See the component README,
+       *Internal RAM on a busy domain*.
 
 Relevant Specifications
 -----------------------

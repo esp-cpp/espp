@@ -183,6 +183,7 @@ via `include/rtps/config.hpp`.
 | `RTPS_LIMITS_PROFILE` | `embedded` (default) / `host` / `host_large` | Compile-time endpoint/history capacity caps (`config_esp32.hpp` / `config_desktop.hpp` / `config_host_large.hpp`). Wire-neutral. |
 | `RTPS_STORAGE_DYNAMIC` | off on ESP32 / on host | Static `std::array` history (zero-heap, drop-oldest) vs heap-backed `std::deque` (grows). Orthogonal to the profile. |
 | `RTPS_ENABLE_FRAGMENTATION` | off on ESP32 / on host | DATA_FRAG for samples > ~64 KB (interoperates with FastDDS/ROS 2). |
+| `RTPS_PAYLOAD_PREFER_PSRAM` | on when PSRAM is enabled | Allocate payload bytes (history-cache samples, built messages, parsed datagrams) from PSRAM first, internal RAM only as a fallback. See [Internal RAM on a busy domain](#internal-ram-on-a-busy-domain). |
 | `RTPS_ENABLE_RPC` | on (default) | Compile in services + actions (RMI/AMI). Disable to drop that code + its threads on a pure-pub/sub device. |
 | `RTPS_DOMAIN_ID` | 0 | DDS domain id (the `ROS_DOMAIN_ID` equivalent, 0..232). Derives the port base `7400 + 250 * id` and GUID prefix byte 9, so every participant on a domain must use the same value. Compile-time. |
 | `RTPS_THREAD_POOL_READER_PRIO` | 0 = profile default (5 on ESP32) | FreeRTOS priority of the transport's worker pool and reactor tasks, which send and receive all traffic (see [Priority scheduling](#priority-scheduling-bands-dedicated-ports-dscp)). |
@@ -220,6 +221,29 @@ that does reuse a prefix across a restart - this engine's boards never do, but
 a stack that derives its prefix from stable hardware identifiers would - is
 recognised by the sequence number of its announcements falling far below what
 it had reached, and rediscovered on the spot.
+
+### Internal RAM on a busy domain
+
+On an ESP32 with PSRAM, what runs out first is the byte-addressable internal
+RAM (`MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT`). Every new task's stack and
+every FreeRTOS lock behind a `std::mutex` / `std::condition_variable` comes
+from it. A participant that joins, or is recreated on, a domain with many live
+peers receives all of their discovery announcements at once. Each one becomes a
+payload of a few hundred bytes, below `CONFIG_SPIRAM_MALLOC_ALWAYSINTERNAL`
+(4096 by default), so a plain `malloc()` puts it in internal RAM.
+
+In the QEMU interop suite, a participant recreated next to a dozen ROS 2 peers
+spent 8-12 KB of internal RAM per endpoint, against about 1 KB on an empty
+domain, until creating the next task failed and the device aborted.
+`RTPS_PAYLOAD_PREFER_PSRAM` (on by default with PSRAM) keeps those payloads
+in PSRAM. Beyond it, an application on a busy domain should:
+
+- keep `CONFIG_SPIRAM_MALLOC_RESERVE_INTERNAL` large enough for the tasks and
+  locks it creates at runtime (the QEMU firmware reserves 64 KB);
+- let lwIP allocate from PSRAM (`CONFIG_SPIRAM_TRY_ALLOCATE_WIFI_LWIP`);
+- watch `heap_caps_get_minimum_free_size(MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT)`
+  rather than the `MALLOC_CAP_INTERNAL` total, which on the ESP32 includes IRAM
+  that neither stacks nor byte accesses can use.
 
 ### Per-limit capacity overrides
 

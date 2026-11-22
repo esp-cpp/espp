@@ -33,6 +33,7 @@ Author: i11 - Embedded Software, RWTH Aachen University
 #include <vector>
 
 #include "rtps/common/types.hpp"
+#include "rtps/storages/PayloadAllocator.hpp"
 
 namespace rtps {
 
@@ -40,7 +41,7 @@ struct PacketInfo {
   Ip4Port_t srcPort; // TODO Do we need that?
   std::array<uint8_t, 4> destAddr = {0, 0, 0, 0};
   Ip4Port_t destPort;
-  std::vector<uint8_t> payload;
+  PayloadBytes payload; ///< PSRAM first where configured (PayloadAllocator)
 
   void copyTriviallyCopyable(const PacketInfo &other) {
     this->srcPort = other.srcPort;

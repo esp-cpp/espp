@@ -14,11 +14,7 @@ CONFIG_PARTITION_TABLE_OFFSET=0x8000
 CONFIG_PARTITION_TABLE_CUSTOM_FILENAME="partitions.csv"
 CONFIG_SPIRAM=y
 CONFIG_SPIRAM_USE_MALLOC=y
-# EXPERIMENT (draft #923): small allocations go to PSRAM first too, to test
-# whether the engine's per-match small heap allocations (payload vectors and
-# the like, all under the old 4096 threshold) are what drains internal RAM
-# when a new participant matches a busy domain at once.
-CONFIG_SPIRAM_MALLOC_ALWAYSINTERNAL=512
+CONFIG_SPIRAM_MALLOC_ALWAYSINTERNAL=4096
 # Keep internal RAM for what must live there. The restart case tears the
 # participant down and builds a new one while a dozen peers from the earlier
 # cases are still announcing: the new participant discovers them all at once,

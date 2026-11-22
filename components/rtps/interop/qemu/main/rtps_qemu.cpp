@@ -72,23 +72,13 @@ void log_mem_heap(espp::Logger &logger, const char *stage) {
               heap_caps_get_largest_free_block(kDramCaps));
 }
 // Byte-addressable internal RAM (what a task stack comes from) and the task
-// count, at a named point: where a stage's internal-RAM cost goes (diagnostic).
+// count at a named point, after each endpoint is created: what each endpoint
+// costs in internal RAM, on the first participant and on the one after the
+// restart (which matches a busy domain at once).
 void log_dram(espp::Logger &logger, const char *point) {
   logger.info("RTPSTEST dram {} free={} min={} largest={} tasks={}", point,
               heap_caps_get_free_size(kDramCaps), heap_caps_get_minimum_free_size(kDramCaps),
               heap_caps_get_largest_free_block(kDramCaps), uxTaskGetNumberOfTasks());
-}
-// The task names, to compare a participant's tasks with the next one's.
-void log_task_names(espp::Logger &logger, const char *point) {
-  std::vector<TaskStatus_t> tasks(uxTaskGetNumberOfTasks() + 4);
-  const auto n = uxTaskGetSystemState(tasks.data(), tasks.size(), nullptr);
-  std::string names;
-  for (UBaseType_t i = 0; i < n; ++i) {
-    if (!names.empty())
-      names += ',';
-    names += tasks[i].pcTaskName;
-  }
-  logger.info("RTPSTEST task names {} n={} {}", point, n, names);
 }
 // The restart case calls /qemu_add_two_ints with this magic request to ask the
 // device to recreate its participant (see the service handler in run_participant).
@@ -355,16 +345,6 @@ static void run_participant(espp::Logger &logger, const std::string &interface_a
 
   log_mem_heap(logger, "endpoints");
   log_dram(logger, "endpoints");
-  log_task_names(logger, "endpoints");
-  // Diagnostic: internal RAM over the first 3 s after the endpoints exist (on
-  // a busy domain, discovery of every live peer happens here): where the
-  // restart case's internal-RAM low point comes from.
-  for (int i = 1; i <= 30; ++i) {
-    std::this_thread::sleep_for(100ms);
-    const std::string point = "t+" + std::to_string(i * 100) + "ms";
-    log_dram(logger, point.c_str());
-  }
-  log_task_names(logger, "t+3s");
 
   // Periodic publishers: one reliable, one best-effort
   uint32_t counter = 0;
