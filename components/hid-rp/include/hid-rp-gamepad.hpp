@@ -55,10 +55,12 @@ protected:
   std::uint8_t hat_switch{0};
   hid::report_bitset<hid::page::button, hid::page::button(1), hid::page::button(BUTTON_COUNT)>
       buttons;
-  struct {
-    std::uint8_t consumer_record : 1;
-    std::uint8_t : 7;
-  };
+  /// Bit 0: the consumer Record button; bits 1..7: the descriptor's constant
+  /// padding, always 0. A plain byte rather than a bit-field struct: the unnamed
+  /// padding bits of `struct { uint8_t consumer_record : 1; uint8_t : 7; }`
+  /// could never be cleared (reset() can only assign the named field), so they
+  /// carried whatever was in memory into every report.
+  std::uint8_t consumer_byte{0};
 
 public:
   using Hat = espp::gamepad::Hat;
@@ -72,7 +74,7 @@ public:
     std::fill(trigger_axes.begin(), trigger_axes.end(), trigger_center);
     set_hat(Hat::CENTERED);
     buttons.reset();
-    consumer_record = 0;
+    consumer_byte = 0;
   }
 
   /// Get the left joystick X and Y axis values
@@ -292,11 +294,13 @@ public:
 
   /// Get the consumer record button value
   /// \return The consumer record button value.
-  constexpr bool get_consumer_record() const { return consumer_record; }
+  constexpr bool get_consumer_record() const { return consumer_byte & 0x01; }
 
   /// Set the consumer record button value
   /// \param value The true/false value you want to se the consumer record button to.
-  constexpr void set_consumer_record(bool value) { consumer_record = value; }
+  constexpr void set_consumer_record(bool value) {
+    consumer_byte = value ? 0x01 : 0x00; // the padding bits stay 0
+  }
 
   /// Get the input report as a vector of bytes
   /// \return The input report as a vector of bytes.

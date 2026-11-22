@@ -31,7 +31,7 @@ template <uint8_t REPORT_ID> struct fmt::formatter<espp::XboxGamepadInputReport<
       buttons.set(i - 1, report.buttons.test(hid::page::button(i)));
     }
     fmt::format_to(out, "{}", buttons);
-    fmt::format_to(out, "], consumer_record: {}", (bool)report.consumer_record);
+    fmt::format_to(out, "], consumer_record: {}", report.get_consumer_record());
     return fmt::format_to(out, "}}");
   }
 };

@@ -1,0 +1,54 @@
+name: hid-rp host tests
+
+# Builds and runs every host test of the hid-rp component on the host with
+# g++ -std=c++23: report layouts / descriptors (gamepad, Xbox, PlayStation,
+# Switch Pro, 3Dconnexion) and the runtime report map + decoders.
+
+# Minimal token scope: build + run tests, never writes.
+permissions:
+  contents: read
+
+on:
+  pull_request:
+    paths:
+      - "components/hid-rp/**"
+      - "components/format/**"
+      - ".github/workflows/hid_rp_tests.yml"
+  push:
+    branches:
+      - main
+    paths:
+      - "components/hid-rp/**"
+      - "components/format/**"
+      - ".github/workflows/hid_rp_tests.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  host-test:
+    name: C++ host tests (hid-rp)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          submodules: recursive
+      - name: Build and run every hid-rp host test
+        run: |
+          g++ --version | head -1
+          failed=0
+          for t in components/hid-rp/test/*_host_test.cpp; do
+            name=$(basename "$t" .cpp)
+            echo "::group::$name"
+            g++ -std=c++23 -Wall -Wextra -Werror -Wno-comment \
+              -isystem components/hid-rp/include \
+              -isystem components/hid-rp/detail/hid-rp/hid-rp \
+              -isystem components/format/include \
+              -isystem components/format/detail/fmt/include \
+              "$t" -o "$name" && "./$name" || failed=1
+            echo "::endgroup::"
+          done
+          exit $failed

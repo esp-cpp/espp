@@ -18,6 +18,8 @@
 
 #include <cstdint>
 #include <cstdio>
+#include <cstring>
+#include <new>
 #include <vector>
 
 #include "hid-rp-gamepad.hpp"
@@ -113,6 +115,23 @@ static void test_byte_axes_layout_without_report_id() {
   check_byte_layout<ByteReportNoId>();
 }
 
+// The consumer byte's padding bits are 0 whatever the memory held before (they
+// used to be an unnamed bit-field that reset() could not clear, so a report
+// went out with garbage in them).
+static void test_padding_bits_are_zero() {
+  std::printf("test_padding_bits_are_zero\n");
+  alignas(ByteReport) unsigned char storage[sizeof(ByteReport)];
+  std::memset(storage, 0xFF, sizeof(storage));
+  auto *report = new (storage) ByteReport();
+  auto bytes = report->get_report();
+  CHECK(bytes[9] == 0);
+  report->set_consumer_record(true);
+  CHECK(report->get_report()[9] == 0x01 && report->get_consumer_record());
+  report->set_consumer_record(false);
+  CHECK(report->get_report()[9] == 0 && !report->get_consumer_record());
+  report->~ByteReport();
+}
+
 static void test_byte_axes_centered_is_neutral() {
   std::printf("test_byte_axes_centered_is_neutral\n");
   ByteReport report;
@@ -164,6 +183,7 @@ int main() {
   test_byte_axes_layout();
   test_byte_axes_layout_without_report_id();
   test_byte_axes_centered_is_neutral();
+  test_padding_bits_are_zero();
   test_set_data_round_trip();
 
   if (g_failures == 0) {
