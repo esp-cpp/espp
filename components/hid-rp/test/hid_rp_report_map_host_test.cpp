@@ -1,13 +1,13 @@
 // Host-buildable unit tests for the runtime report map / decoders
 // (hid-rp-report-map.hpp). Build & run:
 //
-//   c++ -std=c++23 -Wall -Wextra -Werror
-//       -isystem components/hid-rp/include
-//       -isystem components/hid-rp/detail/hid-rp/hid-rp
-//       -isystem components/format/include
-//       -isystem components/format/detail/fmt/include
-//       components/hid-rp/test/hid_rp_report_map_host_test.cpp
-//       -o /tmp/hid_rp_report_map_host_test
+//   c++ -std=c++23 -Wall -Wextra -Werror -Wno-comment \
+//       -isystem components/hid-rp/include \
+//       -isystem components/hid-rp/detail/hid-rp/hid-rp \
+//       -isystem components/format/include \
+//       -isystem components/format/detail/fmt/include \
+//       components/hid-rp/test/hid_rp_report_map_host_test.cpp \
+//       -o /tmp/hid_rp_report_map_host_test \
 //   && /tmp/hid_rp_report_map_host_test
 //
 // No ESP-IDF headers required.
@@ -197,6 +197,15 @@ static void test_xbox_ble() {
   CHECK(g.start);
   CHECK(g.ly < -30000 && std::abs(g.lx) < 300);
   CHECK(g.lt > 32000 && g.rt == 0);
+
+  // the battery report carries no gamepad control: update() ignores it (and
+  // leaves `out` alone) rather than re-sending the last pad state
+  CHECK(decoder.update(espp::XboxGamepadInputReport<>::ID, payload, g));
+  espp::hid_rp::GamepadReport untouched;
+  untouched.hat = 1234;
+  const std::vector<uint8_t> battery{0x55};
+  CHECK(!decoder.update(espp::XboxBatteryInputReport<>::ID, battery, untouched));
+  CHECK(untouched.hat == 1234);
 }
 
 // A DualShock-style descriptor: X/Y/Z/Rz sticks, then Rx/Ry as the analog
@@ -229,6 +238,12 @@ static void test_dualshock_axes() {
   CHECK(std::abs(g.ry) < 300);
   CHECK(g.lt > 32000 && g.rt == 0);
   CHECK(g.south); // DirectInput: button 2 = south
+  CHECK(!g.home);
+  // button 13 (the PS button): payload bit 36 + 12 = 48 = payload byte 6 (raw[7]) bit 0
+  std::vector<uint8_t> ps = raw;
+  ps[7] = 0x01;
+  CHECK(decoder.decode(ps, g));
+  CHECK(g.home);
 }
 
 // The classic boot-protocol keyboard descriptor (8-byte reports: modifier

@@ -44,8 +44,8 @@ See the Getting Started Guide for full steps to configure and use ESP-IDF to bui
 ```
 I (…) gamepad map example: Starting gamepad map example!
 I (…) gamepad map example: Decode a BLE gamepad report, then remap it
-I (…) gamepad map example: controller: {buttons: [south], lx: -32767, ly: 257, rx: 257, ry: 257, lt: 0, rt: 32767}
-I (…) gamepad map example: mapped:     {buttons: [east, r2, left], lx: -32767, ly: 0, rx: 257, ry: 257, lt: 0, rt: 32767}
+I (…) gamepad map example: controller: {buttons: [south], lx: -32767, ly: 128, rx: 128, ry: 128, lt: 0, rt: 32767}
+I (…) gamepad map example: mapped:     {buttons: [east, r2, left], lx: -32767, ly: 128, rx: 128, ry: 128, lt: 0, rt: 32767}
   [PASS] south is mapped to east
   [PASS] the left stick also presses d-pad left
   [PASS] the stick is kept

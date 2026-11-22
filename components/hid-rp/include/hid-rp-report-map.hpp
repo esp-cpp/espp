@@ -339,6 +339,7 @@ struct GamepadReport {
 ///  - DirectInput / DualShock: 1 = west, 2 = south, 3 = east, 4 = north, the
 ///    rest as Xbox-style (picked when the descriptor has a hat switch and >= 13
 ///    buttons)
+///  Both: 13 = home (the PS button on a DualShock / DualSense).
 ///  - Android: 1 = south, 2 = east, 4 = west, 5 = north, 7/8 = L1/R1,
 ///    9/10 = L2/R2, 11 = select, 12 = start, 13 = home, 14/15 = L3/R3: the
 ///    layout of BLE HID gamepads (Xbox Wireless over BLE, and the Android modes
@@ -412,10 +413,20 @@ public:
     // What each field is, worked out once: decode() then only switches on it.
     const bool z_rz_stick = z && rz;
     roles_.reserve(map_.fields().size());
+    slots_.reserve(map_.fields().size());
     for (const auto &f : map_.fields()) {
-      roles_.push_back(role_of(f, z_rz_stick, rx, ry, sim_triggers));
-      if (std::find(report_ids_.begin(), report_ids_.end(), f.report_id) == report_ids_.end())
+      const Role role = role_of(f, z_rz_stick, rx, ry, sim_triggers);
+      roles_.push_back(role);
+      auto it = std::find(report_ids_.begin(), report_ids_.end(), f.report_id);
+      if (it == report_ids_.end()) {
         report_ids_.push_back(f.report_id);
+        mapped_.push_back(false);
+        it = report_ids_.end() - 1;
+      }
+      const auto slot = static_cast<size_t>(it - report_ids_.begin());
+      slots_.push_back(slot);
+      if (role != Role::None)
+        mapped_[slot] = true;
     }
     latest_.resize(report_ids_.size());
   }
@@ -480,33 +491,32 @@ public:
   /// Returns false when the report carries none of the mapped fields.
   bool decode(uint8_t report_id, std::span<const uint8_t> payload, GamepadReport &out) const {
     const uint8_t id = map_.uses_report_ids() ? report_id : 0;
+    const auto &fields = map_.fields();
     return decode_impl(
-        [id, payload](uint8_t field_id) {
-          return field_id == id ? payload : std::span<const uint8_t>{};
+        [&fields, id, payload](size_t field) {
+          return fields[field].report_id == id ? payload : std::span<const uint8_t>{};
         },
         out);
   }
 
   /// Remember `payload` as the latest report `report_id` (no ID byte, as for
   /// decode(report_id, payload, out)), then decode the latest report of every
-  /// ID together into `out`. Returns false, leaving `out` alone, when no mapped
-  /// field lives in that report. Not thread-safe: feed one decoder from one
-  /// task. A report of a size seen before is stored without allocating.
+  /// ID together into `out`. Returns false, leaving `out` alone, when no
+  /// gamepad control lives in that report (another ID, or e.g. a battery
+  /// report): only a report that can change the pad's state re-decodes it.
+  /// Not thread-safe: feed one decoder from one task. A report of a size seen
+  /// before is stored without allocating.
   bool update(uint8_t report_id, std::span<const uint8_t> payload, GamepadReport &out) {
     const uint8_t id = map_.uses_report_ids() ? report_id : 0;
     const auto it = std::find(report_ids_.begin(), report_ids_.end(), id);
     if (it == report_ids_.end())
       return false;
-    latest_[static_cast<size_t>(it - report_ids_.begin())].assign(payload.begin(), payload.end());
+    const auto slot = static_cast<size_t>(it - report_ids_.begin());
+    if (!mapped_[slot])
+      return false;
+    latest_[slot].assign(payload.begin(), payload.end());
     return decode_impl(
-        [this](uint8_t field_id) {
-          const auto at = std::find(report_ids_.begin(), report_ids_.end(), field_id);
-          return at == report_ids_.end()
-                     ? std::span<const uint8_t>{}
-                     : std::span<const uint8_t>(
-                           latest_[static_cast<size_t>(at - report_ids_.begin())]);
-        },
-        out);
+        [this](size_t field) { return std::span<const uint8_t>(latest_[slots_[field]]); }, out);
   }
 
   /// Forget the reports update() remembered (e.g. when the device disconnects).
@@ -666,6 +676,8 @@ private:
       return Pos::L3;
     case 12:
       return Pos::R3;
+    case 13:
+      return Pos::Home;
     default:
       return Pos::None;
     }
@@ -683,8 +695,8 @@ private:
     return static_cast<int16_t>(std::clamp<int64_t>(from_min * 32767 / range, 0, 32767));
   }
 
-  // `payload_for(report_id)` gives the payload holding that ID's fields (empty
-  // when there is none to decode).
+  // `payload_for(field index)` gives the payload holding that field's report
+  // (empty when there is none to decode).
   template <typename PayloadFor>
   bool decode_impl(PayloadFor payload_for, GamepadReport &out) const {
     GamepadReport r{};
@@ -696,7 +708,7 @@ private:
       const Role role = roles_[i];
       if (role == Role::None)
         continue;
-      const auto payload = payload_for(f.report_id);
+      const auto payload = payload_for(i);
       if (payload.empty())
         continue;
       const auto v = ReportMap::extract(f, f.report_id, payload);
@@ -858,6 +870,8 @@ private:
   bool combine_controls_{true};
   std::vector<Role> roles_;                  ///< per field of map_
   std::vector<uint8_t> report_ids_;          ///< the IDs the fields live in
+  std::vector<bool> mapped_;                 ///< per report_ids_ entry: carries a gamepad control
+  std::vector<size_t> slots_;                ///< per field of map_: its report_ids_ index
   std::vector<std::vector<uint8_t>> latest_; ///< update(): latest payload per report_ids_ entry
 };
 

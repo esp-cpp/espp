@@ -114,6 +114,8 @@ decides those:
 
 ```cpp
 auto report_map = espp::hid_rp::ReportMap::parse(descriptor);
+if (!report_map || !espp::hid_rp::GamepadDecoder::looks_like_gamepad(*report_map))
+  return; // not a gamepad (or a malformed descriptor)
 espp::hid_rp::GamepadDecoder decoder(std::move(*report_map));
 decoder.set_combine_controls(false);
 
