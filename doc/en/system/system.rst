@@ -60,6 +60,19 @@ it doubles as a serial monitor): a device-info panel, the two restart buttons
 :doc:`monitor <../core/monitor>` component's ``MonitorService`` — heap-region
 gauges and a live, sortable task table with a stream toggle.
 
+.. note::
+
+   **A host must release the device before it resets into the bootloader.** A
+   device that is still open and claimed when the chip resets (a WebUSB
+   interface with an IN transfer pending, a pyusb handle, an open serial port)
+   can leave the host -- macOS in particular -- holding a stale record of it,
+   so the ROM's USB device (other ids) does not enumerate until the board is
+   replugged. Ask for a delay of at least 1000 ms with ``REBOOT_TO_BOOTLOADER``,
+   and as soon as the OK reply arrives stop any stream, release the interface
+   and close the device; then wait for the ROM's device. The System Console
+   does exactly this. See the component README's *Host side: release the device
+   before it resets* for the details.
+
 .. image:: https://github.com/user-attachments/assets/bc5fa520-f3a0-40de-9b53-889a887c0322
    :alt: espp System Console: device info, reboot / bootloader controls and heap gauges
    :width: 100%
