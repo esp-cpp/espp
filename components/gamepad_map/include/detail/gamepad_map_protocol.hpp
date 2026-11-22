@@ -43,8 +43,8 @@
 //                  flags bit0 = a controller is connected, then:
 //                  [vid u16][pid u16][name str][has_profile u8]
 //                  Answers GET_INFO, and is also sent unsolicited (no
-//                  correlation id) when the connected controller changes while
-//                  the INPUT stream is on.
+//                  correlation id) when the INPUT stream starts and when the
+//                  connected controller changes while it is on.
 //   0x82 MAP       [target][flags u8][map]  (GET_MAP; the target as requested,
 //                                          the profile's stored name if it
 //                                          exists; flags bit0 = it exists. A
@@ -62,7 +62,8 @@
 // Replies echo the request frame's correlation id (if it carried one);
 // streamed INPUT events and unsolicited INFO carry none.
 //
-// Compatibility: the device rejects trailing bytes in a request, but a host
+// Compatibility: the device rejects trailing bytes in a request (a request
+// listed with no payload must have none), but a host
 // decodes device -> host messages leniently: bytes after the fields it knows
 // are ignored, so a later version of the protocol may append fields to them.
 
@@ -229,7 +230,6 @@ public:
   /// For device -> host messages: every known field was read (trailing bytes,
   /// fields of a later protocol version, are ignored).
   bool known_fields_read() const { return ok_; }
-  bool ok() const { return ok_; }
 
 private:
   bool have(size_t n) {

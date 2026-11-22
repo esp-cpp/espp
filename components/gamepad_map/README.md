@@ -144,9 +144,12 @@ espp::GamepadMapService service({.send = send_to_host,
                                  }});
 dispatcher.register_module(service);
 
-active_map = service.set_controller(vid, pid, name); // on connect; clear_controller() on disconnect
+{
+  std::lock_guard lock(map_mutex); // the callback above may run on another thread
+  active_map = service.set_controller(vid, pid, name); // on connect; clear_controller() on disconnect
+}
 // for every report:
-service.publish_input(raw, mapped); // an atomic load while nobody is streaming
+service.publish_input(raw, mapped); // a 32-byte copy under a lock; never sends
 ```
 
 The INPUT stream ends by itself when the host stops renewing it

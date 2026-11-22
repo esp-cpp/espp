@@ -60,16 +60,22 @@ namespace espp {
  *          When a change affects the map of the connected controller (its
  *          profile, or the default map it falls back to), the service calls
  *          Config::on_active_map_changed with the new map: the application
- *          swaps the map it applies. publish_input() is cheap when nobody is
- *          streaming (an atomic load), so it can be called for every report.
+ *          swaps the map it applies. publish_input() only copies the state
+ *          under a lock (no I/O), so it can be called for every report.
  *
  *          Several services (one per transport) may share one GamepadProfiles
  *          store; tell each about the controller and feed each the input.
+ *          Their changes and notifications are serialized on the store's
+ *          change_mutex(), so the last notification always carries the map
+ *          the store holds.
  *
- * **Threading**: an internal mutex covers the parser and the controller state;
- * every outbound frame is serialized on a send mutex held across `send`, so
- * frames never interleave. `send` and `on_active_map_changed` must not
- * re-enter this object.
+ * **Threading**: an internal mutex covers the parser, the controller state and
+ * the stream task; every outbound frame is serialized on a send mutex held
+ * across `send`, so frames never interleave. set_controller(),
+ * clear_controller() and publish_input() never send (an INFO for a controller
+ * change goes out from the stream task), so they are safe to call from a
+ * radio / host task. `send` and `on_active_map_changed` must not re-enter this
+ * object (nor change the store).
  *
  * \section gamepad_map_service_ex1 GamepadMapService Example
  * \snippet gamepad_map_webapp_example.cpp gamepad_map_webapp_example
@@ -103,6 +109,8 @@ public:
     uint8_t module{kModule};
     /// Shortest INPUT period a host may request (SET_STREAM is clamped to it).
     std::chrono::milliseconds min_stream_period{20};
+    /// Longest INPUT period a host may request (SET_STREAM is clamped to it).
+    std::chrono::milliseconds max_stream_period{1000};
     /// The stream stops when no SET_STREAM enable renews it for this long.
     std::chrono::milliseconds stream_lease{10000};
     /// The streaming task (started on the first SET_STREAM enable).
@@ -146,8 +154,10 @@ public:
       changed = !controller_ || !(*controller_ == c);
       controller_ = c;
     }
-    if (changed)
-      push_info();
+    if (changed) {
+      reset_input(); // nothing from the previous controller carries over
+      info_pending_ = true;
+    }
     return config_.profiles ? config_.profiles->map_for(vid, pid, name) : GamepadMap{};
   }
 
@@ -159,8 +169,10 @@ public:
       changed = controller_.has_value();
       controller_.reset();
     }
-    if (changed)
-      push_info();
+    if (changed) {
+      reset_input();
+      info_pending_ = true;
+    }
   }
 
   /// @brief The map the connected controller should use now (default map when none is connected).
@@ -173,11 +185,10 @@ public:
 
   /**
    * @brief Report one input: what the controller sent and what it was mapped
-   *        to. Cheap (an atomic load) while no host is streaming.
+   *        to. Copies 32 bytes under a lock (always, so a stream that starts
+   *        later begins from the real state); never sends.
    */
   void publish_input(const GamepadState &raw, const GamepadState &mapped) {
-    if (!streaming_.load(std::memory_order_relaxed))
-      return;
     std::lock_guard<std::mutex> lock(input_mutex_);
     if (raw != latest_raw_ || mapped != latest_mapped_)
       input_changed_ = true;
@@ -194,6 +205,7 @@ public:
     {
       std::lock_guard<std::mutex> lock(mutex_);
       streaming_.store(false);
+      task_active_ = false;
       task = std::move(task_);
     }
     if (task)
@@ -257,6 +269,13 @@ public:
       send_error(type, std::errc::not_supported, "no profile store configured", correlation);
       return true;
     }
+    // requests without a payload take none: a longer one is a newer protocol's
+    // request this firmware does not understand (never act on it)
+    if ((request == Type::GetInfo || request == Type::ListProfiles || request == Type::ResetAll) &&
+        !payload.empty()) {
+      send_error(type, std::errc::invalid_argument, "unexpected payload", correlation);
+      return true;
+    }
     auto &profiles = *config_.profiles;
     switch (request) {
     case Type::GetInfo:
@@ -299,13 +318,14 @@ public:
         send_error(type, std::errc::invalid_argument, "invalid map: " + why, correlation);
         break;
       }
-      const GamepadMap before = active_map();
       std::error_code ec;
-      const bool saved =
-          target.profile
-              ? profiles.set_profile(
-                    {.vid = target.vid, .pid = target.pid, .name = target.name, .map = map}, ec)
-              : profiles.set_default_map(map, ec);
+      const bool saved = change([&] {
+        return target.profile
+                   ? profiles.set_profile(
+                         {.vid = target.vid, .pid = target.pid, .name = target.name, .map = map},
+                         ec)
+                   : profiles.set_default_map(map, ec);
+      });
       if (!saved) {
         send_error(type, std::errc::io_error,
                    "could not save the map: " + (ec ? ec.message() : std::string("unknown error")),
@@ -313,7 +333,6 @@ public:
         break;
       }
       ok(type, correlation);
-      notify_if_changed(before);
       break;
     }
     case Type::EraseProfile: {
@@ -322,9 +341,9 @@ public:
         send_error(type, std::errc::invalid_argument, "malformed ERASE_PROFILE", correlation);
         break;
       }
-      const GamepadMap before = active_map();
       std::error_code ec;
-      if (!profiles.erase_profile(target->vid, target->pid, target->name, ec)) {
+      if (!change(
+              [&] { return profiles.erase_profile(target->vid, target->pid, target->name, ec); })) {
         if (ec)
           send_error(type, std::errc::io_error, "could not save: " + ec.message(), correlation, ec);
         else
@@ -332,7 +351,6 @@ public:
         break;
       }
       ok(type, correlation);
-      notify_if_changed(before);
       break;
     }
     case Type::ListProfiles: {
@@ -369,14 +387,12 @@ public:
       break;
     }
     case Type::ResetAll: {
-      const GamepadMap before = active_map();
       std::error_code ec;
-      if (!profiles.reset(ec)) {
+      if (!change([&] { return profiles.reset(ec); })) {
         send_error(type, std::errc::io_error, "could not save: " + ec.message(), correlation, ec);
         break;
       }
       ok(type, correlation);
-      notify_if_changed(before);
       break;
     }
     default:
@@ -393,13 +409,13 @@ protected:
     bool operator==(const Controller &) const = default;
   };
 
-  /// Tell a streaming host about a controller change right away (unsolicited
-  /// INFO, no correlation id); a host that is not streaming asks with GET_INFO.
-  void push_info() {
-    namespace proto = espp::detail::gamepad_map_protocol;
-    if (!config_.profiles || !streaming_.load())
-      return;
-    send_frame(proto::build_frame(Type::Info, proto::encode_info(build_info()), module_id()));
+  /// Forget the latest input (a controller changed): the next INPUT shows a
+  /// neutral state until the new controller reports.
+  void reset_input() {
+    std::lock_guard<std::mutex> lock(input_mutex_);
+    latest_raw_ = {};
+    latest_mapped_ = {};
+    input_changed_ = true;
   }
 
   std::optional<Controller> controller() const {
@@ -416,23 +432,34 @@ protected:
         .max_profiles =
             static_cast<uint8_t>(std::min<size_t>(config_.profiles->max_profiles(), 255)),
         .profile_count =
-            static_cast<uint8_t>(std::min<size_t>(config_.profiles->profiles().size(), 255))};
+            static_cast<uint8_t>(std::min<size_t>(config_.profiles->profile_count(), 255))};
     if (const auto c = controller()) {
-      info.controller = proto::Controller{
-          .vid = c->vid,
-          .pid = c->pid,
-          .name = c->name,
-          .has_profile = config_.profiles->profile(c->vid, c->pid, c->name).has_value()};
+      info.controller =
+          proto::Controller{.vid = c->vid,
+                            .pid = c->pid,
+                            .name = c->name,
+                            .has_profile = config_.profiles->has_profile(c->vid, c->pid, c->name)};
     }
     return info;
   }
 
-  void notify_if_changed(const GamepadMap &before) {
-    if (!config_.on_active_map_changed || !controller())
-      return;
-    const GamepadMap now = active_map();
-    if (now != before)
-      config_.on_active_map_changed(now);
+  /// Apply one change to the store (`save` returns whether it was saved) and,
+  /// when it gives the connected controller a different map, tell the
+  /// application -- all under the store's change mutex, so services sharing a
+  /// store change and notify one at a time and the last notification carries
+  /// the map the store holds.
+  template <typename Save> bool change(Save save) {
+    std::lock_guard<std::mutex> lock(config_.profiles->change_mutex());
+    const bool notify = config_.on_active_map_changed && controller().has_value();
+    const GamepadMap before = notify ? active_map() : GamepadMap{};
+    if (!save())
+      return false;
+    if (notify) {
+      const GamepadMap now = active_map();
+      if (now != before)
+        config_.on_active_map_changed(now);
+    }
+    return true;
   }
 
   void ok(uint8_t request_type, std::optional<uint16_t> correlation) {
@@ -445,50 +472,66 @@ protected:
   static constexpr size_t max_payload() { return espp::stream_frame::kMaxPayloadSize; }
 
   void start_stream(std::chrono::milliseconds period) {
-    std::lock_guard<std::mutex> lock(mutex_);
-    period_ms_.store(std::max(period, config_.min_stream_period).count());
-    lease_until_.store(now_ms() + config_.stream_lease.count());
+    std::unique_ptr<Task> finished;
     {
-      std::lock_guard<std::mutex> input_lock(input_mutex_);
-      input_changed_ = true; // the first event after (re)enabling is always "changed"
+      std::lock_guard<std::mutex> lock(mutex_);
+      period_ms_.store(
+          std::clamp(period, config_.min_stream_period, config_.max_stream_period).count());
+      lease_until_.store(now_ms() + config_.stream_lease.count());
+      if (!streaming_.load()) {
+        // the first event after (re)enabling is a full picture
+        std::lock_guard<std::mutex> input_lock(input_mutex_);
+        input_changed_ = true;
+        info_pending_ = true;
+      }
+      streaming_.store(true);
+      if (task_ && task_active_)
+        return;                    // running: the new period and lease apply on its next wake
+      finished = std::move(task_); // ended itself (lease ran out): join it below
+      task_active_ = true;
+      task_ = std::make_unique<Task>(
+          Task::Config{.callback = [this](std::mutex &m, std::condition_variable &cv,
+                                          bool &notified) { return stream_step(m, cv, notified); },
+                       .task_config = config_.task_config});
+      task_->start();
     }
-    streaming_.store(true);
-    if (task_)
-      return; // already running: the new period and lease apply on its next wake
-    task_ = std::make_unique<Task>(
-        Task::Config{.callback = [this](std::mutex &m, std::condition_variable &cv,
-                                        bool &notified) { return stream_step(m, cv, notified); },
-                     .task_config = config_.task_config});
-    task_->start();
+    if (finished)
+      finished->stop(); // it already returned: this only joins it
   }
 
-  /// One streaming period: send the latest input (no correlation id: events,
-  /// not replies), end the stream when its lease ran out, then wait one period.
+  /// One streaming period: send a pending INFO and the latest input (no
+  /// correlation id: events, not replies), then wait one period. When the
+  /// lease has run out (or the stream was stopped) the task ends itself; the
+  /// next SET_STREAM starts a new one.
   bool stream_step(std::mutex &m, std::condition_variable &cv, bool &notified) {
     namespace proto = espp::detail::gamepad_map_protocol;
-    if (streaming_.load()) {
-      if (now_ms() > lease_until_.load()) {
-        logger_.info("INPUT stream lease expired; stopping the stream");
+    if (!streaming_.load() || now_ms() > lease_until_.load()) {
+      // decided under mutex_, where start_stream() renews the lease, so a
+      // renewal that just landed is never undone
+      std::lock_guard<std::mutex> lock(mutex_);
+      if (!streaming_.load() || now_ms() > lease_until_.load()) {
+        if (streaming_.load())
+          logger_.info("INPUT stream lease expired; stopping the stream");
         streaming_.store(false);
-      } else {
-        proto::Input in;
-        in.connected = controller().has_value();
-        {
-          std::lock_guard<std::mutex> lock(input_mutex_);
-          in.raw = latest_raw_;
-          in.mapped = latest_mapped_;
-          in.changed = input_changed_;
-          input_changed_ = false;
-        }
-        send_frame(proto::build_frame(Type::Input, proto::encode_input(in), module_id()));
+        task_active_ = false;
+        return true; // end this task
       }
     }
-    // A stopped stream (lease ran out) leaves the task idle at a slow tick until
-    // the next SET_STREAM, which takes effect on its next wake.
-    const auto wait = streaming_.load() ? std::chrono::milliseconds(period_ms_.load())
-                                        : std::chrono::milliseconds(250);
+    if (info_pending_.exchange(false))
+      send_frame(proto::build_frame(Type::Info, proto::encode_info(build_info()), module_id()));
+    proto::Input in;
+    in.connected = controller().has_value();
+    {
+      std::lock_guard<std::mutex> lock(input_mutex_);
+      in.raw = latest_raw_;
+      in.mapped = latest_mapped_;
+      in.changed = input_changed_;
+      input_changed_ = false;
+    }
+    send_frame(proto::build_frame(Type::Input, proto::encode_input(in), module_id()));
     std::unique_lock<std::mutex> lock(m);
-    cv.wait_for(lock, wait, [&notified] { return notified; });
+    cv.wait_for(lock, std::chrono::milliseconds(period_ms_.load()),
+                [&notified] { return notified; });
     notified = false; // consumed, under the mutex, per the Task contract
     return false;
   }
@@ -534,6 +577,8 @@ private:
   std::optional<Controller> controller_{};
   std::unique_ptr<Task> task_;
   std::atomic<bool> streaming_{false};
+  bool task_active_{false};               ///< task_ is running (guarded by mutex_)
+  std::atomic<bool> info_pending_{false}; ///< send INFO on the next stream tick
   std::atomic<int64_t> period_ms_{20};
   std::atomic<int64_t> lease_until_{0};
   GamepadState latest_raw_{};

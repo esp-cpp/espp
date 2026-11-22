@@ -8,11 +8,11 @@
 // and after mapping, live.
 //
 // There is no real controller here: a demo controller task generates input
-// (sticks circling, triggers ramping, buttons cycling) and reads one real
-// button (BOOT, CONFIG_EXAMPLE_BUTTON_GPIO) as its South button, so "learn"
-// can be tried with a press. In a real application the input comes from a
-// decoder (hid_rp::GamepadDecoder + to_gamepad_state()) and the mapped state
-// goes on to a USB controller, an emulator, ...
+// (sticks circling, triggers ramping, all below the console's 50% "learn"
+// threshold) and reads one real button (BOOT, CONFIG_EXAMPLE_BUTTON_GPIO) as
+// its South button, so "learn" picks the button you press. In a real application the input comes
+// from a decoder (hid_rp::GamepadDecoder + to_gamepad_state()) and the mapped state goes on to a
+// USB controller, an emulator, ...
 //
 // The system console / logs go to UART0.
 
@@ -105,16 +105,19 @@ extern "C" void app_main(void) {
 
   // Each transport's `send` is called from the dispatcher worker (replies) and
   // the service's stream task (INPUT events); UsbDevice's write_*() do not
-  // serialize writers, so guard them with a mutex to keep frames atomic.
-  std::mutex tx_mutex;
+  // serialize writers, so each transport guards its own with a mutex (frames
+  // stay atomic, and a stalled transport never holds up the other). A frame
+  // that does not fit the TX FIFO is dropped rather than waited on: a host
+  // that stopped reading (a closed tab) must not stall the senders.
+  std::mutex vendor_tx_mutex, cdc_tx_mutex;
   auto vendor_send = [&](std::span<const uint8_t> f) {
-    std::lock_guard<std::mutex> lock(tx_mutex);
-    if (!usb.write_vendor(f))
+    std::lock_guard<std::mutex> lock(vendor_tx_mutex);
+    if (usb.vendor_write_available() < f.size() || !usb.write_vendor(f))
       logger.warn_rate_limited("dropped a {}-byte vendor frame (TX backpressure)", f.size());
   };
   auto cdc_send = [&](std::span<const uint8_t> f) {
-    std::lock_guard<std::mutex> lock(tx_mutex);
-    if (!usb.write_cdc(f))
+    std::lock_guard<std::mutex> lock(cdc_tx_mutex);
+    if (usb.cdc_write_available() < f.size() || !usb.write_cdc(f))
       logger.warn_rate_limited("dropped a {}-byte CDC frame (TX backpressure)", f.size());
   };
 
@@ -138,7 +141,8 @@ extern "C" void app_main(void) {
                                    .task_config = {.name = "gpmap_c", .stack_size_bytes = 4096},
                                    .log_level = espp::Logger::Verbosity::INFO});
 
-  // A controller connected: tell every service, and start from its map.
+  // A controller connected: tell every service, and start from its map (under
+  // the same mutex as on_map_changed, which may run on a dispatcher thread).
   {
     std::lock_guard<std::mutex> lock(map_mutex);
     active_map = vendor_map.set_controller(demo_vid, demo_pid, demo_name);
@@ -220,18 +224,18 @@ extern "C" void app_main(void) {
   espp::Task input_task({
       .callback = [&](std::mutex &m, std::condition_variable &cv) -> bool {
         // a 100 Hz "controller": the left stick circles every 4 s, the right
-        // stick sweeps X, the triggers ramp, one face / shoulder button at a
-        // time cycles every half second, the real button is South
+        // stick sweeps X, the triggers ramp -- all within 40% of full, below
+        // the console's 50% "learn" threshold, so learn only ever picks what
+        // you press: the real button, as South
         const float t =
             std::chrono::duration<float>(std::chrono::steady_clock::now() - start).count();
+        constexpr float amplitude = 0.4f * espp::GamepadState::AXIS_MAX;
         espp::GamepadState raw;
-        raw.set(A::LeftX, static_cast<int32_t>(std::cos(t * 1.5708f) * 30000));
-        raw.set(A::LeftY, static_cast<int32_t>(std::sin(t * 1.5708f) * 30000));
-        raw.set(A::RightX, static_cast<int32_t>(std::sin(t * 0.5f) * 32767));
-        raw.set(A::LeftTrigger, static_cast<int32_t>((std::sin(t) * 0.5f + 0.5f) * 32767));
-        raw.set(A::RightTrigger, static_cast<int32_t>((std::cos(t) * 0.5f + 0.5f) * 32767));
-        static constexpr B cycle[] = {B::East, B::West, B::North, B::L1, B::R1, B::Start};
-        raw.set(cycle[static_cast<int>(t * 2) % std::size(cycle)], true);
+        raw.set(A::LeftX, static_cast<int32_t>(std::cos(t * 1.5708f) * amplitude));
+        raw.set(A::LeftY, static_cast<int32_t>(std::sin(t * 1.5708f) * amplitude));
+        raw.set(A::RightX, static_cast<int32_t>(std::sin(t * 0.5f) * amplitude));
+        raw.set(A::LeftTrigger, static_cast<int32_t>((std::sin(t) * 0.5f + 0.5f) * amplitude));
+        raw.set(A::RightTrigger, static_cast<int32_t>((std::cos(t) * 0.5f + 0.5f) * amplitude));
         if (button_gpio >= 0)
           raw.set(B::South, gpio_get_level(static_cast<gpio_num_t>(button_gpio)) == 0);
 

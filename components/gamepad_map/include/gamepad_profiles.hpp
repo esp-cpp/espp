@@ -171,6 +171,12 @@ public:
   /// @brief The most profiles the store accepts.
   size_t max_profiles() const { return max_profiles_; }
 
+  /// @brief A mutex for the store's users to serialize "change the store and
+  ///        act on the change" (GamepadMapService holds it across a change and
+  ///        the notification it causes, so services sharing a store notify in
+  ///        order). The store's own methods never take it.
+  std::mutex &change_mutex() const { return change_mutex_; }
+
   /**
    * @brief Replace the default map and save.
    * @param map The map (must be valid()).
@@ -342,6 +348,7 @@ private:
   size_t max_profiles_;
   Storage storage_;
   mutable std::mutex mutex_;
+  mutable std::mutex change_mutex_;
   Data data_{};
   std::error_code load_error_{};
 };

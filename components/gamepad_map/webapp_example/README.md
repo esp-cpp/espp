@@ -13,9 +13,10 @@ There is no real controller. A demo controller task generates input at 100 Hz:
 - the left stick circles every 4 s
 - the right stick sweeps left and right
 - the triggers ramp
-- one face or shoulder button at a time cycles every half second
-- the BOOT button (`CONFIG_EXAMPLE_BUTTON_GPIO`, GPIO 0) is its South button,
-  so you can try "learn" with a real press
+- all within 40% of full travel, below the console's 50% "learn" threshold
+- the BOOT button (`CONFIG_EXAMPLE_BUTTON_GPIO`: GPIO 0 on the ESP32-S3, GPIO
+  35 on the ESP32-P4 dev kits) is its South button, so "learn" picks the
+  button you press
 
 A real application decodes its controller instead (`hid_rp::GamepadDecoder` +
 `espp::to_gamepad_state()`) and sends the mapped state on to a USB controller,
