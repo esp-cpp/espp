@@ -56,14 +56,20 @@ void log_mem_sizes(espp::Logger &logger) {
               sizeof(rtps::StatelessReader), sizeof(espp::RtpsParticipant));
 }
 
+// `internal` counts the ESP32's IRAM as well, which a task stack or any byte
+// access cannot use; `dram` (internal AND byte-addressable) is what a new
+// task's stack actually comes from, so it is the number that runs out first.
+constexpr uint32_t kDramCaps = MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT;
 void log_mem_heap(espp::Logger &logger, const char *stage) {
   logger.info("RTPSTEST mem heap {} internal={} internal_min={} internal_largest={} psram={} "
-              "psram_largest={}",
+              "psram_largest={} dram={} dram_min={} dram_largest={}",
               stage, heap_caps_get_free_size(MALLOC_CAP_INTERNAL),
               heap_caps_get_minimum_free_size(MALLOC_CAP_INTERNAL),
               heap_caps_get_largest_free_block(MALLOC_CAP_INTERNAL),
               heap_caps_get_free_size(MALLOC_CAP_SPIRAM),
-              heap_caps_get_largest_free_block(MALLOC_CAP_SPIRAM));
+              heap_caps_get_largest_free_block(MALLOC_CAP_SPIRAM),
+              heap_caps_get_free_size(kDramCaps), heap_caps_get_minimum_free_size(kDramCaps),
+              heap_caps_get_largest_free_block(kDramCaps));
 }
 // The restart case calls /qemu_add_two_ints with this magic request to ask the
 // device to recreate its participant (see the service handler in run_participant).
@@ -392,7 +398,8 @@ static void run_participant(espp::Logger &logger, const std::string &interface_a
     sample_stacks();
     logger.info("RTPSTEST status up={} tx={} rx={} be_rx={} big_rx={} pub_matches={} "
                 "sub_matches={} heap={} min_heap={} int={} int_min={} int_largest={} psram={} "
-                "stack_min={} stack_min_task={} stack_min_worker={}",
+                "stack_min={} stack_min_task={} stack_min_worker={} dram={} dram_min={} "
+                "dram_largest={}",
                 up, tx_count.load(), rx_count.load(), be_rx_count.load(), big_rx_count.load(),
                 pub_matches.load(), sub_matches.load(), heap_caps_get_free_size(MALLOC_CAP_DEFAULT),
                 heap_caps_get_minimum_free_size(MALLOC_CAP_DEFAULT),
@@ -400,6 +407,8 @@ static void run_participant(espp::Logger &logger, const std::string &interface_a
                 heap_caps_get_minimum_free_size(MALLOC_CAP_INTERNAL),
                 heap_caps_get_largest_free_block(MALLOC_CAP_INTERNAL),
                 heap_caps_get_free_size(MALLOC_CAP_SPIRAM), stack_min == UINT32_MAX ? 0 : stack_min,
-                stack_min_task, stack_min_worker == UINT32_MAX ? 0 : stack_min_worker);
+                stack_min_task, stack_min_worker == UINT32_MAX ? 0 : stack_min_worker,
+                heap_caps_get_free_size(kDramCaps), heap_caps_get_minimum_free_size(kDramCaps),
+                heap_caps_get_largest_free_block(kDramCaps));
   }
 }
