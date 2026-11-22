@@ -12,6 +12,7 @@ Input devices
     button
     joystick
     controller
+    gamepad_map
     qwiicnes
 
 Touch & input drivers

@@ -163,9 +163,7 @@ extern "C" void app_main(void) {
             } else if (GamepadDecoder::looks_like_gamepad(*map)) {
               GamepadDecoder pad(std::move(*map));
               pad.apply_quirks(info.vid, info.pid); // per-device layout fixes, by VID:PID
-              logger.info("gamepad layout: {}", pad.quirks().layout == GamepadDecoder::Layout::Xbox
-                                                    ? "Xbox-style"
-                                                    : "DirectInput");
+              logger.info("gamepad layout: {}", GamepadDecoder::layout_name(pad.quirks().layout));
               iface.decoder = std::move(pad);
               iface.card.kind = Gui::Kind::Gamepad;
             }

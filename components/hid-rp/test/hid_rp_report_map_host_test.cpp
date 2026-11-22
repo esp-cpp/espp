@@ -1,7 +1,7 @@
 // Host-buildable unit tests for the runtime report map / decoders
 // (hid-rp-report-map.hpp). Build & run:
 //
-//   c++ -std=c++23 -Wall -Wextra -Werror \
+//   c++ -std=c++23 -Wall -Wextra -Werror -Wno-comment \
 //       -isystem components/hid-rp/include \
 //       -isystem components/hid-rp/detail/hid-rp/hid-rp \
 //       -isystem components/format/include \
@@ -14,12 +14,14 @@
 
 #include <cstdint>
 #include <cstdio>
+#include <cstdlib>
 #include <utility>
 #include <vector>
 
 #include "hid-rp-gamepad.hpp"
 #include "hid-rp-report-map.hpp"
 #include "hid-rp-switch-pro.hpp"
+#include "hid-rp-xbox.hpp"
 
 static int failures = 0;
 #define CHECK(cond)                                                                                \
@@ -64,11 +66,12 @@ static void test_generated_gamepad() {
   // Build a report with the generator, decode it with the mapper.
   Gamepad report;
   report.reset();
-  report.set_button(2, true);  // Xbox-style: 2 = east
-  report.set_button(10, true); // start
+  report.set_button(2, true);  // Android numbering: 2 = east
+  report.set_button(12, true); // start
   report.set_hat(espp::gamepad::Hat::UP);
   report.set_left_joystick(-1.0f, 0.0f);
   report.set_right_joystick(0.0f, 1.0f);
+  report.set_accelerator(1.0f);
   auto bytes = report.get_report();
   std::vector<uint8_t> raw(bytes.begin(), bytes.end());
   if (map->uses_report_ids()) {
@@ -77,10 +80,9 @@ static void test_generated_gamepad() {
 
   espp::hid_rp::GamepadDecoder decoder(*map);
   CHECK(decoder.looks_like_gamepad());
-  // a hat plus 16 buttons reads as a DualShock-style pad to the heuristic;
-  // pin the layout the assertions below assume
-  CHECK(decoder.quirks().layout == espp::hid_rp::GamepadDecoder::Layout::DirectInput);
-  decoder.quirks().layout = espp::hid_rp::GamepadDecoder::Layout::Xbox;
+  // Simulation-page triggers (Brake / Accelerator) read as an Android-layout
+  // pad: the numbering espp's own BLE gamepads (and the Xbox over BLE) use
+  CHECK(decoder.quirks().layout == espp::hid_rp::GamepadDecoder::Layout::Android);
   espp::hid_rp::GamepadReport g;
   CHECK(decoder.decode(raw, g));
   CHECK(g.east);
@@ -90,6 +92,158 @@ static void test_generated_gamepad() {
   CHECK(g.lx < -30000);
   CHECK(g.left); // full left stick deflection also reads as d-pad left
   CHECK(g.ry > 30000);
+  CHECK(g.rt > 32000 && g.lt == 0);
+  CHECK(g.r2 && !g.l2); // ... and the full trigger as R2
+
+  // a pass-through decoder reports every control only as itself
+  decoder.set_combine_controls(false);
+  CHECK(decoder.decode(raw, g));
+  CHECK(!g.left && g.lx < -30000);
+  CHECK(!g.r2 && g.rt > 32000);
+  CHECK(g.up); // the hat itself still is the d-pad
+}
+
+// BSP-D8 (ShanWan BM-769) in its Android mode, descriptor as the device
+// reports it over BLE: report 3 = consumer keys, report 4 = gamepad with 8-bit
+// X/Y/Z/Rz sticks, a 4-bit hat (null state), 16 buttons, 8-bit Simulation-page
+// Accelerator / Brake triggers.
+static std::vector<uint8_t> hex_bytes(const char *hex) {
+  std::vector<uint8_t> out;
+  auto nibble = [](char c) {
+    return static_cast<uint8_t>(c <= '9' ? c - '0' : (c | 0x20) - 'a' + 10);
+  };
+  for (; hex[0] && hex[1]; hex += 2)
+    out.push_back(static_cast<uint8_t>(nibble(hex[0]) << 4 | nibble(hex[1])));
+  return out;
+}
+
+static void test_ble_android_pad() {
+  const auto desc = hex_bytes(
+      "050c0901a1018503751095011501269c0219012a9c028100c005010905a10185040901a1000930093109320935"
+      "150026ff00750895048102c00939150025073500463b016514750495018142750495018101050919012910150025"
+      "017501951081020502150026ff0009c409c5950275088102750895018101c0");
+  auto map = espp::hid_rp::ReportMap::parse(desc);
+  CHECK(map.has_value());
+  if (!map)
+    return;
+  CHECK(map->uses_report_ids());
+  CHECK(map->report_bytes(4) == 10);
+  espp::hid_rp::GamepadDecoder decoder(std::move(*map));
+  CHECK(decoder.looks_like_gamepad());
+  CHECK(decoder.quirks().layout == espp::hid_rp::GamepadDecoder::Layout::Android);
+  decoder.set_combine_controls(false);
+
+  // BLE delivers the payload without the ID byte; the ID comes from the Report
+  // Reference. Neutral: sticks at 0x80, hat null (15), nothing pressed.
+  std::vector<uint8_t> pad{0x80, 0x80, 0x80, 0x80, 0x0f, 0x00, 0x00, 0x00, 0x00, 0x00};
+  espp::hid_rp::GamepadReport g;
+  CHECK(decoder.decode(4, pad, g));
+  CHECK(std::abs(g.lx) < 300 && std::abs(g.ly) < 300);
+  CHECK(std::abs(g.rx) < 300 && std::abs(g.ry) < 300); // the Xbox parse pegged these
+  CHECK(!g.up && !g.down && !g.left && !g.right);
+  CHECK(g.buttons == 0 && g.lt == 0 && g.rt == 0);
+
+  // A (button 1), Y (button 5), R1 (button 8), Start (button 12), hat right,
+  // right stick full left / down, half left trigger, full right trigger
+  pad = {0x80, 0x80, 0x00, 0xff, 0x02, 0x91, 0x08, 0xff, 0x80, 0x00};
+  CHECK(decoder.decode(4, pad, g));
+  CHECK(g.south && g.north && !g.east && !g.west);
+  CHECK(g.r1 && !g.l1);
+  CHECK(g.start && !g.select);
+  CHECK(g.right && !g.up && !g.down && !g.left);
+  CHECK(g.rx < -32000 && g.ry > 32000);
+  CHECK(g.rt > 32000);                 // Accelerator (first) = right trigger
+  CHECK(g.lt > 16000 && g.lt < 16600); // Brake = left trigger, half way
+
+  // the consumer report (3) alone carries no pad state: decode() of it alone
+  // reports only consumer keys, update() keeps the pad report it last saw
+  std::vector<uint8_t> consumer{0x23, 0x02}; // AC Home
+  CHECK(decoder.update(4, pad, g));
+  CHECK(g.south && g.rt > 32000);
+  CHECK(decoder.update(3, consumer, g));
+  CHECK(g.home);
+  CHECK(g.south && g.rt > 32000);    // still there
+  CHECK(!decoder.update(9, pad, g)); // not a report of this device
+  decoder.reset();
+  CHECK(decoder.update(3, consumer, g));
+  CHECK(g.home && !g.south);
+}
+
+// espp's Xbox Wireless (BLE) report: X/Y/Z/Rz 16-bit sticks, Simulation
+// triggers, Android button numbering (A = 1, B = 2, X = 4, Y = 5, ...).
+static void test_xbox_ble() {
+  auto rdf = espp::xbox_descriptor();
+  std::vector<uint8_t> desc(rdf.begin(), rdf.end());
+  auto map = espp::hid_rp::ReportMap::parse(desc);
+  CHECK(map.has_value());
+  if (!map)
+    return;
+  espp::hid_rp::GamepadDecoder decoder(std::move(*map));
+  CHECK(decoder.quirks().layout == espp::hid_rp::GamepadDecoder::Layout::Android);
+  decoder.set_combine_controls(false);
+  espp::XboxGamepadInputReport<> report;
+  report.reset();
+  report.set_button_x(true);
+  report.set_button_l3(true);
+  report.set_button_menu(true);
+  report.set_left_joystick(0.0f, -1.0f);
+  report.set_brake(1.0f);
+  auto bytes = report.get_report();
+  std::vector<uint8_t> payload(bytes.begin(), bytes.end());
+  espp::hid_rp::GamepadReport g;
+  CHECK(decoder.decode(espp::XboxGamepadInputReport<>::ID, payload, g));
+  CHECK(g.west && !g.south && !g.north && !g.east);
+  CHECK(g.l3 && !g.r3);
+  CHECK(g.start);
+  CHECK(g.ly < -30000 && std::abs(g.lx) < 300);
+  CHECK(g.lt > 32000 && g.rt == 0);
+
+  // the battery report carries no gamepad control: update() ignores it (and
+  // leaves `out` alone) rather than re-sending the last pad state
+  CHECK(decoder.update(espp::XboxGamepadInputReport<>::ID, payload, g));
+  espp::hid_rp::GamepadReport untouched;
+  untouched.hat = 1234;
+  const std::vector<uint8_t> battery{0x55};
+  CHECK(!decoder.update(espp::XboxBatteryInputReport<>::ID, battery, untouched));
+  CHECK(untouched.hat == 1234);
+}
+
+// A DualShock-style descriptor: X/Y/Z/Rz sticks, then Rx/Ry as the analog
+// triggers (the pre-Android decoder read Rx over the right stick's X).
+static void test_dualshock_axes() {
+  // usage page GD, gamepad, app collection, report id 1, X Y Z Rz 8-bit,
+  // hat, 14 buttons, padding, Rx Ry 8-bit
+  const std::vector<uint8_t> desc{
+      0x05, 0x01, 0x09, 0x05, 0xa1, 0x01, 0x85, 0x01,                   // GD, gamepad, app, id 1
+      0x09, 0x30, 0x09, 0x31, 0x09, 0x32, 0x09, 0x35,                   // X Y Z Rz
+      0x15, 0x00, 0x26, 0xff, 0x00, 0x75, 0x08, 0x95, 0x04, 0x81, 0x02, // 4 x u8
+      0x09, 0x39, 0x15, 0x00, 0x25, 0x07, 0x75, 0x04, 0x95, 0x01, 0x81, 0x42, // hat
+      0x05, 0x09, 0x19, 0x01, 0x29, 0x0e, 0x15, 0x00, 0x25, 0x01,             // buttons 1..14
+      0x75, 0x01, 0x95, 0x0e, 0x81, 0x02,                                     //
+      0x75, 0x06, 0x95, 0x01, 0x81, 0x01,                                     // pad to a byte
+      0x05, 0x01, 0x09, 0x33, 0x09, 0x34, 0x15, 0x00, 0x26, 0xff, 0x00,       // Rx Ry
+      0x75, 0x08, 0x95, 0x02, 0x81, 0x02, 0xc0};
+  auto map = espp::hid_rp::ReportMap::parse(desc);
+  CHECK(map.has_value());
+  if (!map)
+    return;
+  espp::hid_rp::GamepadDecoder decoder(std::move(*map));
+  CHECK(decoder.quirks().layout == espp::hid_rp::GamepadDecoder::Layout::DirectInput);
+  // right stick full right, left trigger full, right trigger released
+  // byte 4 = hat (null, 8) in the low nibble + buttons 1..4 above it (2 = 0x20)
+  const std::vector<uint8_t> raw{0x01, 0x80, 0x80, 0xff, 0x80, 0x28, 0x00, 0x00, 0xff, 0x00};
+  espp::hid_rp::GamepadReport g;
+  CHECK(decoder.decode(raw, g));
+  CHECK(g.rx > 32000); // Z, not overwritten by Rx
+  CHECK(std::abs(g.ry) < 300);
+  CHECK(g.lt > 32000 && g.rt == 0);
+  CHECK(g.south); // DirectInput: button 2 = south
+  CHECK(!g.home);
+  // button 13 (the PS button): payload bit 36 + 12 = 48 = payload byte 6 (raw[7]) bit 0
+  std::vector<uint8_t> ps = raw;
+  ps[7] = 0x01;
+  CHECK(decoder.decode(ps, g));
+  CHECK(g.home);
 }
 
 // The classic boot-protocol keyboard descriptor (8-byte reports: modifier
@@ -399,6 +553,9 @@ int main() {
   test_keyboard_array_logical_min();
   test_edge_items();
   test_generated_gamepad();
+  test_ble_android_pad();
+  test_xbox_ble();
+  test_dualshock_axes();
   test_keyboard();
   test_mouse();
   test_report_ids_consumer_dpad();
