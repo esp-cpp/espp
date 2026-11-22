@@ -201,6 +201,13 @@ static void test_validation() {
   CHECK(!map.valid(&why));
   map.rules = {{GamepadMapRule::Kind::ButtonToButton, 0, 1, 0x80, 0}};
   CHECK(!map.valid(&why)); // unknown flag
+  map.rules = {GamepadMapRule::axis_to_button(A::LeftTrigger, -100, B::L2)};
+  CHECK(!map.valid(&why)); // a trigger never goes below 0
+  map.rules = {GamepadMapRule::axis_to_button(A::LeftTrigger, 100, B::L2)};
+  CHECK(map.valid());
+  map.rules = {{GamepadMapRule::Kind::ButtonToButton, 0, GamepadMapRule::NONE,
+                GamepadMapRule::KEEP_SOURCE, 0}};
+  CHECK(!map.valid(&why)); // keeping the source of a rule with no target does nothing
   map.rules.assign(GamepadMap::MAX_RULES + 1, GamepadMapRule::button(B::South, B::East));
   CHECK(!map.valid(&why) && why == "too many rules");
   map.rules.clear();

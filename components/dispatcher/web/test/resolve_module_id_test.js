@@ -27,6 +27,7 @@ const consoles = [
   "components/system/web/system_console.html",
   "components/desktop/web/desktop.html",
   "components/vl53l/web/vl53l5cx_console.html",
+  "components/gamepad_map/web/gamepad_map_console.html",
 ];
 const hub = "components/dispatcher/web/dispatcher_hub.html";
 

@@ -6,6 +6,10 @@ name: Gamepad map host test
 #    file round trip)
 #  - components/hid-rp/test/hid_rp_report_map_host_test.cpp (the runtime
 #    report map + Gamepad / Keyboard / Mouse decoders the map is fed from)
+#  - components/gamepad_map/test/gamepad_map_protocol_host_test.cpp (the
+#    GamepadMapService wire protocol codec)
+#  - components/gamepad_map/web/test/gamepad_map_codec_test.js (the web
+#    console's copy of that codec, with node)
 # Runs whenever either component, or what they store / log with, changes.
 
 # Minimal token scope: build + run tests, never writes.
@@ -22,6 +26,7 @@ on:
       - "components/logger/**"
       - "components/format/**"
       - "components/base_component/**"
+      - "components/stream_frame/**"
       - ".github/workflows/gamepad_map_tests.yml"
   push:
     branches:
@@ -34,6 +39,7 @@ on:
       - "components/logger/**"
       - "components/format/**"
       - "components/base_component/**"
+      - "components/stream_frame/**"
       - ".github/workflows/gamepad_map_tests.yml"
   workflow_dispatch:
 
@@ -73,3 +79,14 @@ jobs:
             components/gamepad_map/test/gamepad_map_host_test.cpp components/logger/src/logger.cpp \
             -o gamepad_map_host_test
           ./gamepad_map_host_test
+      - name: Build and run gamepad_map_protocol_host_test
+        run: |
+          g++ -std=c++23 -Wall -Wextra -Werror \
+            -I components/gamepad_map/include -I components/stream_frame/include \
+            components/gamepad_map/test/gamepad_map_protocol_host_test.cpp \
+            -o gamepad_map_protocol_host_test
+          ./gamepad_map_protocol_host_test
+      - name: Run the web console codec test
+        run: |
+          node --version
+          node components/gamepad_map/web/test/gamepad_map_codec_test.js

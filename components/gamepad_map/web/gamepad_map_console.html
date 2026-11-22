@@ -1,0 +1,2009 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>espp Gamepad Map Console (WebUSB / Web Serial)</title>
+  <meta name="description" content="View and edit the button / axis maps of an espp gamepad remapper (espp::GamepadMapService) from the browser over USB (WebUSB / Web Serial): live controller input before and after mapping, the default map and per-controller-type profiles, remap rules (button to button, axis to button by threshold, button to axis, axis to axis by scale) with learn-by-pressing, presets (Nintendo A/B swap, stick inversion, stick to d-pad, trigger buttons), stick dead zones, save / erase / reset.">
+  <meta name="espp-category" content="input devices">
+  <meta name="espp-protocols" content="espp.gamepad_map:1">
+  <meta name="espp-transports" content="webusb webserial">
+  <!--
+    espp Gamepad Map Console
+    ========================
+    A single-file, offline, dependency-free browser front-end for
+    espp::GamepadMapService (components/gamepad_map): a device that reads a
+    game controller, remaps its buttons / axes with an espp::GamepadMap and
+    sends the result on. The map for each controller type (by USB / Bluetooth
+    VID:PID, or by name) and a default map live on the device in an
+    espp::GamepadProfiles store; this page views and edits them and shows the
+    controller's input before and after mapping, over EITHER WebUSB (vendor
+    0xFF interface) OR Web Serial.
+
+    Framed with the espp stream_frame v2 codec, routed on module id 11 by
+    default (a routing key; the id actually used is discovered from the device,
+    see resolveModuleId). The protocol (espp.gamepad_map v1) is specified in
+    components/gamepad_map/include/detail/gamepad_map_protocol.hpp: requests
+    0x01..0x07 (GET_INFO, GET_MAP, SET_MAP, ERASE_PROFILE, LIST_PROFILES,
+    SET_STREAM, RESET_ALL), replies / events 0x81..0x86 (INFO, MAP, OK, ERROR,
+    PROFILES, INPUT). The input stream is a lease: the page renews it every
+    few seconds while "Live input" is on and the device stops by itself when a
+    closed page stops renewing it.
+  -->
+  <style>
+    :root {
+      --bg:#f4f6f9; --panel-bg:#fff; --panel-border:#d9dee6; --text:#1c2330; --text-muted:#5c6675;
+      --accent:#2563eb; --accent-hover:#1d4ed8; --accent-contrast:#fff; --danger:#dc2626; --ok:#16a34a;
+      --warn:#b45309; --log-bg:#0f1420; --log-text:#d6dbe6; --tx:#7dd3fc; --rx:#86efac; --err:#fca5a5;
+      --sys:#fcd34d; --time:#64748b; --input-bg:#fff; --input-border:#c3cbd6; --chip-bg:#eef2f8;
+      --row-alt:#f7f9fc; --shadow:0 1px 3px rgba(0,0,0,.08),0 1px 2px rgba(0,0,0,.04);
+      --view-bg:#0d1118; --view-grid:#2a3344; --view-text:#9aa6ba;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg:#0b0e14; --panel-bg:#151a23; --panel-border:#262d3a; --text:#e6eaf2; --text-muted:#98a2b3;
+        --accent:#3b82f6; --accent-hover:#60a5fa; --accent-contrast:#0b0e14; --danger:#ef4444; --ok:#22c55e;
+        --warn:#f59e0b; --log-bg:#05070c; --log-text:#cdd4e0; --tx:#38bdf8; --rx:#4ade80; --err:#f87171;
+        --sys:#fbbf24; --time:#64748b; --input-bg:#0e1219; --input-border:#2b3341; --chip-bg:#1b2230;
+        --row-alt:#10151d; --shadow:0 1px 3px rgba(0,0,0,.4);
+        --view-bg:#05070c; --view-grid:#222a38; --view-text:#8591a6;
+      }
+    }
+    :root[data-theme="dark"] {
+      --bg:#0b0e14; --panel-bg:#151a23; --panel-border:#262d3a; --text:#e6eaf2; --text-muted:#98a2b3;
+      --accent:#3b82f6; --accent-hover:#60a5fa; --accent-contrast:#0b0e14; --danger:#ef4444; --ok:#22c55e;
+      --warn:#f59e0b; --log-bg:#05070c; --log-text:#cdd4e0; --tx:#38bdf8; --rx:#4ade80; --err:#f87171;
+      --sys:#fbbf24; --time:#64748b; --input-bg:#0e1219; --input-border:#2b3341; --chip-bg:#1b2230; --row-alt:#10151d;
+      --view-bg:#05070c; --view-grid:#222a38; --view-text:#8591a6;
+    }
+    :root[data-theme="light"] {
+      --bg:#f4f6f9; --panel-bg:#fff; --panel-border:#d9dee6; --text:#1c2330; --text-muted:#5c6675;
+      --accent:#2563eb; --accent-hover:#1d4ed8; --accent-contrast:#fff; --danger:#dc2626; --ok:#16a34a;
+      --warn:#b45309; --log-bg:#0f1420; --log-text:#d6dbe6; --tx:#7dd3fc; --rx:#86efac; --err:#fca5a5;
+      --sys:#fcd34d; --time:#64748b; --input-bg:#fff; --input-border:#c3cbd6; --chip-bg:#eef2f8; --row-alt:#f7f9fc;
+      --view-bg:#0d1118; --view-grid:#2a3344; --view-text:#9aa6ba;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; }
+    body { background: var(--bg); color: var(--text); font-family: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; font-size: 14px; line-height: 1.45; min-height: 100vh; }
+    .wrap { max-width: 1240px; margin: 0 auto; padding: 16px; }
+    header { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
+    header h1 { font-size: 18px; margin: 0; }
+    .status-pill { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; background: var(--chip-bg); color: var(--text-muted); border: 1px solid var(--panel-border); }
+    .status-pill::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--text-muted); }
+    .status-pill.connected { color: var(--ok); } .status-pill.connected::before { background: var(--ok); }
+    .status-pill.error { color: var(--danger); } .status-pill.error::before { background: var(--danger); }
+    .panel { background: var(--panel-bg); border: 1px solid var(--panel-border); border-radius: 10px; box-shadow: var(--shadow); padding: 14px; margin-bottom: 14px; }
+    .panel h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .06em; color: var(--text-muted); margin: 0 0 10px; }
+    .row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .row + .row { margin-top: 10px; }
+    .muted { color: var(--text-muted); font-size: 12.5px; }
+    .spacer { flex: 1 1 auto; }
+    .field { display: flex; flex-direction: column; gap: 4px; }
+    .field > span { font-size: 12px; color: var(--text-muted); }
+    .main { display: grid; grid-template-columns: minmax(0, 1fr) 370px; gap: 14px; align-items: start; }
+    .nowrap { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+    @media (max-width: 900px) { .main { grid-template-columns: minmax(0, 1fr); } }
+    button { font: inherit; padding: 7px 14px; border-radius: 7px; cursor: pointer; border: 1px solid var(--panel-border); background: var(--chip-bg); color: var(--text); }
+    button.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-contrast); }
+    button.primary:hover:not(:disabled) { background: var(--accent-hover); border-color: var(--accent-hover); }
+    button.danger { background: var(--danger); border-color: var(--danger); color: #fff; }
+    button.small { padding: 5px 10px; font-size: 13px; }
+    button:disabled { opacity: .5; cursor: not-allowed; }
+    button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+    label { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--text-muted); }
+    input[type="text"], input[type="number"], select { font: inherit; padding: 6px 8px; border-radius: 6px; background: var(--input-bg); color: var(--text); border: 1px solid var(--input-border); }
+    input[type="text"], input[type="number"] { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; width: 96px; }
+    input.tiny { width: 72px; }
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+    .state-badge { display: inline-block; padding: 3px 10px; border-radius: 8px; font-weight: 700; font-size: 12.5px; border: 1px solid var(--panel-border); background: var(--chip-bg); color: var(--text-muted); }
+    .state-badge.ranging { color: var(--ok); border-color: var(--ok); }
+    .state-badge.idle { color: var(--accent); border-color: var(--accent); }
+    .state-badge.fault { color: var(--danger); border-color: var(--danger); }
+    .statusline { display: flex; gap: 16px; flex-wrap: wrap; font-size: 12.5px; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+    .statusline b { color: var(--text); font-weight: 600; }
+    hr.sep { border: none; border-top: 1px solid var(--panel-border); margin: 12px 0; }
+    [hidden] { display: none !important; }
+    .badge { display: inline-block; padding: 2px 9px; border-radius: 8px; font-weight: 600; font-size: 12px; border: 1px solid var(--panel-border); background: var(--chip-bg); color: var(--text-muted); white-space: nowrap; }
+    .badge.ok { color: var(--ok); border-color: var(--ok); }
+    .badge.warn { color: var(--warn); border-color: var(--warn); }
+    .badge.info { color: var(--accent); border-color: var(--accent); }
+    .badge.bad { color: var(--danger); border-color: var(--danger); }
+    /* live input: raw | mapped */
+    .live { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-top: 10px; }
+    @media (max-width: 700px) { .live { grid-template-columns: minmax(0, 1fr); } }
+    .side { position: relative; border: 1px solid var(--panel-border); border-radius: 8px; padding: 10px; min-width: 0; }
+    .side.learning { outline: 2px solid var(--warn); outline-offset: 1px; }
+    .side h3 { font-size: 13px; margin: 0 0 8px; }
+    .side .overlay { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; text-align: center; padding: 12px; background: color-mix(in srgb, var(--panel-bg) 78%, transparent); color: var(--text-muted); font-size: 13px; border-radius: 8px; }
+    .btn-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(58px, 1fr)); gap: 4px; }
+    .ind { font-size: 11.5px; text-align: center; padding: 4px 2px; border-radius: 5px; background: var(--chip-bg); color: var(--text-muted); border: 1px solid var(--panel-border); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; user-select: none; }
+    .ind.on { background: var(--accent); border-color: var(--accent); color: var(--accent-contrast); font-weight: 600; }
+    .sticks { display: flex; gap: 14px; margin-top: 10px; flex-wrap: wrap; justify-content: center; }
+    .stick { display: flex; flex-direction: column; align-items: center; gap: 3px; font-size: 11.5px; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+    .stick .xy { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+    .pad { position: relative; width: 104px; height: 104px; border-radius: 8px; background-color: var(--view-bg); background-image: linear-gradient(var(--view-grid), var(--view-grid)), linear-gradient(var(--view-grid), var(--view-grid)); background-size: 1px 100%, 100% 1px; background-position: center; background-repeat: no-repeat; overflow: hidden; }
+    .pad .dz { position: absolute; left: 50%; top: 50%; border-radius: 50%; border: 1px dashed var(--view-text); transform: translate(-50%, -50%); width: 0; height: 0; pointer-events: none; }
+    .pad .dot { position: absolute; width: 12px; height: 12px; margin: -6px 0 0 -6px; border-radius: 50%; background: var(--accent); left: 50%; top: 50%; box-shadow: 0 0 0 2px rgba(255,255,255,.25); }
+    .bars { display: grid; grid-template-columns: auto minmax(0, 1fr) 54px; gap: 4px 8px; align-items: center; margin-top: 10px; font-size: 11.5px; }
+    .bars .k { color: var(--text-muted); white-space: nowrap; }
+    .bars .v { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; text-align: right; font-variant-numeric: tabular-nums; }
+    .track { position: relative; height: 10px; border-radius: 4px; background: var(--chip-bg); overflow: hidden; border: 1px solid var(--panel-border); }
+    .track .mid { position: absolute; left: 50%; top: 0; bottom: 0; width: 1px; background: var(--text-muted); opacity: .5; }
+    .track .fill { position: absolute; top: 0; bottom: 0; left: 50%; width: 0; background: var(--accent); }
+    .learn-banner { margin-top: 10px; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--warn); color: var(--warn); display: flex; gap: 10px; align-items: center; font-size: 13px; }
+    /* map editor */
+    .dzrow { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 20px; margin-top: 10px; }
+    @media (max-width: 700px) { .dzrow { grid-template-columns: minmax(0, 1fr); } }
+    .dzrow label { display: flex; align-items: center; gap: 8px; white-space: nowrap; }
+    .dzrow input[type="range"] { flex: 1; min-width: 80px; accent-color: var(--accent); }
+    .dzrow output { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; min-width: 42px; text-align: right; color: var(--text); }
+    .table-wrap { overflow-x: auto; margin-top: 12px; }
+    table.rules { width: 100%; border-collapse: collapse; font-size: 13px; }
+    table.rules th { text-align: left; font-size: 11.5px; color: var(--text-muted); font-weight: 600; padding: 4px 6px; border-bottom: 1px solid var(--panel-border); white-space: nowrap; }
+    table.rules td { padding: 4px 6px; border-bottom: 1px solid var(--panel-border); vertical-align: middle; }
+    table.rules tr:nth-child(even) td { background: var(--row-alt); }
+    table.rules tr.invalid td:first-child { box-shadow: inset 3px 0 0 var(--danger); }
+    table.rules select { max-width: 230px; }
+    table.rules input[type="number"] { width: 72px; }
+    table.rules td.num { color: var(--text-muted); font-variant-numeric: tabular-nums; }
+    table.rules td.desc { color: var(--text-muted); min-width: 180px; }
+    table.rules td.acts { white-space: nowrap; }
+    .src { display: inline-flex; gap: 4px; align-items: center; }
+    .param { display: inline-flex; gap: 4px; align-items: center; white-space: nowrap; }
+    button.icon { padding: 3px 8px; font-size: 12px; }
+    button.armed { background: var(--danger); border-color: var(--danger); color: #fff; }
+    button.learning { background: var(--warn); border-color: var(--warn); color: #fff; }
+    button.danger-outline { border-color: var(--danger); color: var(--danger); background: transparent; }
+    .presets { gap: 6px; }
+    .validation { margin-top: 10px; border: 1px solid var(--danger); color: var(--danger); border-radius: 8px; padding: 8px 10px; font-size: 12.5px; }
+    .validation ul { margin: 4px 0 0; padding-left: 18px; }
+    .editstatus { margin: 10px 0 0; font-size: 12.5px; color: var(--text-muted); }
+    .editstatus.err { color: var(--danger); } .editstatus.ok { color: var(--ok); }
+    /* map picker + profiles */
+    #targetSel { width: 100%; }
+    .newprof { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 6px 8px; align-items: center; margin-top: 8px; font-size: 12.5px; }
+    .newprof input[type="text"] { width: 100%; }
+    .plist { display: flex; flex-direction: column; gap: 6px; }
+    .plist .p { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border: 1px solid var(--panel-border); border-radius: 7px; font-size: 12.5px; }
+    .plist .p .nm { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .plist .p.current { border-color: var(--accent); }
+    .log { background: var(--log-bg); color: var(--log-text); border-radius: 8px; padding: 10px 12px; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12px; line-height: 1.5; height: 150px; overflow-y: auto; overflow-x: auto; white-space: pre-wrap; word-break: break-word; }
+    .log .t { color: var(--time); } .log .tx { color: var(--tx); } .log .rx { color: var(--rx); } .log .err { color: var(--err); } .log .warn { color: #d08770; } .log .sys { color: var(--sys); }
+    footer { color: var(--text-muted); font-size: 12px; margin-top: 10px; }
+    #unsupported { display: none; background: var(--panel-bg); border: 1px solid var(--danger); color: var(--danger); border-radius: 10px; padding: 12px 14px; margin-bottom: 14px; }
+    /* espp web-app navigation: back to the Device Hub (primary) and the apps page */
+    .espp-nav { display: inline-flex; gap: 6px; align-items: center; margin-left: 12px; font-size: 12px; font-weight: 600; vertical-align: middle; }
+    .espp-nav a { text-decoration: none; white-space: nowrap; padding: 4px 10px; border-radius: 6px;
+      border: 1px solid var(--accent, #4aa8ff); color: var(--accent, #4aa8ff); }
+    .espp-nav a.hub { background: var(--accent, #4aa8ff); color: var(--accent-contrast, #06121f); }
+    .espp-nav a:hover { filter: brightness(1.1); }
+    .espp-nav a:focus-visible { outline: 2px solid var(--accent, #4aa8ff); outline-offset: 2px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>espp Gamepad Map Console <span class="muted">(WebUSB / Web Serial)</span></h1>
+      <nav class="espp-nav" aria-label="espp web apps"><a id="navHub" class="hub" href="https://esp-cpp.github.io/espp/apps/dispatcher_hub.html" title="Back to the espp Device Hub (hands a connected device back to it)">Device Hub</a><a id="navApps" href="https://esp-cpp.github.io/espp/apps/index.html" title="All espp web apps">All apps</a></nav>
+      <span id="status" class="status-pill">Disconnected</span>
+    </header>
+
+    <div id="unsupported">
+      This browser supports neither WebUSB nor Web Serial. Use a Chromium-based browser
+      (Chrome / Edge / Opera) on a secure origin (https, localhost or file://).
+    </div>
+
+    <!-- ============================ Device ============================ -->
+    <div class="panel">
+      <h2>Device</h2>
+      <div class="row">
+        <button id="connectUsbBtn" class="primary">Connect (WebUSB)</button>
+        <button id="connectSerialBtn">Connect (Web Serial)</button>
+        <button id="disconnectBtn" class="danger" disabled>Disconnect</button>
+        <label><input type="checkbox" id="anyDevice"> Any device (ignore VID/PID filter)</label>
+        <label title="Reconnect automatically when the device comes back after a reboot or re-plug"><input type="checkbox" id="autoReconnect" checked> auto-reconnect</label>
+        <div class="spacer"></div>
+        <button id="refreshBtn" class="small" disabled title="Ask the device again for its info and its profile list">Refresh</button>
+      </div>
+      <p id="devInfo" class="muted" style="margin: 10px 0 0;">Not connected. Default WebUSB filter: VID 0x1209 / PID 0x0d32 (espp default).</p>
+      <div class="statusline" style="margin-top:8px;">
+        <span>Controller: <b id="ctlName">-</b></span>
+        <span>Profile: <span id="ctlProfile" class="badge">-</span></span>
+        <span>Profiles stored: <b id="devProfiles">-</b></span>
+        <span>Rules per map: <b id="devMaxRules">-</b></span>
+        <span>Controls: <b id="devControls">-</b></span>
+      </div>
+    </div>
+
+    <div class="main">
+      <div>
+        <!-- ============================ Live input ============================ -->
+        <div class="panel">
+          <h2>Live input</h2>
+          <div class="row">
+            <label title="Stream the controller's input from the device (renewed every few seconds while on)"><input type="checkbox" id="liveInput" checked> Live input</label>
+            <label>every <select id="streamPeriod"><option value="20">20 ms</option><option value="50" selected>50 ms</option><option value="100">100 ms</option><option value="250">250 ms</option></select></label>
+            <span class="muted">Received: <b id="rxRate">-</b></span>
+            <div class="spacer"></div>
+            <span id="liveState" class="badge">-</span>
+          </div>
+          <div id="learnBanner" class="learn-banner" hidden>
+            <span id="learnText">Press a button, or push a stick / trigger past 50 %, on the controller...</span>
+            <div class="spacer"></div>
+            <button id="learnCancelBtn" class="small">Cancel</button>
+          </div>
+          <div class="live">
+            <div class="side" id="sideRaw">
+              <h3>Raw <span class="muted">(from the controller)</span></h3>
+              <div class="sidebody"></div>
+              <div class="overlay" id="rawOverlay">No input yet: connect and keep "Live input" on.</div>
+            </div>
+            <div class="side" id="sideMapped">
+              <h3>Mapped <span class="muted">(what the device sends on)</span></h3>
+              <div class="sidebody"></div>
+              <div class="overlay" id="mappedOverlay">No input yet.</div>
+            </div>
+          </div>
+          <p class="muted" style="margin: 8px 0 0;">Sticks are -100..100 % with Y growing <b>down</b>; triggers 0..100 %. The dashed circle on the raw sticks is the dead zone of the map in the editor.</p>
+        </div>
+
+        <!-- ============================ Map editor ============================ -->
+        <div class="panel">
+          <h2>Map editor</h2>
+          <div class="row">
+            <span>Editing: <b id="editTitle">nothing loaded</b></span>
+            <span id="editBadge" class="badge" hidden>-</span>
+            <div class="spacer"></div>
+            <span id="dirtyBadge" class="badge warn" hidden>unsaved changes</span>
+          </div>
+          <p id="editNote" class="muted" style="margin: 8px 0 0;">Pick a map on the right and Load it.</p>
+          <div class="dzrow">
+            <label title="Radial dead zone of the left stick (0..90 % of full deflection); what is left is rescaled so full deflection still reads full">Left stick dead zone <input type="range" id="dzLeft" min="0" max="90" step="1" value="0" disabled> <output id="dzLeftOut">0 %</output></label>
+            <label title="Radial dead zone of the right stick (0..90 % of full deflection)">Right stick dead zone <input type="range" id="dzRight" min="0" max="90" step="1" value="0" disabled> <output id="dzRightOut">0 %</output></label>
+          </div>
+          <div class="table-wrap">
+            <table class="rules">
+              <thead><tr><th>#</th><th>Kind</th><th>Source</th><th>Target</th><th title="Keep the source at its own position too (otherwise the source is moved to the target)">Keep source</th><th>Parameter</th><th>Does</th><th></th></tr></thead>
+              <tbody id="rulesBody"></tbody>
+            </table>
+          </div>
+          <p id="noRules" class="muted" style="margin: 8px 0 0;">No rules: every control passes through unchanged (after the dead zones).</p>
+          <p class="muted" style="margin: 8px 0 0;">A rule <b>moves</b> its source to the target (the source no longer reaches its own position) unless "keep source" is ticked; a target of "none" just removes the source. Controls no rule takes as a source pass through. Several rules may feed one target: buttons are OR-ed, axis contributions summed and clamped.</p>
+          <div class="row" style="margin-top:10px;">
+            <button id="addRuleBtn" class="small" disabled>+ Add rule</button>
+            <span class="muted"><b id="ruleCount">0</b> rules (the device takes at most <span id="ruleMax">64</span>)</span>
+          </div>
+          <div class="row presets" id="presets">
+            <span class="muted">Presets (append rules):</span>
+          </div>
+          <div id="validation" class="validation" hidden></div>
+          <div class="row" style="margin-top:12px;">
+            <button id="saveBtn" class="primary" disabled title="Validate the map and store it on the device">Save to device</button>
+            <button id="revertBtn" disabled title="Load the map stored on the device again, dropping the edits">Revert</button>
+            <div class="spacer"></div>
+            <button id="eraseBtn" class="danger-outline" disabled title="Delete this profile from the device (the controller then uses the default map)">Erase this profile</button>
+          </div>
+          <p id="editStatus" class="editstatus"></p>
+        </div>
+      </div>
+
+      <div>
+        <!-- ============================ Map picker ============================ -->
+        <div class="panel">
+          <h2>Map to edit</h2>
+          <select id="targetSel" aria-label="Map to edit"></select>
+          <div id="newProfileFields" class="newprof" hidden>
+            <span>VID</span><input type="text" id="newVid" placeholder="hex, e.g. 045e" spellcheck="false">
+            <span>PID</span><input type="text" id="newPid" placeholder="hex, e.g. 0b13" spellcheck="false">
+            <span>Name</span><input type="text" id="newName" placeholder="the key when VID and PID are 0" spellcheck="false">
+          </div>
+          <div class="row" style="margin-top:10px;">
+            <button id="loadBtn" class="primary small" disabled>Load</button>
+          </div>
+          <p class="muted" style="margin: 10px 0 0;">The <b>default map</b> applies to every controller without a profile. A <b>profile</b> belongs to one controller type (its USB / Bluetooth VID:PID; by name when both are 0). Loading a controller that has no profile yet starts from the default map; saving creates the profile.</p>
+        </div>
+
+        <!-- ============================ Profiles ============================ -->
+        <div class="panel">
+          <h2>Profiles <span id="profCount" class="mono" style="text-transform:none; letter-spacing:0;"></span> <button id="refreshProfilesBtn" class="small" style="float:right; margin-top:-4px;" disabled>Refresh</button></h2>
+          <div id="profileList" class="plist"><span class="muted">Not connected.</span></div>
+        </div>
+
+        <!-- ============================ Reset ============================ -->
+        <div class="panel">
+          <h2>Reset</h2>
+          <p class="muted" style="margin: 0 0 10px;">Erase every profile and set the default map back to the identity (no rules, no dead zones).</p>
+          <button id="resetAllBtn" class="danger" disabled>Reset everything</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================ Log ============================ -->
+    <div class="panel">
+      <h2>Log <button id="clearLogBtn" class="small" style="float:right; margin-top:-4px;">Clear</button></h2>
+      <div id="log" class="log"></div>
+    </div>
+
+    <footer>
+      espp Gamepad Map Console &middot; talks to <span class="mono">espp::GamepadMapService</span>
+      (<span class="mono">components/gamepad_map</span>), which remaps a controller with an
+      <span class="mono">espp::GamepadMap</span> and keeps the maps in an <span class="mono">espp::GamepadProfiles</span> store.
+      Single-file, offline, no dependencies.
+    </footer>
+  </div>
+
+  <script>
+    "use strict";
+
+    // ===================== stream_frame protocol =====================
+    const DEFAULT_VID = 0x1209, DEFAULT_PID = 0x0d32, VENDOR_CLASS = 0xFF;
+    const MAGIC0 = 0x54, MAGIC1 = 0x4F, HEADER_SIZE = 9, CRC_SIZE = 4, CORRELATION_SIZE = 2;
+    const MAX_PAYLOAD = 4096, MAX_FRAME = HEADER_SIZE + CORRELATION_SIZE + MAX_PAYLOAD + CRC_SIZE;
+    const FLAGS_VERSION = 1, FLAGS_REQUEST = (FLAGS_VERSION << 4), FLAGS_REPLY_BIT = 0x01, FLAG_CORRELATION = 0x02;
+    // The dispatcher module byte is only a routing key: the gamepad map service
+    // is published on module 11 by default, but a device may serve it on any
+    // id. The id actually used is resolved on connect from the device's
+    // discovery reply (by the advertised protocol id, then app / name), from
+    // ?module=N, or the default. PROTOCOL(_VERSION) mirror
+    // gamepad_map_protocol::kProtocol(Version).
+    const DEFAULT_MODULE = 11;
+    const PROTOCOL = "espp.gamepad_map", PROTOCOL_VERSION = 1;
+    const MODULE_IDENT = { protocol: PROTOCOL, protocolVersion: PROTOCOL_VERSION,
+                           app: "gamepad_map_console.html", name: "Gamepad Map", fallback: DEFAULT_MODULE, override: null };
+    let moduleGamepad = DEFAULT_MODULE;         // adopted by adoptModule() before the first gamepad map frame
+    // True once adoptModule() has run for this connection: every send path
+    // waits for it, so nothing can go out on the default id while the discovery
+    // probe (up to DISCOVERY_TIMEOUT_MS) is still pending.
+    let moduleReady = false;
+    // Reserved dispatcher discovery module: a device running an espp::Dispatcher
+    // answers a ListModules query on 0xFF with the modules it serves, which is
+    // how the gamepad map module's id is found before driving it.
+    const MODULE_DISCOVERY = 0xFF, T_LIST_MODULES = 0x00;
+    const DISCOVERY_TIMEOUT_MS = 800;        // module-presence probe (0xFF ListModules) timeout
+    const STREAM_RENEW_MS = 3000;            // SET_STREAM enable is re-sent this often (the device's lease is longer)
+    const INFO_POLL_MS = 10000;              // slow GET_INFO poll while the input stream is off (while it is on the
+                                             // device sends INFO unsolicited when the controller changes)
+    const LEARN_TIMEOUT_MS = 15000;          // a Learn gives up after this long
+
+    // --- begin gamepad map codec (pure: no DOM; see components/gamepad_map/web/test/gamepad_map_codec_test.js) ---
+    // Mirrors components/gamepad_map/include/detail/gamepad_map_protocol.hpp
+    // (the wire format), gamepad_state.hpp (control order) and gamepad_map.hpp
+    // (rule kinds, GamepadMap::valid()). All multi-byte fields little-endian;
+    // a `str` is [len u8][utf8 bytes]. Compatibility rule: device -> host
+    // messages are decoded leniently -- bytes after the known fields are
+    // ignored (a later version may append fields); a truncated message fails.
+    // requests (host -> device)
+    const T_GET_INFO = 0x01, T_GET_MAP = 0x02, T_SET_MAP = 0x03, T_ERASE_PROFILE = 0x04,
+          T_LIST_PROFILES = 0x05, T_SET_STREAM = 0x06, T_RESET_ALL = 0x07;
+    // replies / events (device -> host, reply flag set)
+    const T_INFO = 0x81, T_MAP = 0x82, T_OK = 0x83, T_ERROR = 0x84, T_PROFILES = 0x85, T_INPUT = 0x86;
+    const REQ_NAME = { 0x01: "get info", 0x02: "get map", 0x03: "save map", 0x04: "erase profile",
+                       0x05: "list profiles", 0x06: "set input stream", 0x07: "reset all" };
+    const FLAG_CONNECTED = 0x01, FLAG_CHANGED = 0x02;   // INFO / INPUT flags
+    const FLAG_EXISTS = 0x01;                           // MAP flag: the requested map exists
+    const STATE_SIZE = 16, RULE_SIZE = 6;
+    // GamepadState: Button order = bit index, Axis order = axes[] index
+    const BUTTON_NAMES = ["south", "east", "west", "north", "l1", "r1", "l2", "r2", "l3", "r3", "select", "start",
+                          "home", "capture", "up", "down", "left", "right", "paddle1", "paddle2", "paddle3", "paddle4"];
+    const AXIS_NAMES = ["left_x", "left_y", "right_x", "right_y", "left_trigger", "right_trigger"];
+    const BUTTON_COUNT = BUTTON_NAMES.length, AXIS_COUNT = AXIS_NAMES.length;
+    const B = Object.freeze(Object.fromEntries(BUTTON_NAMES.map((n, i) => [n.toUpperCase(), i])));
+    const A = Object.freeze(Object.fromEntries(AXIS_NAMES.map((n, i) => [n.toUpperCase(), i])));
+    // positional names + the labels the controller families print on them
+    const BUTTON_TEXT = ["South", "East", "West", "North", "L1", "R1", "L2", "R2", "L3", "R3", "Select", "Start",
+                         "Home", "Capture", "D-pad Up", "D-pad Down", "D-pad Left", "D-pad Right",
+                         "Paddle 1", "Paddle 2", "Paddle 3", "Paddle 4"];
+    const BUTTON_SHORT = ["South", "East", "West", "North", "L1", "R1", "L2", "R2", "L3", "R3", "Select", "Start",
+                          "Home", "Capture", "Up", "Down", "Left", "Right", "P1", "P2", "P3", "P4"];
+    const BUTTON_HINT = ["Xbox A / Nintendo B / PS Cross", "Xbox B / Nintendo A / PS Circle",
+                         "Xbox X / Nintendo Y / PS Square", "Xbox Y / Nintendo X / PS Triangle",
+                         "LB / L", "RB / R", "LT / ZL as a button", "RT / ZR as a button", "left stick click", "right stick click",
+                         "View / Back / Minus / Share", "Menu / Plus / Options", "Guide / PS", "Xbox Share / Nintendo Capture",
+                         "", "", "", "", "back paddle / SL / SR", "back paddle / SL / SR", "back paddle", "back paddle"];
+    const AXIS_TEXT = ["Left stick X", "Left stick Y", "Right stick X", "Right stick Y", "Left trigger", "Right trigger"];
+    const AXIS_HINT = ["- left / + right", "- up / + down", "- left / + right", "- up / + down", "LT / ZL, analog", "RT / ZR, analog"];
+    // GamepadMapRule
+    const K = Object.freeze({ BUTTON_TO_BUTTON: 0, AXIS_TO_BUTTON: 1, BUTTON_TO_AXIS: 2, AXIS_TO_AXIS: 3 });
+    const KIND_TEXT = ["button → button", "axis → button", "button → axis", "axis → axis"];
+    const RULE_NONE = 0xFF, KEEP_SOURCE = 0x01;
+    const AXIS_MAX = 32767, MAX_SCALE_PERCENT = 400, MAX_DEADZONE_PERCENT = 90, MAX_RULES = 64;
+    const HALF_THRESHOLD = 16384;   // GamepadMap::left_stick_to_dpad's default (50 %)
+    const TRIGGER_THRESHOLD = 13107; // GamepadMap::triggers_to_buttons' default (40 %)
+    const LEARN_THRESHOLD = 16384;  // a Learn takes an axis past 50 %
+
+    const isTrigger = (a) => a === A.LEFT_TRIGGER || a === A.RIGHT_TRIGGER;
+    const sourceIsAxis = (kind) => kind === K.AXIS_TO_BUTTON || kind === K.AXIS_TO_AXIS;
+    const targetIsAxis = (kind) => kind === K.BUTTON_TO_AXIS || kind === K.AXIS_TO_AXIS;
+    const hex4 = (v) => (v & 0xFFFF).toString(16).padStart(4, "0");
+    function buttonLabel(i) { const t = BUTTON_TEXT[i]; if (!t) return "button " + i; return BUTTON_HINT[i] ? t + " (" + BUTTON_HINT[i] + ")" : t; }
+    function axisLabel(i) { const t = AXIS_TEXT[i]; if (!t) return "axis " + i; return t + " (" + AXIS_HINT[i] + ")"; }
+    function controlText(isAxis, i) { return isAxis ? (AXIS_TEXT[i] || "axis " + i) : (BUTTON_TEXT[i] || "button " + i); }
+    // param <-> percent of full scale (a threshold or a button -> axis value)
+    // (rounded away from 0 symmetrically: +/-50 % -> +/-16384, the C++ helpers' half-way threshold)
+    function percentToParam(pct) {
+      const x = Number(pct); if (!Number.isFinite(x)) return 0;
+      const v = Math.sign(x) * Math.round(Math.abs(x) * AXIS_MAX / 100);
+      return Math.max(-AXIS_MAX, Math.min(AXIS_MAX, v)) || 0;
+    }
+    function paramToPercent(p) { return Math.round(p * 1000 / AXIS_MAX) / 10; }
+
+    // ---- byte helpers ----
+    // Reads little-endian fields; every read fails (and keeps failing) once the
+    // payload is exhausted (like gamepad_map_protocol::Reader).
+    class GmReader {
+      constructor(bytes) { this.b = bytes; this.pos = 0; this.ok = true; }
+      have(n) { if (!this.ok || this.b.length - this.pos < n) { this.ok = false; return false; } return true; }
+      u8() { if (!this.have(1)) return 0; return this.b[this.pos++]; }
+      u16() { if (!this.have(2)) return 0; const v = this.b[this.pos] | (this.b[this.pos + 1] << 8); this.pos += 2; return v; }
+      i16() { const v = this.u16(); return v >= 0x8000 ? v - 0x10000 : v; }
+      u32() {
+        if (!this.have(4)) return 0;
+        const p = this.pos; this.pos += 4;
+        return (this.b[p] | (this.b[p + 1] << 8) | (this.b[p + 2] << 16) | (this.b[p + 3] << 24)) >>> 0;
+      }
+      str() {
+        const n = this.u8(); if (!this.have(n)) return "";
+        const s = new TextDecoder().decode(this.b.subarray(this.pos, this.pos + n)); this.pos += n; return s;
+      }
+      done() { return this.ok && this.pos === this.b.length; }
+      // every known field was read (trailing bytes are allowed: see the compatibility rule)
+      knownFieldsRead() { return this.ok; }
+    }
+    class GmWriter {
+      constructor() { this.out = []; }
+      u8(v) { this.out.push(v & 0xFF); return this; }
+      u16(v) { this.out.push(v & 0xFF, (v >> 8) & 0xFF); return this; }
+      i16(v) { return this.u16(v & 0xFFFF); }
+      u32(v) { for (let i = 0; i < 4; i++) this.out.push((v >>> (8 * i)) & 0xFF); return this; }
+      // [len u8][utf8 bytes], truncated to 255 bytes like put_str()
+      str(s) { const b = new TextEncoder().encode(String(s == null ? "" : s)).subarray(0, 255); this.out.push(b.length, ...b); return this; }
+      bytes() { return new Uint8Array(this.out); }
+    }
+
+    // ---- shared encodings ----
+    // target: { profile: false } = the default map, or { profile: true, vid, pid, name }
+    function putTarget(w, t) {
+      w.u8(t && t.profile ? 1 : 0);
+      if (t && t.profile) w.u16(t.vid).u16(t.pid).str(t.name);
+    }
+    function readTarget(r) {
+      const kind = r.u8();
+      if (!r.ok || kind > 1) return null;
+      if (kind === 0) return { profile: false };
+      const t = { profile: true, vid: r.u16(), pid: r.u16(), name: r.str() };
+      return r.ok ? t : null;
+    }
+    // map: { leftDeadzone, rightDeadzone, rules: [{ kind, source, target, flags, param }] }
+    function putMap(w, m) {
+      const n = Math.min(255, m.rules.length);
+      w.u8(m.leftDeadzone).u8(m.rightDeadzone).u8(n);
+      for (let i = 0; i < n; i++) { const r = m.rules[i]; w.u8(r.kind).u8(r.source).u8(r.target).u8(r.flags).i16(r.param); }
+    }
+    function readMap(r) {
+      const m = { leftDeadzone: r.u8(), rightDeadzone: r.u8(), rules: [] };
+      const count = r.u8();
+      if (!r.ok) return null;
+      for (let i = 0; i < count; i++) {
+        const rule = { kind: r.u8(), source: r.u8(), target: r.u8(), flags: r.u8(), param: r.i16() };
+        if (!r.ok) return null;
+        m.rules.push(rule);
+      }
+      return m;
+    }
+    // state: { buttons (u32, bit n = button n), axes: [6 x i16] }
+    function readState(r) {
+      const s = { buttons: r.u32(), axes: [] };
+      for (let a = 0; a < AXIS_COUNT; a++) s.axes.push(r.i16());
+      return r.ok ? s : null;
+    }
+    function encodeState(s) { const w = new GmWriter(); w.u32(s.buttons); for (const a of s.axes) w.i16(a); return w.bytes(); }
+
+    // ---- requests ----
+    function encodeGetMap(t) { const w = new GmWriter(); putTarget(w, t); return w.bytes(); }
+    function encodeSetMap(t, m) { const w = new GmWriter(); putTarget(w, t); putMap(w, m); return w.bytes(); }
+    function encodeEraseProfile(t) { return new GmWriter().u16(t.vid).u16(t.pid).str(t.name).bytes(); }
+    function encodeSetStream(enable, periodMs) { return new GmWriter().u8(enable ? 1 : 0).u16(periodMs).bytes(); }
+
+    // ---- replies / events (null = truncated / malformed, like the C++ decoders;
+    //      trailing bytes after the known fields are ignored) ----
+    function decodeInfo(p) {
+      const r = new GmReader(p);
+      const info = { buttonCount: r.u8(), axisCount: r.u8(), maxRules: r.u8(), maxProfiles: r.u8(), profileCount: r.u8(), controller: null };
+      const flags = r.u8();
+      if (!r.ok) return null;
+      if (flags & FLAG_CONNECTED) {
+        const c = { vid: r.u16(), pid: r.u16(), name: r.str(), hasProfile: r.u8() !== 0 };
+        if (!r.ok) return null;
+        info.controller = c;
+      }
+      return r.knownFieldsRead() ? info : null;
+    }
+    // MAP: [target][flags u8][map]; the target as requested (the stored name if
+    // the profile exists), exists = false: a missing profile, answered with the
+    // default map (what that controller uses today)
+    function decodeMapReply(p) {
+      const r = new GmReader(p);
+      const target = readTarget(r); if (!target) return null;
+      const flags = r.u8(); if (!r.ok) return null;
+      const map = readMap(r); if (!map || !r.knownFieldsRead()) return null;
+      return { target, exists: !!(flags & FLAG_EXISTS), map };
+    }
+    function decodeProfiles(p) {
+      const r = new GmReader(p);
+      const count = r.u8(); if (!r.ok) return null;
+      const out = [];
+      for (let i = 0; i < count; i++) {
+        const s = { vid: r.u16(), pid: r.u16(), name: r.str(), ruleCount: r.u8() };
+        if (!r.ok) return null;
+        out.push(s);
+      }
+      return r.knownFieldsRead() ? out : null;
+    }
+    function decodeInput(p) {
+      const r = new GmReader(p);
+      const flags = r.u8();
+      const raw = readState(r), mapped = readState(r);
+      if (!raw || !mapped || !r.knownFieldsRead()) return null;
+      return { connected: !!(flags & FLAG_CONNECTED), changed: !!(flags & FLAG_CHANGED), raw, mapped };
+    }
+    function decodeOk(p) { return p.length >= 1 ? { requestType: p[0] } : null; } // (later bytes ignored)
+    // (the message runs to the end of the payload, so nothing can follow it)
+    function decodeError(p) {
+      if (p.length < 5) return null;
+      const r = new GmReader(p);
+      const requestType = r.u8(), code = r.u32();
+      return { requestType, code, message: new TextDecoder().decode(p.subarray(5)) };
+    }
+
+    // ---- targets ----
+    function describeTarget(t) {
+      if (!t) return "-";
+      if (!t.profile) return "default map";
+      const name = t.name ? "“" + t.name + "”" : "(no name)";
+      return t.vid === 0 && t.pid === 0 ? "profile " + name + " (matched by name)" : "profile " + hex4(t.vid) + ":" + hex4(t.pid) + " " + name;
+    }
+    // GamepadProfile::matches(): by VID:PID, or by (non-empty) name when both are 0
+    function sameTarget(a, b) {
+      if (!a || !b || a.profile !== b.profile) return false;
+      if (!a.profile) return true;
+      if (a.vid === 0 && a.pid === 0) return b.vid === 0 && b.pid === 0 && !!a.name && a.name === b.name;
+      return a.vid === b.vid && a.pid === b.pid;
+    }
+    function validateTarget(t) {
+      if (!t || !t.profile) return null;
+      if (!Number.isInteger(t.vid) || !Number.isInteger(t.pid) || t.vid < 0 || t.vid > 0xFFFF || t.pid < 0 || t.pid > 0xFFFF) return "VID / PID must be 0000..ffff";
+      if (t.vid === 0 && t.pid === 0 && !t.name) return "a profile with VID and PID 0 needs a name (it is the key)";
+      if (new TextEncoder().encode(t.name || "").length > 255) return "the name is longer than 255 bytes";
+      return null;
+    }
+
+    // ---- validation: GamepadMapRule::valid() / GamepadMap::valid() ----
+    // limits: { maxRules, buttonCount, axisCount } (from INFO; defaults = the C++ constants)
+    function gmLimits(info) {
+      return info ? { maxRules: info.maxRules, buttonCount: info.buttonCount, axisCount: info.axisCount }
+                  : { maxRules: MAX_RULES, buttonCount: BUTTON_COUNT, axisCount: AXIS_COUNT };
+    }
+    function validateRule(r, lim) {
+      lim = lim || gmLimits(null);
+      if (!Number.isInteger(r.kind) || r.kind < 0 || r.kind > K.AXIS_TO_AXIS) return "unknown rule kind";
+      if (r.flags & ~KEEP_SOURCE) return "unknown flags";
+      const sources = sourceIsAxis(r.kind) ? lim.axisCount : lim.buttonCount;
+      const targets = targetIsAxis(r.kind) ? lim.axisCount : lim.buttonCount;
+      if (!Number.isInteger(r.source) || r.source < 0 || r.source >= sources) return "source out of range";
+      if (r.target !== RULE_NONE && (!Number.isInteger(r.target) || r.target < 0 || r.target >= targets)) return "target out of range";
+      if (!Number.isInteger(r.param) || r.param < -32768 || r.param > 32767) return "parameter out of range";
+      if (r.kind === K.AXIS_TO_BUTTON && r.param === 0) return "axis -> button needs a non-zero threshold";
+      if (r.kind === K.AXIS_TO_BUTTON && r.param < 0 && isTrigger(r.source)) return "a trigger never goes below 0: its threshold must be positive";
+      if (r.target === RULE_NONE && (r.flags & KEEP_SOURCE)) return "a rule that keeps its source needs a target";
+      if (r.kind === K.AXIS_TO_AXIS && (r.param < -MAX_SCALE_PERCENT || r.param > MAX_SCALE_PERCENT)) return "axis -> axis scale out of range";
+      return null;
+    }
+    // Every problem (the firmware stops at the first): [{ rule: index | -1, why }]
+    function validateMap(m, lim) {
+      lim = lim || gmLimits(null);
+      const errors = [];
+      const dzOk = (v) => Number.isInteger(v) && v >= 0 && v <= MAX_DEADZONE_PERCENT;
+      if (!dzOk(m.leftDeadzone) || !dzOk(m.rightDeadzone)) errors.push({ rule: -1, why: "dead zone out of range" });
+      if (m.rules.length > lim.maxRules) errors.push({ rule: -1, why: "too many rules (" + m.rules.length + "; the device takes at most " + lim.maxRules + ")" });
+      m.rules.forEach((r, i) => { const why = validateRule(r, lim); if (why) errors.push({ rule: i, why }); });
+      return errors;
+    }
+
+    // ---- rules: builders (GamepadMapRule's static helpers), kinds, descriptions ----
+    const keepFlag = (keep) => keep ? KEEP_SOURCE : 0;
+    function ruleButton(from, to, keep) { return { kind: K.BUTTON_TO_BUTTON, source: from, target: to, flags: keepFlag(keep), param: 0 }; }
+    function ruleAxisToButton(from, threshold, to, keep) { return { kind: K.AXIS_TO_BUTTON, source: from, target: to, flags: keepFlag(keep), param: threshold }; }
+    function ruleButtonToAxis(from, to, value, keep) { return { kind: K.BUTTON_TO_AXIS, source: from, target: to, flags: keepFlag(keep), param: value }; }
+    function ruleAxis(from, to, scalePercent = 100, keep = false) { return { kind: K.AXIS_TO_AXIS, source: from, target: to, flags: keepFlag(keep), param: scalePercent }; }
+    function defaultParam(kind) { return kind === K.AXIS_TO_BUTTON ? HALF_THRESHOLD : kind === K.BUTTON_TO_AXIS ? AXIS_MAX : kind === K.AXIS_TO_AXIS ? 100 : 0; }
+    // Change a rule's kind: a source / target whose type (button / axis) changes
+    // starts over at the first control (a "none" target stays none), and the
+    // parameter takes the new kind's default.
+    function changeRuleKind(rule, kind) {
+      const r = { ...rule, kind };
+      if (sourceIsAxis(kind) !== sourceIsAxis(rule.kind)) r.source = 0;
+      if (targetIsAxis(kind) !== targetIsAxis(rule.kind) && r.target !== RULE_NONE) r.target = 0;
+      r.param = defaultParam(kind);
+      return r;
+    }
+    function signedPercent(p) { const v = paramToPercent(p); return (v > 0 ? "+" : "") + v + "%"; }
+    // One line saying what a rule does.
+    function describeRule(r) {
+      if (!Number.isInteger(r.kind) || r.kind < 0 || r.kind > K.AXIS_TO_AXIS) return "unknown rule kind " + r.kind;
+      const sa = sourceIsAxis(r.kind), ta = targetIsAxis(r.kind);
+      const src = controlText(sa, r.source);
+      const keep = !!(r.flags & KEEP_SOURCE);
+      if (r.target === RULE_NONE)
+        return keep ? src + ": invalid (keeps the source but has no target)" :
+               src + " is removed (" + (sa ? (isTrigger(r.source) ? "reads released" : "reads 0") : "never pressed") + ")";
+      const dst = controlText(ta, r.target);
+      let s;
+      switch (r.kind) {
+        case K.BUTTON_TO_BUTTON:
+          s = r.source === r.target ? src + " stays " + src : src + " presses " + dst;
+          break;
+        case K.AXIS_TO_BUTTON:
+          s = r.param === 0 ? src + " never presses " + dst + " (a threshold of 0 is invalid)" :
+              r.param < 0 && isTrigger(r.source) ? src + " never presses " + dst + " (a trigger never goes below 0)" :
+              src + (r.param > 0 ? " above " : " below ") + signedPercent(r.param) + " presses " + dst;
+          break;
+        case K.BUTTON_TO_AXIS:
+          s = src + " adds " + signedPercent(r.param) + " to " + dst;
+          break;
+        default: // axis -> axis
+          if (r.source === r.target) s = r.param === -100 ? src + " is inverted" : r.param === 100 ? src + " is unchanged" : src + " is scaled to " + r.param + "%";
+          else if (r.param === 100) s = src + " drives " + dst;
+          else if (r.param === -100) s = src + " drives " + dst + ", inverted";
+          else s = src + " × " + r.param + "% drives " + dst;
+      }
+      if (keep && !(r.kind === K.BUTTON_TO_BUTTON && r.source === r.target)) s += " (" + src + " also stays)";
+      return s;
+    }
+
+    // ---- presets: the GamepadMap builder helpers, rule for rule ----
+    const PRESETS = [
+      { id: "swapSouthEast", label: "Swap South / East (Nintendo A/B)", rules: () => [ruleButton(B.SOUTH, B.EAST), ruleButton(B.EAST, B.SOUTH)] },
+      { id: "swapWestNorth", label: "Swap West / North", rules: () => [ruleButton(B.WEST, B.NORTH), ruleButton(B.NORTH, B.WEST)] },
+      { id: "invertLeftY", label: "Invert left Y", rules: () => [ruleAxis(A.LEFT_Y, A.LEFT_Y, -100)] },
+      { id: "invertRightY", label: "Invert right Y", rules: () => [ruleAxis(A.RIGHT_Y, A.RIGHT_Y, -100)] },
+      { id: "swapSticks", label: "Swap sticks", rules: () => [ruleAxis(A.LEFT_X, A.RIGHT_X), ruleAxis(A.RIGHT_X, A.LEFT_X), ruleAxis(A.LEFT_Y, A.RIGHT_Y), ruleAxis(A.RIGHT_Y, A.LEFT_Y)] },
+      { id: "leftStickToDpad", label: "Left stick → D-pad", rules: () => [
+        ruleAxisToButton(A.LEFT_X, -HALF_THRESHOLD, B.LEFT, true), ruleAxisToButton(A.LEFT_X, HALF_THRESHOLD, B.RIGHT, true),
+        ruleAxisToButton(A.LEFT_Y, -HALF_THRESHOLD, B.UP, true), ruleAxisToButton(A.LEFT_Y, HALF_THRESHOLD, B.DOWN, true)] },
+      { id: "dpadToLeftStick", label: "D-pad → left stick", rules: () => [
+        ruleButtonToAxis(B.LEFT, A.LEFT_X, -AXIS_MAX, true), ruleButtonToAxis(B.RIGHT, A.LEFT_X, AXIS_MAX, true),
+        ruleButtonToAxis(B.UP, A.LEFT_Y, -AXIS_MAX, true), ruleButtonToAxis(B.DOWN, A.LEFT_Y, AXIS_MAX, true)] },
+      { id: "triggersToButtons", label: "Triggers → L2 / R2", rules: () => [
+        ruleAxisToButton(A.LEFT_TRIGGER, TRIGGER_THRESHOLD, B.L2, true), ruleAxisToButton(A.RIGHT_TRIGGER, TRIGGER_THRESHOLD, B.R2, true)] },
+      { id: "buttonsToTriggers", label: "L2 / R2 → triggers", rules: () => [
+        ruleButtonToAxis(B.L2, A.LEFT_TRIGGER, AXIS_MAX, true), ruleButtonToAxis(B.R2, A.RIGHT_TRIGGER, AXIS_MAX, true)] },
+    ];
+
+    // ---- learn: the next control that changes on the raw input ----
+    // An axis counts once it is past LEARN_THRESHOLD (a trigger only upwards);
+    // a control already held / deflected when the learn starts counts once it
+    // was released and is pressed again.
+    function axisPastSign(a, v) {
+      if (isTrigger(a)) return v >= LEARN_THRESHOLD ? 1 : 0;
+      return v >= LEARN_THRESHOLD ? 1 : v <= -LEARN_THRESHOLD ? -1 : 0;
+    }
+    function learnBaseline(s) { return { buttons: s.buttons >>> 0, past: s.axes.map((v, a) => axisPastSign(a, v)) }; }
+    // -> { hit: null | { type: "button", index } | { type: "axis", index, sign }, base }
+    function learnStep(base, s, buttonCount = BUTTON_COUNT) {
+      const mask = buttonCount >= 32 ? 0xFFFFFFFF : ((1 << buttonCount) >>> 0) - 1;
+      const fresh = (s.buttons & ~base.buttons & mask) >>> 0;
+      if (fresh) return { hit: { type: "button", index: 31 - Math.clz32((fresh & -fresh) >>> 0) }, base };
+      for (let a = 0; a < s.axes.length; a++) {
+        const p = axisPastSign(a, s.axes[a]);
+        if (p !== 0 && p !== base.past[a]) return { hit: { type: "axis", index: a, sign: p }, base };
+      }
+      return { hit: null, base: { buttons: (base.buttons & s.buttons) >>> 0, past: base.past.map((p, a) => axisPastSign(a, s.axes[a]) === 0 ? 0 : p) } };
+    }
+    // Fill a learned control in as the rule's source. A control of the other
+    // type switches the kind (button -> button <-> axis -> button, button ->
+    // axis <-> axis -> axis: the target keeps its type); an axis -> button
+    // threshold takes the direction the axis moved.
+    function applyLearnHit(rule, hit) {
+      const r = { ...rule };
+      if (hit.type === "button") {
+        if (sourceIsAxis(r.kind)) { r.kind = r.kind === K.AXIS_TO_BUTTON ? K.BUTTON_TO_BUTTON : K.BUTTON_TO_AXIS; r.param = defaultParam(r.kind); }
+      } else if (!sourceIsAxis(r.kind)) {
+        r.kind = r.kind === K.BUTTON_TO_AXIS ? K.AXIS_TO_AXIS : K.AXIS_TO_BUTTON; r.param = defaultParam(r.kind);
+      }
+      r.source = hit.index;
+      if (r.kind === K.AXIS_TO_BUTTON) r.param = (hit.sign < 0 ? -1 : 1) * (Math.min(AXIS_MAX, Math.abs(r.param)) || HALF_THRESHOLD);
+      return r;
+    }
+    // --- end gamepad map codec ---
+
+    const els = {};
+    for (const el of document.querySelectorAll("[id]")) els[el.id] = el;
+
+    function logLine(cls, text) {
+      const line = document.createElement("div");
+      const time = document.createElement("span"); time.className = "t"; time.textContent = new Date().toLocaleTimeString() + " ";
+      const body = document.createElement("span"); body.className = cls; body.textContent = text;
+      line.appendChild(time); line.appendChild(body); els.log.appendChild(line);
+      while (els.log.childNodes.length > 400) els.log.removeChild(els.log.firstChild);
+      els.log.scrollTop = els.log.scrollHeight;
+    }
+    els.clearLogBtn.addEventListener("click", () => { els.log.textContent = ""; });
+    function setStatus(state, text) { els.status.className = "status-pill" + (state ? " " + state : ""); els.status.textContent = text; }
+
+    // ---- CRC-32 (zlib), golden crc32("123456789") === 0xCBF43926 ----
+    const CRC_TABLE = (() => { const t = new Uint32Array(256); for (let i=0;i<256;i++){ let c=i; for(let k=0;k<8;k++) c=(c&1)?((c>>>1)^0xEDB88320):(c>>>1); t[i]=c>>>0; } return t; })();
+    function crc32(bytes) { let c=0xFFFFFFFF; for (let i=0;i<bytes.length;i++) c=CRC_TABLE[(c^bytes[i])&0xFF]^(c>>>8); return (~c)>>>0; }
+    if (crc32(new TextEncoder().encode("123456789")) !== 0xCBF43926) throw new Error("CRC-32 self-test failed");
+
+    function buildFrame(type, payload, module = moduleGamepad) {
+      payload = payload || new Uint8Array(0);
+      const frame = new Uint8Array(HEADER_SIZE + payload.length + CRC_SIZE);
+      const view = new DataView(frame.buffer);
+      view.setUint16(0, 0x4F54, true);
+      frame[2] = FLAGS_REQUEST | ((type & 0x80) ? FLAGS_REPLY_BIT : 0);
+      frame[3] = module; frame[4] = type;
+      view.setUint32(5, payload.length, true);
+      frame.set(payload, HEADER_SIZE);
+      view.setUint32(HEADER_SIZE + payload.length, crc32(frame.subarray(0, HEADER_SIZE + payload.length)), true);
+      return frame;
+    }
+
+    class StreamParser {
+      constructor() { this.buf = new Uint8Array(0); }
+      reset() { this.buf = new Uint8Array(0); }
+      feed(chunk) {
+        const merged = new Uint8Array(this.buf.length + chunk.length);
+        merged.set(this.buf, 0); merged.set(chunk, this.buf.length);
+        const frames = []; let pos = 0;
+        for (;;) {
+          while (pos < merged.length && !(merged[pos] === MAGIC0 && (pos + 1 >= merged.length || merged[pos + 1] === MAGIC1))) pos++;
+          if (merged.length - pos < 3) break;
+          const flags = merged[pos + 2];
+          const ext = (flags & FLAG_CORRELATION) ? CORRELATION_SIZE : 0;
+          const headerSize = HEADER_SIZE + ext;
+          if (merged.length - pos < headerSize) break;
+          const view = new DataView(merged.buffer, merged.byteOffset + pos);
+          const len = view.getUint32(5 + ext, true);
+          if (len > MAX_PAYLOAD) { pos++; continue; }
+          const total = headerSize + len + CRC_SIZE;
+          if (merged.length - pos < total) break;
+          const expected = view.getUint32(headerSize + len, true);
+          if (crc32(merged.subarray(pos, pos + headerSize + len)) !== expected) { pos++; continue; }
+          frames.push({ module: merged[pos + 3], type: merged[pos + 4], reply: (flags & FLAGS_REPLY_BIT) !== 0,
+                        payload: merged.slice(pos + headerSize, pos + headerSize + len) });
+          pos += total;
+        }
+        this.buf = merged.slice(pos);
+        return frames;
+      }
+    }
+    const parser = new StreamParser();
+    // A pending checkModulePresent() parks its resolver here; onIncoming calls it
+    // when the 0xFF ListModules reply arrives.
+    let discoveryResolve = null;
+
+    // ===================== Transports (WebUSB + Web Serial) =====================
+    let transport = null;
+    // WebUSB requires a `filters` member (there is no acceptAllDevices). The
+    // "show all" path uses one empty filter `{}` (matches everything); a few
+    // WebUSB implementations reject an empty filter object, so fall back to a
+    // VID-only filter in that case.
+    async function requestUsbDevice(anyDevice) {
+      const showAll = { filters: [{}] };
+      const vidOnly = { filters: [{ vendorId: DEFAULT_VID }] };
+      try {
+        return await navigator.usb.requestDevice(anyDevice ? showAll : vidOnly);
+      } catch (e) {
+        if (anyDevice && e && e.name === "TypeError")
+          return await navigator.usb.requestDevice(vidOnly);
+        throw e;
+      }
+    }
+    class UsbTransport {
+      constructor() { this.device=null; this.iface=null; this.epIn=null; this.epOut=null; this.reading=false; }
+      // `preset`: an already-permitted USBDevice (auto-connect / reconnect) is
+      // opened directly, without the chooser.
+      async open(anyDevice, preset) {
+        this.device = preset || await requestUsbDevice(anyDevice);
+        await this.device.open();
+        if (this.device.configuration === null) await this.device.selectConfiguration(1);
+        const config = this.device.configuration; if (!config) throw new Error("no active USB configuration");
+        let found = null;
+        for (const itf of config.interfaces) { for (const alt of itf.alternates) {
+          if (alt.interfaceClass !== VENDOR_CLASS) continue;
+          let inEp=null, outEp=null;
+          for (const ep of alt.endpoints) { if (ep.type!=="bulk") continue; if (ep.direction==="in"&&!inEp) inEp=ep; else if (ep.direction==="out"&&!outEp) outEp=ep; }
+          if (inEp && outEp) { found = { itf: itf.interfaceNumber, alt: alt.alternateSetting, inEp, outEp }; break; }
+        } if (found) break; }
+        if (!found) throw new Error("no vendor-specific (0xFF) interface with a bulk IN+OUT endpoint pair was found");
+        await this.device.claimInterface(found.itf);
+        if (found.alt !== 0) await this.device.selectAlternateInterface(found.itf, found.alt);
+        this.iface = found.itf; this.epIn = found.inEp.endpointNumber; this.epOut = found.outEp.endpointNumber;
+      }
+      describe() { const d=this.device; return (d.productName||"USB device")+" ("+d.vendorId.toString(16).padStart(4,"0")+":"+d.productId.toString(16).padStart(4,"0")+") [WebUSB]"; }
+      identity() { return usbIdentity(this.device); }
+      async send(bytes) {
+        let sent = 0;
+        while (sent < bytes.length) {
+          const out = await this.device.transferOut(this.epOut, sent === 0 ? bytes : bytes.subarray(sent));
+          if (out.status === "stall") { try { await this.device.clearHalt("out", this.epOut); } catch(_){} throw new Error("OUT endpoint stalled"); }
+          if (out.status !== "ok") throw new Error("OUT transfer status: " + out.status);
+          const n = out.bytesWritten || 0; if (n === 0) throw new Error("OUT transfer made no progress"); sent += n;
+        }
+      }
+      async readLoop(onData) {
+        this.reading = true;
+        while (this.reading && this.device) {
+          let result;
+          try { result = await this.device.transferIn(this.epIn, MAX_FRAME); } catch(e) { if (this.reading) throw e; return; }
+          if (!this.reading) return;
+          if (result.status === "stall") { try { await this.device.clearHalt("in", this.epIn); } catch(_){} continue; }
+          if (result.data && result.data.byteLength) onData(new Uint8Array(result.data.buffer, result.data.byteOffset, result.data.byteLength));
+        }
+      }
+      async close() { this.reading = false; if (this.device) { if (this.iface !== null) { try { await this.device.releaseInterface(this.iface); } catch(_){} } try { await this.device.close(); } catch(_){} } this.device = null; }
+    }
+    class SerialTransport {
+      constructor() { this.port=null; this.reader=null; this.writer=null; this.reading=false; }
+      async open(preset) { this.port = preset || await navigator.serial.requestPort(); await this.port.open({ baudRate: 115200 }); this.writer = this.port.writable.getWriter(); }
+      describe() { const info = this.port.getInfo ? this.port.getInfo() : {}; let id = "Serial port"; if (info && info.usbVendorId != null) id = "USB serial ("+info.usbVendorId.toString(16).padStart(4,"0")+":"+(info.usbProductId||0).toString(16).padStart(4,"0")+")"; return id + " [Web Serial]"; }
+      identity() { return serialIdentity(this.port); }
+      async send(bytes) { await this.writer.write(bytes); }
+      async readLoop(onData) {
+        this.reading = true; this.reader = this.port.readable.getReader();
+        try { while (this.reading) { const { value, done } = await this.reader.read(); if (done) { if (this.reading) throw new Error("serial connection closed (EOF)"); break; } if (value && value.length) onData(new Uint8Array(value.buffer, value.byteOffset, value.byteLength)); } }
+        finally { try { this.reader.releaseLock(); } catch(_){} this.reader = null; }
+      }
+      async close() {
+        this.reading = false;
+        if (this.reader) { try { await this.reader.cancel(); } catch(_){} try { this.reader.releaseLock(); } catch(_){} this.reader = null; }
+        if (this.writer) { try { await this.writer.close(); } catch(_){} try { this.writer.releaseLock(); } catch(_){} this.writer = null; }
+        if (this.port) { try { await this.port.close(); } catch(_){} this.port = null; }
+      }
+    }
+
+    async function tx(bytes) { if (!transport) { logLine("err", "not connected"); return; } try { await transport.send(bytes); } catch(e) { logLine("err", "send failed: " + (e && e.message ? e.message : e)); } }
+    function send(type, payload) {
+      if (!moduleReady) { logLine("warn", "Module id not resolved yet (discovery pending)."); return; }
+      tx(buildFrame(type, payload));
+    }
+
+    // ===================== Module discovery + module id resolution =====================
+    // Decode the ListModules TLV (see espp::Dispatcher::describe).
+    function parseDiscovery(payload) {
+      let i = 0;
+      const need = (n) => { if (i + n > payload.length) throw new Error("truncated discovery payload"); };
+      const u8 = () => { need(1); return payload[i++]; };
+      const u16 = () => { need(2); const v = payload[i] | (payload[i + 1] << 8); i += 2; return v; };
+      const str = () => { const n = u8(); need(n); const s = new TextDecoder().decode(payload.subarray(i, i + n)); i += n; return s; };
+      const version = u8(); u8();            // version, reserved
+      const device = str(), fw = str();
+      const count = u8();
+      const modules = [];
+      for (let m = 0; m < count; m++) {
+        const rec = { id: u8(), name: str(), app: str(), desc: str(), protocol: "", protocolVersion: 0 };
+        // Version 2 records also carry [protocol str][protocol_version u16 LE].
+        // Records carry no length, so a payload version newer than
+        // DISCOVERY_VERSION_KNOWN is parsed with the exact version-2 record
+        // layout: a future version may only append bytes AFTER the record list
+        // (reported as `trailing`, ignored), never inside a record.
+        if (version >= 2) { rec.protocol = str(); rec.protocolVersion = u16(); }
+        modules.push(rec);
+      }
+      return { version, device, fw, modules, trailing: payload.length - i };
+    }
+    // ---- module id resolution (identical in every espp console) --------------
+    // The dispatcher module byte is a routing key, not the identity of a
+    // service: a device may serve any protocol on any id. Identity is what the
+    // device advertises in its ListModules reply -- the protocol id first
+    // (e.g. "espp.ota"), then the hosted app filename, then the module name.
+    // Latest discovery payload version these helpers understand.
+    const DISCOVERY_VERSION_KNOWN = 2;
+    // info: parseDiscovery() output, or null when the device did not answer.
+    // ident: { protocol, protocolVersion, app, name, fallback, override } -- the
+    //   identity this console implements; `override` (from ?module=) wins.
+    // Returns { id, source: "override"|"protocol"|"app"|"name"|"default",
+    //           protocolVersion (advertised by the chosen module, else null),
+    //           warnings: [strings], notes: [informational strings] }.
+    function resolveModuleId(info, ident) {
+      const norm = (s) => String(s == null ? "" : s).trim().toLowerCase();
+      const base = (s) => { const n = norm(s).split("?")[0].split("#")[0]; return n.slice(n.lastIndexOf("/") + 1); };
+      const list = (info && Array.isArray(info.modules)) ? info.modules : null;
+      const label = (m) => (m.name || m.protocol || "?") + " (#" + m.id + ")";
+      const want = String(ident.protocol || "");
+      const warnings = [], notes = [];
+      if (info && info.version > DISCOVERY_VERSION_KNOWN)
+        warnings.push("discovery payload v" + info.version + " is newer than this console understands (v" + DISCOVERY_VERSION_KNOWN + "); parsed with the v" + DISCOVERY_VERSION_KNOWN + " record layout");
+      if (info && info.trailing > 0)
+        notes.push("ignoring " + info.trailing + " trailing byte(s) after the module list (discovery v" + info.version + ")");
+      // Finish with the chosen module (m may be null when unknown), checking
+      // that it speaks the protocol we implement, at a version we support.
+      const done = (m, source) => {
+        const v = (m && Number.isInteger(m.protocolVersion)) ? m.protocolVersion : null;
+        if (m && want && m.protocol && m.protocol !== want)
+          warnings.push("module #" + m.id + " advertises protocol " + m.protocol + ", not " + want);
+        else if (v && Number.isInteger(ident.protocolVersion) && v !== ident.protocolVersion)
+          warnings.push("device speaks " + (m.protocol || want) + " v" + v + ", this console supports v" + ident.protocolVersion);
+        return { id: m ? m.id : ident.fallback, source, protocolVersion: v, warnings, notes };
+      };
+      const ov = ident.override;
+      if (Number.isInteger(ov) && ov >= 0 && ov <= 0xEF) { // 0xF0..0xFF: reserved (dispatcher / meta)
+        const m = list ? list.find((x) => x.id === ov) : null;
+        if (list && !m) warnings.push("module #" + ov + " was requested but the device does not advertise it");
+        const r = done(m, "override"); r.id = ov; return r;
+      }
+      if (list) {
+        const byProto = want ? list.filter((m) => m.protocol === want) : [];
+        if (byProto.length > 1)
+          warnings.push("several modules speak " + want + " (" + byProto.map(label).join(", ") + "); using the first -- add ?module=N to the URL to pick another");
+        if (byProto.length) return done(byProto[0], "protocol");
+        const wantApp = base(ident.app), wantName = norm(ident.name);
+        const byApp = wantApp ? list.find((m) => base(m.app) === wantApp) : null;
+        if (byApp) return done(byApp, "app");
+        const byName = wantName ? list.find((m) => norm(m.name) === wantName) : null;
+        if (byName) return done(byName, "name");
+        warnings.push("the device does not advertise " + (want || ident.name || ident.app) + " (advertised: " + (list.map(label).join(", ") || "none") + "); using the default module #" + ident.fallback);
+      }
+      return { id: ident.fallback, source: "default", protocolVersion: null, warnings, notes };
+    }
+    // The ?module=N query parameter (decimal or 0x..) overrides discovery; the
+    // Device Hub links each console this way. Null when absent or invalid.
+    function moduleOverrideFromQuery(search) {
+      const raw = new URLSearchParams(search || "").get("module");
+      if (raw == null || raw.trim() === "") return null;
+      // the WHOLE token must be a decimal or 0x-hex integer (parseInt would
+      // accept "9oops" as 9); anything else is invalid and ignored
+      const m = /^(?:0x([0-9a-f]+)|([0-9]+))$/i.exec(raw.trim());
+      if (!m) return null;
+      const n = m[1] !== undefined ? Number.parseInt(m[1], 16) : Number.parseInt(m[2], 10);
+      return (Number.isInteger(n) && n >= 0 && n <= 0xEF) ? n : null; // 0xF0..0xFF are reserved
+    }
+    // One log line saying how a module id was chosen.
+    function describeModuleChoice(label, r, ident, info) {
+      const how = r.source === "override" ? "from ?module=" :
+                  r.source === "protocol" ? "advertises " + ident.protocol + (r.protocolVersion ? " v" + r.protocolVersion : "") :
+                  r.source === "app" ? "advertised as app " + ident.app :
+                  r.source === "name" ? "advertised as \"" + ident.name + "\"" :
+                  info ? "default" : "default; the device did not answer discovery";
+      return label + " module: #" + r.id + " (" + how + ")";
+    }
+
+    // --- begin connection helpers (shared; byte-identical in every console + the hub, see web/test/resolve_module_id_test.js) ---
+    // Links may carry, besides ?module=, parameters that make a page connect on
+    // load WITHOUT the browser chooser to a device this origin was already
+    // granted (the Device Hub links its apps this way after releasing the
+    // device):  ?autoconnect=1&transport=usb|serial&vid=0x1209&pid=0x0d32&serial=ABC
+    // vid / pid are hex (0x..) or decimal; `serial` is the USB serial number
+    // (WebUSB only: Web Serial exposes vid / pid alone).
+    function parseConnectParams(search) {
+      const q = new URLSearchParams(search || "");
+      const num = (key) => {
+        const raw = q.get(key);
+        if (raw === null) return null;
+        const s = raw.trim();
+        if (!/^(0x[0-9a-f]+|[0-9]+)$/i.test(s)) return null;
+        const v = Number(s);
+        return Number.isInteger(v) && v >= 0 && v <= 0xFFFF ? v : null;
+      };
+      const transport = (q.get("transport") || "").trim().toLowerCase();
+      const flag = (q.get("autoconnect") || "").trim().toLowerCase();
+      return {
+        autoconnect: flag === "1" || flag === "true" || flag === "yes",
+        transport: transport === "usb" || transport === "serial" ? transport : null,
+        vid: num("vid"),
+        pid: num("pid"),
+        serial: (q.get("serial") || "").trim() || null,
+      };
+    }
+    // The identity of an open connection: enough to find the same device again
+    // (after a reboot it re-enumerates as a NEW USBDevice / SerialPort object
+    // with the same ids) and to build hand-off links.
+    function usbIdentity(device) {
+      return { transport: "usb", vid: device.vendorId, pid: device.productId, serial: device.serialNumber || null };
+    }
+    function serialIdentity(port) {
+      const info = port && typeof port.getInfo === "function" ? (port.getInfo() || {}) : {};
+      return { transport: "serial", vid: info.usbVendorId != null ? info.usbVendorId : null,
+               pid: info.usbProductId != null ? info.usbProductId : null, serial: null };
+    }
+    // Is `got` (the identity of a device that just appeared) the device `want`
+    // names? vid + pid must match; the serial number only when both sides
+    // report one (a serial-port arrival never has one). An arrival with no
+    // usable ids is never a match.
+    function identityMatches(want, got) {
+      if (!want || !got || got.vid == null || got.pid == null) return false;
+      if (want.vid != null && want.vid !== got.vid) return false;
+      if (want.pid != null && want.pid !== got.pid) return false;
+      if (want.serial && got.serial && want.serial !== got.serial) return false;
+      return true;
+    }
+    function describeIdentity(identity) {
+      if (!identity) return "device";
+      const hex = (v) => v == null ? "?" : "0x" + v.toString(16).padStart(4, "0");
+      return (identity.transport === "serial" ? "serial port" : "USB device") + " " + hex(identity.vid) + ":" + hex(identity.pid) +
+             (identity.serial ? " sn " + identity.serial : "");
+    }
+    // Pick, among the devices this origin may already use (navigator.usb
+    // .getDevices() / navigator.serial.getPorts()), the one `want` names: vid
+    // and pid must match when given; a serial number must match when both sides
+    // report one (a device that reports none is accepted only when it is the
+    // sole candidate). Several candidates without a serial -> the first. With no
+    // ids at all only a lone permitted device is accepted.
+    function pickUsbDevice(devices, want) {
+      const list = Array.isArray(devices) ? devices.filter(Boolean) : [];
+      if (!want || (want.vid == null && want.pid == null && !want.serial)) return list.length === 1 ? list[0] : null;
+      const byIds = list.filter(d => (want.vid == null || d.vendorId === want.vid) && (want.pid == null || d.productId === want.pid));
+      if (want.serial) {
+        const exact = byIds.find(d => d.serialNumber === want.serial);
+        if (exact) return exact;
+        const unnamed = byIds.filter(d => !d.serialNumber);
+        return unnamed.length === 1 ? unnamed[0] : null;
+      }
+      return byIds.length ? byIds[0] : null;
+    }
+    function pickSerialPort(ports, want) {
+      const list = Array.isArray(ports) ? ports.filter(Boolean) : [];
+      if (!want || (want.vid == null && want.pid == null)) return list.length === 1 ? list[0] : null;
+      const byIds = list.filter(p => { const id = serialIdentity(p); return (want.vid == null || id.vid === want.vid) && (want.pid == null || id.pid === want.pid); });
+      return byIds.length ? byIds[0] : null;
+    }
+    async function findPermittedUsbDevice(want) {
+      if (typeof navigator === "undefined" || !navigator.usb || typeof navigator.usb.getDevices !== "function") return null;
+      try { return pickUsbDevice(await navigator.usb.getDevices(), want); } catch (_) { return null; }
+    }
+    async function findPermittedSerialPort(want) {
+      if (typeof navigator === "undefined" || !navigator.serial || typeof navigator.serial.getPorts !== "function") return null;
+      try { return pickSerialPort(await navigator.serial.getPorts(), want); } catch (_) { return null; }
+    }
+    // "Auto-reconnect" checkbox preference, shared by every app on this origin
+    // (localStorage; default on; access may throw in private windows).
+    const AUTO_RECONNECT_KEY = "espp.autoReconnect";
+    function loadAutoReconnect() {
+      try { const v = localStorage.getItem(AUTO_RECONNECT_KEY); return v === null ? true : v === "1"; } catch (_) { return true; }
+    }
+    function saveAutoReconnect(on) { try { localStorage.setItem(AUTO_RECONNECT_KEY, on ? "1" : "0"); } catch (_) {} }
+    // One open at a time per page. Every connect entry point — the Connect
+    // button(s), the ?autoconnect path and the reconnect supervisor — runs
+    // through gate.run(fn); while an open is in progress a second entry is
+    // refused (resolves false) instead of racing the first: the later
+    // completion would otherwise overwrite a live transport without closing it
+    // or orphan a claimed USB device. The supervisor consults isBusy() and
+    // waits rather than counting a refused entry as a failed attempt.
+    // opts.connected() is the page's "already holds a device" predicate: the
+    // gate serializes opens but does not know about an adopted connection, so
+    // run() also refuses (opens nothing) while the page is connected — a
+    // reconnect callback whose permitted-device lookup outlived a manual
+    // connect must not open the same device a second time.
+    function createOpenGate(opts) {
+      const connected = opts && typeof opts.connected === "function" ? opts.connected : () => false;
+      const gate = { busy: false };
+      gate.isBusy = () => gate.busy;
+      gate.isConnected = () => !!connected();
+      gate.run = async (fn) => {
+        if (gate.busy || connected()) return false;
+        gate.busy = true;
+        try { return await fn(); } finally { gate.busy = false; }
+      };
+      return gate;
+    }
+    // Reconnect supervisor. After an UNEXPECTED link loss (unplug, reboot) it
+    // retries opts.reconnect(identity, attempt) -> bool on a bounded back-off
+    // until an attempt succeeds, the attempts run out, or stop() is called; a
+    // platform `connect` event (onDeviceAppeared) retries at once. opts.enabled()
+    // (the checkbox) is consulted on every attempt. expectReboot() marks a
+    // reboot the page itself requested (longer window, friendlier log);
+    // suppress() cancels reconnecting until the next successful connect (a
+    // bootloader reboot: the device comes back as a DIFFERENT USB device that
+    // this page cannot drive). opts.log(cls, text) receives progress lines.
+    // Attempts never overlap: one opts.reconnect() call is in flight at a time
+    // (two concurrent opens of the same device would race each other); an
+    // arrival event during an attempt is remembered and retried right after
+    // the current attempt settles. A loss that happens while an older attempt
+    // is still in flight (the device dropped again during the post-open
+    // discovery probe) starts a new generation; when the stale attempt settles
+    // it hands over by scheduling the current generation's pending retry.
+    // opts.gate (createOpenGate) is shared with the page's manual / auto-connect
+    // paths: while one of those holds it the supervisor polls instead of opening.
+    // Cancellation: stop() (the checkbox unticked, a manual disconnect) and a
+    // newer loss cancel the attempt in flight. opts.reconnect(identity, n,
+    // token) may consult token.cancelled(); when a cancelled attempt settles
+    // the supervisor ignores the page's connected() call made while it was
+    // open and runs opts.discard() (the page's close path), so an open that
+    // finished after the user said "stop" is closed instead of adopted.
+    function createReconnectSupervisor(opts) {
+      const delays = opts.delaysMs || [500, 1000, 1500, 2000, 3000, 4000, 5000, 5000, 5000, 5000];
+      const rebootDelays = opts.rebootDelaysMs || delays.concat([5000, 5000, 5000, 5000, 5000, 5000]);
+      const log = typeof opts.log === "function" ? opts.log : () => {};
+      // generations <= cancelBefore are cancelled; inFlightGen is the generation of the attempt in flight
+      const sup = { active: false, identity: null, attempt: 0, expected: false, suppressed: false, timer: null, generation: 0, inFlight: false, retryAfter: false, cancelBefore: 0, inFlightGen: 0 };
+      const cancelled = (gen) => gen <= sup.cancelBefore;
+      const cancelCurrent = () => { sup.cancelBefore = sup.generation; };
+      const clearTimer = () => { if (sup.timer) { clearTimeout(sup.timer); sup.timer = null; } };
+      const schedule = (gen, ms) => { clearTimer(); sup.timer = setTimeout(() => { sup.timer = null; attempt(gen); }, ms); };
+      async function attempt(gen) {
+        if (gen !== sup.generation || !sup.active) return;
+        if (sup.inFlight) { sup.retryAfter = true; return; } // serialized: retry once the current attempt settles
+        if (opts.gate && opts.gate.isBusy()) { schedule(gen, 250); return; } // a manual / auto-connect open is in progress: wait, not an attempt
+        if (!opts.enabled()) { sup.stop("auto-reconnect is off"); return; }
+        const plan = sup.expected ? rebootDelays : delays;
+        sup.attempt++;
+        let ok = false;
+        sup.inFlight = true; sup.inFlightGen = gen; sup.retryAfter = false;
+        const token = { cancelled: () => cancelled(gen) };
+        try { ok = await opts.reconnect(sup.identity, sup.attempt, token); }
+        catch (e) { if (!cancelled(gen)) log("warn", "reconnect attempt " + sup.attempt + " failed: " + (e && e.message ? e.message : e)); }
+        finally { sup.inFlight = false; }
+        if (cancelled(gen) && ok) {
+          // stop() / a newer loss happened while the open was pending and the
+          // open succeeded anyway: it must not stay adopted (the page's
+          // connected() was ignored). An attempt that opened nothing (lookup
+          // failed, returned false) has nothing to discard; running the page's
+          // disconnect then would drop a manual connection made meanwhile.
+          if (typeof opts.discard === "function") { try { await opts.discard(); } catch (_) {} }
+        }
+        if (gen !== sup.generation) {
+          // stale: a newer loss owns the supervisor now. Its timer may already
+          // have fired into our in-flight attempt (retryAfter) and left no timer
+          // behind, so re-arm it here or auto-reconnect would stall for good.
+          const pending = sup.retryAfter; sup.retryAfter = false;
+          if (sup.active && !sup.timer && pending) schedule(sup.generation, 100);
+          return;
+        }
+        if (!sup.active) { sup.retryAfter = false; return; }
+        if (ok) { sup.active = false; sup.expected = false; sup.retryAfter = false; clearTimer(); return; }
+        if (sup.attempt >= plan.length) { sup.stop("gave up reconnecting after " + sup.attempt + " attempts; use Connect"); return; }
+        if (sup.retryAfter) { sup.retryAfter = false; schedule(gen, 100); return; } // the device showed up meanwhile
+        schedule(gen, plan[sup.attempt]);
+      }
+      // the page lost its connection without asking for it
+      sup.onLinkLost = (identity) => {
+        clearTimer();
+        cancelCurrent();
+        sup.generation++;
+        if (sup.suppressed) { sup.suppressed = false; sup.active = false; log("sys", "Not reconnecting: the device was asked to reboot into its bootloader (it enumerates as a different USB device; use Connect once it is back in the application)."); return; }
+        if (!opts.enabled() || !identity) { sup.active = false; return; }
+        sup.active = true; sup.identity = identity; sup.attempt = 0;
+        const plan = sup.expected ? rebootDelays : delays;
+        log("sys", (sup.expected ? "Device is rebooting — reconnecting to " : "Link lost — trying to reconnect to ") + describeIdentity(identity) + " (auto-reconnect; uncheck to stop)…");
+        schedule(sup.generation, plan[0]);
+      };
+      // a permitted device re-appeared (navigator.usb / navigator.serial
+      // "connect"): only the device being recovered wakes the supervisor — an
+      // unrelated arrival would otherwise burn one of the bounded retries
+      sup.onDeviceAppeared = (identity) => {
+        if (!sup.active || !identityMatches(sup.identity, identity)) return;
+        if (sup.inFlight) sup.retryAfter = true; else schedule(sup.generation, 100);
+      };
+      sup.expectReboot = () => { sup.expected = true; sup.suppressed = false; };
+      sup.suppress = () => { sup.suppressed = true; sup.expected = false; };
+      // a connection was established (manually or by a successful attempt)
+      sup.connected = () => {
+        if (sup.inFlight && cancelled(sup.inFlightGen)) return; // a cancelled attempt's open: it is about to be discarded
+        clearTimer(); sup.generation++; sup.active = false; sup.expected = false; sup.suppressed = false; sup.attempt = 0; sup.retryAfter = false; };
+      sup.stop = (reason) => { clearTimer(); cancelCurrent(); sup.generation++; const was = sup.active; sup.active = false; sup.expected = false; sup.retryAfter = false; if (was && reason) log("sys", "Auto-reconnect stopped: " + reason + "."); };
+      sup.isActive = () => sup.active;
+      return sup;
+    }
+    // Forward the platform "a permitted device was (re)attached" events to the
+    // supervisor, with the arriving device's identity, so a reboot is caught
+    // the moment the device enumerates (and other devices are ignored).
+    function watchDeviceArrivals(sup) {
+      if (typeof navigator === "undefined") return;
+      if (navigator.usb && typeof navigator.usb.addEventListener === "function")
+        navigator.usb.addEventListener("connect", (ev) => sup.onDeviceAppeared(ev && ev.device ? usbIdentity(ev.device) : null));
+      if (navigator.serial && typeof navigator.serial.addEventListener === "function")
+        navigator.serial.addEventListener("connect", (ev) => { const port = ev && (ev.port || ev.target); sup.onDeviceAppeared(port ? serialIdentity(port) : null); });
+    }
+    // App -> hub notice that an app released its device (manual disconnect or
+    // page closed), so a hub that handed the device off can offer to reconnect.
+    // Same-origin pages only (BroadcastChannel); best effort everywhere.
+    function openDeviceChannel() {
+      let channel = null;
+      try { channel = typeof BroadcastChannel === "function" ? new BroadcastChannel("espp-device") : null; } catch (_) { return null; }
+      // Close the channel when the page goes away (no late deliveries to a page
+      // that is unloading, no leaked channel across rapid reloads). The listener
+      // is registered on a later task so it runs AFTER the page's own pagehide
+      // handler, which still needs the channel to post its released notice.
+      if (channel && typeof window !== "undefined" && typeof window.addEventListener === "function")
+        setTimeout(() => window.addEventListener("pagehide", () => { try { channel.close(); } catch (_) {} }, { once: true }), 0);
+      return channel;
+    }
+    function postReleased(channel, identity) {
+      if (!channel || !identity) return;
+      try { channel.postMessage({ type: "released", identity: identity, page: (typeof location !== "undefined" ? location.pathname : "").split("/").pop() }); } catch (_) {}
+    }
+    // --- end connection helpers ---
+    // --- begin app navigation (shared; byte-identical in every web app, see web/test/resolve_module_id_test.js) ---
+    // Links back to the Device Hub (primary) and the apps page. The static hrefs
+    // in the HTML are the hosted copies (always valid, also when this script
+    // never runs — a file:// page whose ES-module import is blocked). In the
+    // hosted apps directory (…/apps/ on the documentation site, or a local
+    // server in docs/apps) hub and apps page are siblings of every app, so the
+    // links are rewritten to the sibling files there; anywhere else — file://,
+    // a source tree served from http://localhost (where the haptics console is
+    // example/webapp/index.html itself) — they stay on the hosted copies.
+    const ESPP_APPS_BASE = "https://esp-cpp.github.io/espp/apps/";
+    function inHostedAppsDir(loc) {
+      if (!loc || !/^https?:$/.test(loc.protocol)) return false;
+      const dir = String(loc.pathname || "").replace(/[^/]*$/, "");
+      return /\/apps\/$/.test(dir);
+    }
+    function navHref(file) {
+      return inHostedAppsDir(typeof location !== "undefined" ? location : null) ? file : ESPP_APPS_BASE + file;
+    }
+    // Wire the #navHub / #navApps hrefs (every app). Returns the hub link.
+    function installAppNav() {
+      const hub = typeof document !== "undefined" ? document.getElementById("navHub") : null;
+      const apps = typeof document !== "undefined" ? document.getElementById("navApps") : null;
+      if (apps) apps.href = navHref("index.html");
+      if (hub) hub.href = navHref("dispatcher_hub.html");
+      return hub;
+    }
+    // --- end app navigation ---
+    // --- begin app hand-back (shared; byte-identical in every dispatcher-module console, see web/test/resolve_module_id_test.js) ---
+    // The auto-connect query (no module) a hand-back carries so the hub opens the
+    // device the app just released, without a chooser.
+    function hubConnectQuery(identity) {
+      const q = new URLSearchParams();
+      if (!identity || (identity.transport !== "usb" && identity.transport !== "serial")) return "";
+      q.set("autoconnect", "1");
+      q.set("transport", identity.transport);
+      if (identity.vid != null) q.set("vid", "0x" + identity.vid.toString(16).padStart(4, "0"));
+      if (identity.pid != null) q.set("pid", "0x" + identity.pid.toString(16).padStart(4, "0"));
+      if (identity.serial) q.set("serial", identity.serial);
+      return q.toString();
+    }
+    // A plain left click on "Device Hub" while connected hands the device back.
+    // handover.connected() says whether the page holds a device;
+    // handover.handBack() closes it the way a manual Disconnect does (stop the
+    // supervisor, close, then post the released notice) and resolves the
+    // device's identity; the tab then navigates to the hub with the auto-connect
+    // query. The href stays the plain hub URL, so middle-click / open-in-new-tab
+    // / modified clicks keep working and never close anything. One hand-back at
+    // a time: a second click while the first is closing is swallowed (the guard
+    // is never cleared on success — the page navigates away — and cleared on
+    // failure). The chooser-less pick-up on the hub needs the same origin (the
+    // device grant is per origin); a console on another origin still lands on
+    // the hub with the identity in the URL, and the hub offers Connect.
+    function installAppHandBack(handover) {
+      const hub = typeof document !== "undefined" ? document.getElementById("navHub") : null;
+      if (!hub) return;
+      let handingBack = false;
+      hub.addEventListener("click", (ev) => {
+        if (ev.defaultPrevented || ev.button !== 0 || ev.metaKey || ev.ctrlKey || ev.shiftKey || ev.altKey) return;
+        if (handingBack) { ev.preventDefault(); return; }
+        if (!handover.connected()) return;
+        ev.preventDefault();
+        handingBack = true;
+        const target = hub.href;
+        Promise.resolve().then(() => handover.handBack()).then(
+          (identity) => { const q = hubConnectQuery(identity); location.assign(target + (q ? "?" + q : "")); },
+          () => { handingBack = false; location.assign(target); });
+      });
+    }
+    // --- end app hand-back ---
+    // Adopt the gamepad map module id from a discovery reply (null = none) --
+    // every gamepad map frame built / matched from here on uses it.
+    function adoptModule(info) {
+      MODULE_IDENT.override = moduleOverrideFromQuery(location.search);
+      const r = resolveModuleId(info, MODULE_IDENT);
+      moduleGamepad = r.id;
+      moduleReady = true;
+      logLine("sys", describeModuleChoice("Gamepad Map", r, MODULE_IDENT, info));
+      for (const w of r.warnings) logLine("warn", w + ".");
+      for (const n of r.notes) logLine("sys", n + ".");
+    }
+    // Ask the device which dispatcher modules it serves and adopt the gamepad
+    // map module's id from the answer (adoptModule). No discovery reply (older
+    // firmware) -> the default id; the GET_INFO request then surfaces a
+    // genuinely missing module (no answer).
+    async function checkModulePresent() {
+      const t = transport;
+      if (!t) return;
+      const payload = await new Promise((resolve) => {
+        let timer = null;
+        // settle guards the shared resolver: only clear it if it is still ours,
+        // so a prior probe's timeout can't cancel a newer probe's resolver.
+        const settle = (p) => { clearTimeout(timer); if (discoveryResolve === settle) discoveryResolve = null; resolve(p); };
+        timer = setTimeout(() => settle(null), DISCOVERY_TIMEOUT_MS);
+        discoveryResolve = settle;
+        t.send(buildFrame(T_LIST_MODULES, null, MODULE_DISCOVERY)).catch(() => settle(null));
+      });
+      // this probe belongs to the transport it sent on: if that connection was
+      // closed or replaced while we waited, its result (a reply or, more
+      // likely, the timeout) must not be adopted into the current one
+      if (t !== transport) return;
+      let info = null;
+      if (payload) { try { info = parseDiscovery(payload); } catch (_) { info = null; } }
+      adoptModule(info);
+    }
+
+    // ===================== Device state (INFO / PROFILES) =====================
+    let devInfo = null;          // last INFO (decodeInfo)
+    let profiles = [];           // last PROFILES (decodeProfiles)
+    let infoKey = "";            // what of INFO the picker / profile list show (rebuilt only when it changes)
+    const limits = () => gmLimits(devInfo);
+    const ctlKey = (c) => c ? c.vid + ":" + c.pid + ":" + c.name : "";
+    function applyInfo(info) {
+      const prev = devInfo;
+      devInfo = info;
+      const c = info.controller;
+      if (ctlKey(prev && prev.controller) !== ctlKey(c) || !prev) {
+        if (c) logLine("sys", "Controller: " + (c.name || "(no name)") + " (" + hex4(c.vid) + ":" + hex4(c.pid) + ")" + (c.hasProfile ? ", has a profile" : ", no profile (uses the default map)") + ".");
+        else if (prev) logLine("sys", "No controller connected.");
+      }
+      els.ctlName.textContent = c ? (c.name || "(no name)") + " (" + hex4(c.vid) + ":" + hex4(c.pid) + ")" : "none connected";
+      els.ctlProfile.textContent = c ? (c.hasProfile ? "own profile" : "default map") : "-";
+      els.ctlProfile.className = "badge" + (c ? (c.hasProfile ? " ok" : " info") : "");
+      els.devProfiles.textContent = info.profileCount + " / " + info.maxProfiles;
+      els.devMaxRules.textContent = String(info.maxRules);
+      els.devControls.textContent = info.buttonCount + " buttons, " + info.axisCount + " axes";
+      els.ruleMax.textContent = String(info.maxRules);
+      // INFO is polled: rebuild the picker (which would close an open drop-down)
+      // only when what it shows changed; a changed profile count re-lists them
+      const key = JSON.stringify([c, info.profileCount, info.maxProfiles]);
+      if (key !== infoKey) {
+        infoKey = key;
+        rebuildTargets();
+        renderProfiles();
+        if (prev && prev.profileCount !== info.profileCount) send(T_LIST_PROFILES);
+      }
+      updateValidation();
+      // first INFO of a session: open the map the connected controller uses
+      if (!editTarget && pendingGet === null) {
+        els.targetSel.value = c ? "controller" : "default";
+        onTargetSelChange();
+        requestLoad(targetFromSelection());
+      }
+    }
+    function applyProfiles(list) {
+      profiles = list;
+      rebuildTargets();
+      renderProfiles();
+    }
+    function renderProfiles() {
+      const box = els.profileList;
+      box.textContent = "";
+      els.profCount.textContent = devInfo ? "(" + profiles.length + " / " + devInfo.maxProfiles + ")" : "(" + profiles.length + ")";
+      if (!transport && !profiles.length) { box.innerHTML = '<span class="muted">Not connected.</span>'; return; }
+      if (!profiles.length) { box.innerHTML = '<span class="muted">No profiles stored: every controller uses the default map.</span>'; return; }
+      const c = devInfo && devInfo.controller;
+      profiles.forEach((p, i) => {
+        const t = { profile: true, vid: p.vid, pid: p.pid, name: p.name };
+        const row = document.createElement("div"); row.className = "p" + (sameTarget(t, editTarget) ? " current" : "");
+        const nm = document.createElement("span"); nm.className = "nm";
+        nm.textContent = (p.vid || p.pid ? hex4(p.vid) + ":" + hex4(p.pid) + " " : "") + (p.name || "(no name)");
+        nm.title = describeTarget(t);
+        const meta = document.createElement("span"); meta.className = "muted";
+        meta.textContent = p.ruleCount + " rule" + (p.ruleCount === 1 ? "" : "s");
+        row.append(nm);
+        if (c && sameTarget(t, { profile: true, vid: c.vid, pid: c.pid, name: c.name })) { const b = document.createElement("span"); b.className = "badge ok"; b.textContent = "connected"; row.append(b); }
+        row.append(meta);
+        const edit = document.createElement("button"); edit.className = "small"; edit.textContent = "Edit";
+        edit.disabled = !transport || !moduleReady;
+        edit.addEventListener("click", () => { els.targetSel.value = "p" + i; onTargetSelChange(); els.loadBtn.click(); });
+        row.append(edit);
+        box.append(row);
+      });
+    }
+
+    // ---- the map picker ----
+    function rebuildTargets() {
+      const sel = els.targetSel, keep = sel.value;
+      sel.textContent = "";
+      const add = (value, text, disabled) => { const o = document.createElement("option"); o.value = value; o.textContent = text; o.disabled = !!disabled; sel.append(o); };
+      add("default", "Default map (controllers without a profile)");
+      const c = devInfo && devInfo.controller;
+      add("controller", c ? "Connected: " + (c.name || "(no name)") + " (" + hex4(c.vid) + ":" + hex4(c.pid) + ")" + (c.hasProfile ? " — its profile" : " — new profile") : "Connected controller (none connected)", !c);
+      profiles.forEach((p, i) => add("p" + i, "Profile: " + (p.vid || p.pid ? hex4(p.vid) + ":" + hex4(p.pid) + " " : "") + (p.name || "(no name)") + " — " + p.ruleCount + " rule" + (p.ruleCount === 1 ? "" : "s")));
+      add("new", "New profile (enter VID / PID / name)...");
+      const still = [...sel.options].find((o) => o.value === keep && !o.disabled);
+      sel.value = still ? keep : "default";
+      onTargetSelChange();
+    }
+    function onTargetSelChange() { els.newProfileFields.hidden = els.targetSel.value !== "new"; }
+    els.targetSel.addEventListener("change", onTargetSelChange);
+    // The target the picker names, or { error }.
+    function targetFromSelection() {
+      const v = els.targetSel.value;
+      if (v === "default") return { profile: false };
+      if (v === "controller") {
+        const c = devInfo && devInfo.controller;
+        return c ? { profile: true, vid: c.vid, pid: c.pid, name: c.name } : { error: "no controller is connected" };
+      }
+      if (v.startsWith("p")) { const p = profiles[Number(v.slice(1))]; return p ? { profile: true, vid: p.vid, pid: p.pid, name: p.name } : { error: "that profile is gone; Refresh" }; }
+      const id = (el, what) => { const s = el.value.trim().replace(/^0x/i, ""); return /^[0-9a-f]{1,4}$/i.test(s) ? parseInt(s, 16) : (s === "" ? 0 : { error: what + " must be 1-4 hex digits" }); };
+      const vid = id(els.newVid, "VID"), pid = id(els.newPid, "PID");
+      if (typeof vid === "object") return vid;
+      if (typeof pid === "object") return pid;
+      const t = { profile: true, vid, pid, name: els.newName.value.trim() };
+      const why = validateTarget(t);
+      return why ? { error: why } : t;
+    }
+
+    // ===================== Map editor =====================
+    let editTarget = null;       // the map being edited (a target), null = nothing loaded
+    let editMap = null;          // the edited map
+    let savedMap = null;         // the map as loaded / last saved (for "unsaved changes" and an offline revert)
+    let editExists = false;      // a profile target exists on the device
+    let pendingGet = null;       // target of the GET_MAP in flight
+    let savingMap = null;        // the map of the SET_MAP in flight
+    const cloneMap = (m) => ({ leftDeadzone: m.leftDeadzone, rightDeadzone: m.rightDeadzone, rules: m.rules.map((r) => ({ ...r })) });
+    const isDirty = () => !!editMap && JSON.stringify(editMap) !== JSON.stringify(savedMap);
+    function setEditStatus(text, cls) { els.editStatus.textContent = text || ""; els.editStatus.className = "editstatus" + (cls ? " " + cls : ""); }
+
+    function requestLoad(t) {
+      if (!t || t.error) { setEditStatus("Cannot load: " + (t ? t.error : "nothing selected") + ".", "err"); return; }
+      if (!transport || !moduleReady) { setEditStatus("Connect first.", "err"); return; }
+      pendingGet = t;
+      setEditStatus("Loading the " + describeTarget(t) + "...");
+      send(T_GET_MAP, encodeGetMap(t));
+    }
+    // MAP echoes the target as requested (with the stored name when the profile
+    // exists); exists = false: no such profile yet, answered with the default
+    // map, which then is the starting point of a new profile.
+    function onMapReply(d) {
+      const want = pendingGet; pendingGet = null;
+      if (!want) { logLine("warn", "Ignoring a MAP reply nothing asked for."); return; }
+      // the reply to the GET_MAP in flight: the same map (VID:PID / name match), or echoed byte for byte
+      const echoed = want.profile === d.target.profile && (!want.profile || (want.vid === d.target.vid && want.pid === d.target.pid && want.name === d.target.name));
+      if (!sameTarget(want, d.target) && !echoed) {
+        logLine("warn", "MAP reply for " + describeTarget(d.target) + " while loading " + describeTarget(want) + "; ignored."); return;
+      }
+      const target = d.target, exists = d.exists;
+      cancelLearn();
+      editTarget = target; editExists = exists;
+      // (a profile that does not exist yet starts from the default map: "unsaved
+      // changes" then means edits since loading; the badge says it is not stored)
+      editMap = cloneMap(d.map); savedMap = cloneMap(d.map);
+      logLine("rx", "Loaded the " + describeTarget(target) + (exists ? "" : " (no such profile yet: starting from the default map)") + ": " + d.map.rules.length + " rule(s), dead zones " + d.map.leftDeadzone + " / " + d.map.rightDeadzone + " %.");
+      setEditStatus(exists ? "Loaded." : "", exists ? "ok" : "");
+      renderEditor();
+    }
+    function renderEditor() {
+      const loaded = !!editMap;
+      els.editTitle.textContent = loaded ? describeTarget(editTarget) : "nothing loaded";
+      els.editBadge.hidden = !loaded;
+      if (loaded) {
+        els.editBadge.textContent = !editTarget.profile ? "default" : editExists ? "stored" : "new profile";
+        els.editBadge.className = "badge " + (!editTarget.profile ? "info" : editExists ? "ok" : "warn");
+      }
+      els.editNote.textContent = !loaded ? "Pick a map on the right and Load it." :
+        !editTarget.profile ? "Used by every controller that has no profile of its own." :
+        editExists ? "Used by every controller of this type (VID:PID" + (editTarget.vid === 0 && editTarget.pid === 0 ? ", here: by name" : "") + ")." :
+        "This controller type has no profile yet: the rules below are the default map's, as a starting point. Save creates the profile.";
+      els.dzLeft.disabled = els.dzRight.disabled = !loaded;
+      els.addRuleBtn.disabled = !loaded;
+      for (const b of els.presets.querySelectorAll("button")) b.disabled = !loaded;
+      if (loaded) {
+        els.dzLeft.value = String(editMap.leftDeadzone); els.dzRight.value = String(editMap.rightDeadzone);
+      }
+      updateDeadzoneText();
+      renderRules();
+      renderProfiles();
+    }
+    function updateDeadzoneText() {
+      els.dzLeftOut.textContent = (editMap ? editMap.leftDeadzone : 0) + " %";
+      els.dzRightOut.textContent = (editMap ? editMap.rightDeadzone : 0) + " %";
+      updateDeadzoneRings();
+    }
+    for (const [id, key] of [["dzLeft", "leftDeadzone"], ["dzRight", "rightDeadzone"]])
+      els[id].addEventListener("input", () => { if (!editMap) return; editMap[key] = Math.round(Number(els[id].value)) || 0; updateDeadzoneText(); updateValidation(); });
+
+    // ---- the rule table ----
+    function fillSelect(sel, isAxis, value, withNone) {
+      sel.textContent = "";
+      const n = isAxis ? AXIS_COUNT : BUTTON_COUNT;
+      const add = (v, text) => { const o = document.createElement("option"); o.value = String(v); o.textContent = text; sel.append(o); };
+      for (let i = 0; i < n; i++) add(i, isAxis ? axisLabel(i) : buttonLabel(i));
+      if (withNone) add(RULE_NONE, "none (remove the source)");
+      if (![...sel.options].some((o) => Number(o.value) === value)) add(value, "? (" + value + ")"); // out of range (shown, flagged by validation)
+      sel.value = String(value);
+    }
+    function ruleRow(r, i) {
+      const tr = document.createElement("tr");
+      const td = (cls) => { const c = document.createElement("td"); if (cls) c.className = cls; tr.append(c); return c; };
+      const changed = (rerender) => { if (rerender) renderRules(); else { desc.textContent = describeRule(editMap.rules[i]); updateValidation(); } };
+      td("num").textContent = String(i + 1);
+      // kind
+      const kind = document.createElement("select"); kind.setAttribute("aria-label", "rule " + (i + 1) + " kind");
+      KIND_TEXT.forEach((t, k) => { const o = document.createElement("option"); o.value = String(k); o.textContent = t; kind.append(o); });
+      if (!(r.kind >= 0 && r.kind <= K.AXIS_TO_AXIS)) { const o = document.createElement("option"); o.value = String(r.kind); o.textContent = "unknown (" + r.kind + ")"; kind.append(o); }
+      kind.value = String(r.kind);
+      kind.addEventListener("change", () => { editMap.rules[i] = changeRuleKind(editMap.rules[i], Number(kind.value)); changed(true); });
+      td().append(kind);
+      // source + learn
+      const srcWrap = document.createElement("span"); srcWrap.className = "src";
+      const src = document.createElement("select"); src.setAttribute("aria-label", "rule " + (i + 1) + " source");
+      fillSelect(src, sourceIsAxis(r.kind), r.source, false);
+      // (axis -> button: the direction labels depend on the source axis, so re-render)
+      // (a trigger's threshold must be positive: flip it when the source becomes a trigger)
+      src.addEventListener("change", () => {
+        const rule = editMap.rules[i]; rule.source = Number(src.value);
+        if (rule.kind === K.AXIS_TO_BUTTON && isTrigger(rule.source) && rule.param < 0) rule.param = -rule.param;
+        changed(rule.kind === K.AXIS_TO_BUTTON);
+      });
+      const learnBtn = document.createElement("button"); learnBtn.className = "icon" + (learn && learn.row === i ? " learning" : "");
+      learnBtn.textContent = learn && learn.row === i ? "Cancel" : "Learn";
+      learnBtn.title = "Fill the source in from the controller: press a button or push a stick / trigger past 50 %";
+      learnBtn.addEventListener("click", () => { if (learn && learn.row === i) cancelLearn(); else startLearn(i); });
+      srcWrap.append(src, learnBtn);
+      td().append(srcWrap);
+      // target
+      const tgt = document.createElement("select"); tgt.setAttribute("aria-label", "rule " + (i + 1) + " target");
+      fillSelect(tgt, targetIsAxis(r.kind), r.target, true);
+      // (keep source + no target is invalid: picking "none" clears and disables keep)
+      tgt.addEventListener("change", () => {
+        const rule = editMap.rules[i]; rule.target = Number(tgt.value);
+        if (rule.target === RULE_NONE) rule.flags &= ~KEEP_SOURCE;
+        changed(true);
+      });
+      td().append(tgt);
+      // keep source
+      const keepLabel = document.createElement("label"); keepLabel.title = "The source also stays at its own position";
+      const keep = document.createElement("input"); keep.type = "checkbox"; keep.checked = !!(r.flags & KEEP_SOURCE);
+      keep.disabled = r.target === RULE_NONE && !keep.checked; // (a loaded rule with both stays editable, flagged invalid)
+      keep.addEventListener("change", () => { const rule = editMap.rules[i]; rule.flags = keep.checked ? (rule.flags | KEEP_SOURCE) : (rule.flags & ~KEEP_SOURCE); changed(false); });
+      keepLabel.append(keep, document.createTextNode("keep"));
+      td().append(keepLabel);
+      // parameter
+      td().append(paramEditor(r, i, () => changed(false)));
+      const desc = td("desc"); desc.textContent = describeRule(r);
+      // actions
+      const acts = td("acts");
+      const mk = (text, title, fn, disabled) => { const b = document.createElement("button"); b.className = "icon"; b.textContent = text; b.title = title; b.disabled = !!disabled; b.addEventListener("click", fn); acts.append(b); };
+      mk("↑", "Move up", () => moveRule(i, -1), i === 0);
+      mk("↓", "Move down", () => moveRule(i, 1), i === editMap.rules.length - 1);
+      mk("✕", "Delete this rule", () => { cancelLearn(); editMap.rules.splice(i, 1); renderRules(); });
+      return tr;
+    }
+    function numberInput(value, min, max, step, label) {
+      const n = document.createElement("input"); n.type = "number"; n.min = String(min); n.max = String(max); n.step = String(step); n.value = String(value);
+      n.setAttribute("aria-label", label); return n;
+    }
+    function paramEditor(r, i, changed) {
+      const wrap = document.createElement("span"); wrap.className = "param";
+      const rule = () => editMap.rules[i];
+      if (r.kind === K.AXIS_TO_BUTTON) {
+        // direction + threshold in percent of full scale
+        const dir = document.createElement("select"); dir.setAttribute("aria-label", "rule " + (i + 1) + " direction");
+        const stickY = r.source === A.LEFT_Y || r.source === A.RIGHT_Y;
+        const opts = isTrigger(r.source) ? [[1, "pressed past"]] :
+                     stickY ? [[-1, "up past (-)"], [1, "down past (+)"]] : [[-1, "left past (-)"], [1, "right past (+)"]];
+        for (const [v, t] of opts) { const o = document.createElement("option"); o.value = String(v); o.textContent = t; dir.append(o); }
+        dir.value = r.param < 0 ? "-1" : "1";
+        const pct = numberInput(Math.abs(paramToPercent(r.param)), 1, 100, 1, "rule " + (i + 1) + " threshold percent");
+        const update = () => { const v = Math.min(100, Math.max(0, Number(pct.value) || 0)); rule().param = Number(dir.value) * percentToParam(v); changed(); };
+        dir.addEventListener("change", update); pct.addEventListener("input", update);
+        wrap.append(dir, pct, document.createTextNode("%"));
+      } else if (r.kind === K.BUTTON_TO_AXIS) {
+        const pct = numberInput(paramToPercent(r.param), -100, 100, 1, "rule " + (i + 1) + " value percent");
+        pct.title = "Added to the target axis while the button is held (percent of full scale; -100 = stick fully left / up)";
+        pct.addEventListener("input", () => { rule().param = percentToParam(Math.min(100, Math.max(-100, Number(pct.value) || 0))); changed(); });
+        wrap.append(pct, document.createTextNode("% of full scale"));
+      } else if (r.kind === K.AXIS_TO_AXIS) {
+        const sc = numberInput(r.param, -MAX_SCALE_PERCENT, MAX_SCALE_PERCENT, 1, "rule " + (i + 1) + " scale percent");
+        sc.title = "Scale applied to the source before it is added to the target (-100 inverts)";
+        sc.addEventListener("input", () => { const v = Math.round(Number(sc.value)); rule().param = Number.isFinite(v) ? v : 0; changed(); });
+        wrap.append(document.createTextNode("×"), sc, document.createTextNode("%"));
+      } else {
+        const s = document.createElement("span"); s.className = "muted"; s.textContent = "—"; wrap.append(s);
+      }
+      return wrap;
+    }
+    function moveRule(i, d) {
+      const j = i + d; if (!editMap || j < 0 || j >= editMap.rules.length) return;
+      cancelLearn();
+      const rs = editMap.rules; [rs[i], rs[j]] = [rs[j], rs[i]];
+      renderRules();
+    }
+    function renderRules() {
+      const body = els.rulesBody; body.textContent = "";
+      const rules = editMap ? editMap.rules : [];
+      rules.forEach((r, i) => body.append(ruleRow(r, i)));
+      els.noRules.hidden = !editMap || rules.length > 0;
+      els.ruleCount.textContent = String(rules.length);
+      updateValidation();
+    }
+    els.addRuleBtn.addEventListener("click", () => { if (!editMap) return; editMap.rules.push(ruleButton(B.SOUTH, B.SOUTH)); renderRules(); });
+    for (const p of PRESETS) {
+      const b = document.createElement("button"); b.className = "small"; b.textContent = p.label; b.disabled = true;
+      b.addEventListener("click", () => { if (!editMap) return; editMap.rules.push(...p.rules()); logLine("sys", "Preset “" + p.label + "”: " + p.rules().length + " rule(s) added (not saved yet)."); renderRules(); });
+      els.presets.append(b);
+    }
+    {
+      const b = document.createElement("button"); b.id = "clearRulesBtn"; b.className = "small"; b.textContent = "Clear rules"; b.disabled = true;
+      b.title = "Remove every rule from the editor (Revert brings the stored ones back until you save)";
+      b.addEventListener("click", () => { if (!editMap) return; cancelLearn(); editMap.rules = []; renderRules(); });
+      els.presets.append(b);
+    }
+
+    // ---- validation + the action buttons ----
+    function updateValidation() {
+      const loaded = !!editMap;
+      const errors = loaded ? validateMap(editMap, limits()) : [];
+      const tErr = loaded ? validateTarget(editTarget) : null;
+      if (tErr) errors.unshift({ rule: -1, why: tErr });
+      const bad = new Set(errors.filter((e) => e.rule >= 0).map((e) => e.rule));
+      [...els.rulesBody.children].forEach((tr, i) => tr.classList.toggle("invalid", bad.has(i)));
+      els.validation.hidden = errors.length === 0;
+      if (errors.length) {
+        els.validation.textContent = "";
+        const head = document.createElement("div"); head.textContent = "The device would refuse this map:"; els.validation.append(head);
+        const ul = document.createElement("ul");
+        for (const e of errors) { const li = document.createElement("li"); li.textContent = (e.rule >= 0 ? "Rule " + (e.rule + 1) + ": " : "") + e.why; ul.append(li); }
+        els.validation.append(ul);
+      }
+      const dirty = isDirty();
+      els.dirtyBadge.hidden = !dirty;
+      const online = !!transport && moduleReady;
+      els.saveBtn.disabled = !online || !loaded || errors.length > 0 || savingMap !== null;
+      els.revertBtn.disabled = !loaded || (!online && !savedMap);
+      els.eraseBtn.disabled = !online || !loaded || !editTarget.profile || !editExists;
+      els.loadBtn.disabled = !online;
+      els.resetAllBtn.disabled = !online;
+      els.refreshBtn.disabled = els.refreshProfilesBtn.disabled = !online;
+      return errors;
+    }
+
+    // Inline two-step confirm (no window.confirm): the first click arms the
+    // button (its label asks to click again), a second click within 5 s runs
+    // the action. needsConfirm() false -> runs at once.
+    function confirmButton(btn, confirmLabel, needsConfirm, run) {
+      let timer = null; const label = btn.textContent;
+      const disarm = () => { if (timer) { clearTimeout(timer); timer = null; } btn.classList.remove("armed"); btn.textContent = label; };
+      btn.addEventListener("click", () => {
+        if (timer === null && needsConfirm()) {
+          btn.classList.add("armed"); btn.textContent = confirmLabel();
+          timer = setTimeout(disarm, 5000);
+          return;
+        }
+        disarm(); run();
+      });
+      return disarm;
+    }
+    confirmButton(els.loadBtn, () => "Discard edits and load?", isDirty, () => requestLoad(targetFromSelection()));
+    els.saveBtn.addEventListener("click", saveMap);
+    confirmButton(els.revertBtn, () => "Discard edits?", isDirty, () => {
+      if (transport && moduleReady && editTarget) { requestLoad(editTarget); return; }
+      if (savedMap) { editMap = cloneMap(savedMap); renderEditor(); setEditStatus("Reverted to the last loaded map."); }
+    });
+    confirmButton(els.eraseBtn, () => "Click again to erase " + describeTarget(editTarget), () => true, () => {
+      if (!editTarget || !editTarget.profile) return;
+      logLine("tx", "Erasing the " + describeTarget(editTarget) + "...");
+      setEditStatus("Erasing...");
+      send(T_ERASE_PROFILE, encodeEraseProfile(editTarget));
+    });
+    confirmButton(els.resetAllBtn, () => "Click again: erase ALL profiles", () => true, () => {
+      logLine("tx", "Resetting everything (all profiles erased, default map = identity)...");
+      setEditStatus("Resetting...");
+      send(T_RESET_ALL);
+    });
+    function saveMap() {
+      if (!editMap || !editTarget) return;
+      const errors = updateValidation();
+      if (errors.length) { setEditStatus("Not saved: fix the problems listed above first.", "err"); return; }
+      if (editTarget.profile && !editExists && devInfo && devInfo.profileCount >= devInfo.maxProfiles)
+        logLine("warn", "The device already holds " + devInfo.profileCount + " of " + devInfo.maxProfiles + " profiles; it will likely refuse a new one (erase one first).");
+      savingMap = cloneMap(editMap);
+      logLine("tx", "Saving the " + describeTarget(editTarget) + ": " + savingMap.rules.length + " rule(s), dead zones " + savingMap.leftDeadzone + " / " + savingMap.rightDeadzone + " %.");
+      setEditStatus("Saving...");
+      send(T_SET_MAP, encodeSetMap(editTarget, savingMap));
+      updateValidation();
+    }
+    function refreshDevice() { send(T_GET_INFO); send(T_LIST_PROFILES); }
+    els.refreshBtn.addEventListener("click", refreshDevice);
+    els.refreshProfilesBtn.addEventListener("click", () => send(T_LIST_PROFILES));
+
+    // ===================== Live input =====================
+    function buildSide(side) {
+      const body = side.querySelector(".sidebody");
+      const refs = { buttons: [], pads: [], bars: [] };
+      const grid = document.createElement("div"); grid.className = "btn-grid";
+      for (let i = 0; i < BUTTON_COUNT; i++) { const d = document.createElement("div"); d.className = "ind"; d.textContent = BUTTON_SHORT[i]; d.title = buttonLabel(i); grid.append(d); refs.buttons.push(d); }
+      body.append(grid);
+      const sticks = document.createElement("div"); sticks.className = "sticks";
+      for (const [label, ax, ay] of [["Left stick", A.LEFT_X, A.LEFT_Y], ["Right stick", A.RIGHT_X, A.RIGHT_Y]]) {
+        const st = document.createElement("div"); st.className = "stick";
+        const pad = document.createElement("div"); pad.className = "pad";
+        const dz = document.createElement("div"); dz.className = "dz";
+        const dot = document.createElement("div"); dot.className = "dot";
+        pad.append(dz, dot);
+        const cap = document.createElement("span"); cap.textContent = label;
+        const xy = document.createElement("span"); xy.className = "xy"; xy.textContent = "-";
+        st.append(pad, cap, xy); sticks.append(st);
+        refs.pads.push({ dz, dot, xy, ax, ay });
+      }
+      body.append(sticks);
+      const bars = document.createElement("div"); bars.className = "bars";
+      for (let a = 0; a < AXIS_COUNT; a++) {
+        const k = document.createElement("span"); k.className = "k"; k.textContent = AXIS_TEXT[a];
+        const track = document.createElement("div"); track.className = "track";
+        if (!isTrigger(a)) { const mid = document.createElement("div"); mid.className = "mid"; track.append(mid); }
+        const fill = document.createElement("div"); fill.className = "fill"; track.append(fill);
+        const v = document.createElement("span"); v.className = "v"; v.textContent = "-";
+        bars.append(k, track, v);
+        refs.bars.push({ fill, v });
+      }
+      body.append(bars);
+      return refs;
+    }
+    const rawRefs = buildSide(els.sideRaw), mappedRefs = buildSide(els.sideMapped);
+    const pctOf = (v) => (v * 100 / AXIS_MAX);
+    function updateSide(refs, s) {
+      for (let i = 0; i < BUTTON_COUNT; i++) refs.buttons[i].classList.toggle("on", ((s.buttons >>> i) & 1) === 1);
+      for (const p of refs.pads) {
+        const x = s.axes[p.ax], y = s.axes[p.ay];
+        p.dot.style.left = ((x + AXIS_MAX) * 50 / AXIS_MAX) + "%";
+        p.dot.style.top = ((y + AXIS_MAX) * 50 / AXIS_MAX) + "%"; // Y grows down, like the screen
+        p.xy.textContent = "X " + pctOf(x).toFixed(0).padStart(4) + "  Y " + pctOf(y).toFixed(0).padStart(4);
+      }
+      for (let a = 0; a < AXIS_COUNT; a++) {
+        const v = s.axes[a], b = refs.bars[a], pc = Math.max(-100, Math.min(100, pctOf(v)));
+        if (isTrigger(a)) { b.fill.style.left = "0"; b.fill.style.width = Math.max(0, pc) + "%"; }
+        else if (pc >= 0) { b.fill.style.left = "50%"; b.fill.style.width = (pc / 2) + "%"; }
+        else { b.fill.style.left = (50 + pc / 2) + "%"; b.fill.style.width = (-pc / 2) + "%"; }
+        b.v.textContent = pc.toFixed(0) + " %";
+      }
+    }
+    function updateDeadzoneRings() {
+      const dz = editMap ? [editMap.leftDeadzone, editMap.rightDeadzone] : [0, 0];
+      rawRefs.pads.forEach((p, i) => { const d = Math.min(100, dz[i]) + "%"; p.dz.style.width = d; p.dz.style.height = d; p.dz.hidden = !dz[i]; });
+    }
+    let streamOn = false;        // the device was asked to stream (renewed while on)
+    let streamAcked = false;     // the first OK of this stream request was logged
+    let lastInputConnected = null;
+    let rxTimes = [];
+    const streamPeriod = () => Number(els.streamPeriod.value) || 50;
+    function startStream() {
+      if (!transport || !moduleReady) return;
+      streamOn = true; streamAcked = false;
+      send(T_SET_STREAM, encodeSetStream(true, streamPeriod()));
+    }
+    // Ask the device to stop streaming (awaitable, bounded: a dead link must not stall a disconnect).
+    async function stopStream() {
+      if (!streamOn) return;
+      streamOn = false;
+      if (!transport || !moduleReady) return;
+      await Promise.race([tx(buildFrame(T_SET_STREAM, encodeSetStream(false, streamPeriod()))), new Promise((r) => setTimeout(r, 300))]);
+    }
+    setInterval(() => { if (streamOn && transport && moduleReady) send(T_SET_STREAM, encodeSetStream(true, streamPeriod())); }, STREAM_RENEW_MS);
+    els.liveInput.addEventListener("change", () => {
+      if (!transport) return;
+      if (els.liveInput.checked) startStream(); else { cancelLearn(); stopStream(); setLiveIdle("Live input is off."); send(T_GET_INFO); }
+    });
+    els.streamPeriod.addEventListener("change", () => { if (streamOn) startStream(); });
+    function setLiveIdle(text) {
+      els.rawOverlay.hidden = els.mappedOverlay.hidden = false;
+      els.rawOverlay.textContent = text; els.mappedOverlay.textContent = text;
+      els.liveState.textContent = "-"; els.liveState.className = "badge";
+      els.rxRate.textContent = "-"; rxTimes = []; lastInputConnected = null;
+    }
+    function onInput(d) {
+      const now = performance.now(); rxTimes.push(now); while (rxTimes.length && now - rxTimes[0] > 2000) rxTimes.shift();
+      if (rxTimes.length >= 2) els.rxRate.textContent = ((rxTimes.length - 1) * 1000 / (now - rxTimes[0])).toFixed(1) + " Hz";
+      if (d.connected !== lastInputConnected) {
+        lastInputConnected = d.connected;
+        els.liveState.textContent = d.connected ? "controller connected" : "no controller";
+        els.liveState.className = "badge " + (d.connected ? "ok" : "warn");
+        els.rawOverlay.hidden = els.mappedOverlay.hidden = d.connected;
+        els.rawOverlay.textContent = els.mappedOverlay.textContent = "No controller is connected to the device.";
+        // (the controller's identity arrives as an unsolicited INFO while streaming)
+      }
+      if (!d.connected) return;
+      updateSide(rawRefs, d.raw);
+      updateSide(mappedRefs, d.mapped);
+      if (learn) learnOnInput(d.raw);
+    }
+
+    // ---- learn ----
+    let learn = null;            // { row, base, timer }
+    function startLearn(row) {
+      cancelLearn();
+      if (!transport || !moduleReady) { setEditStatus("Connect first: Learn reads the controller's live input.", "err"); return; }
+      if (!els.liveInput.checked) { els.liveInput.checked = true; startStream(); }
+      learn = { row, base: null, timer: setTimeout(() => { logLine("warn", "Learn timed out (nothing pressed)."); cancelLearn(); }, LEARN_TIMEOUT_MS) };
+      els.learnBanner.hidden = false;
+      els.learnText.textContent = "Rule " + (row + 1) + ": press a button, or push a stick / trigger past 50 %, on the controller...";
+      els.sideRaw.classList.add("learning");
+      renderRules();
+    }
+    function cancelLearn() {
+      if (!learn) return;
+      clearTimeout(learn.timer); learn = null;
+      els.learnBanner.hidden = true; els.sideRaw.classList.remove("learning");
+      renderRules();
+    }
+    els.learnCancelBtn.addEventListener("click", cancelLearn);
+    function learnOnInput(raw) {
+      if (!learn.base) { learn.base = learnBaseline(raw); return; }
+      const step = learnStep(learn.base, raw, limits().buttonCount);
+      learn.base = step.base;
+      if (!step.hit || !editMap || !editMap.rules[learn.row]) return;
+      const row = learn.row, h = step.hit;
+      editMap.rules[row] = applyLearnHit(editMap.rules[row], h);
+      logLine("sys", "Rule " + (row + 1) + " source learned: " + (h.type === "button" ? BUTTON_TEXT[h.index] : AXIS_TEXT[h.index] + (isTrigger(h.index) ? "" : " (" + (h.sign < 0 ? "-" : "+") + ")")) + ".");
+      cancelLearn(); // re-renders the table
+    }
+
+    // ===================== Incoming frame handling =====================
+    function onIncoming(chunk) {
+      let frames; try { frames = parser.feed(chunk); } catch(e) { logLine("err", "parse error: " + (e && e.message ? e.message : e)); return; }
+      for (const f of frames) {
+        // Discovery reply (reserved module 0xFF): hand the TLV to a pending
+        // module probe before the moduleGamepad match below ignores it.
+        if (f.module === MODULE_DISCOVERY && f.reply && f.type === T_LIST_MODULES) {
+          if (discoveryResolve) { discoveryResolve(f.payload); discoveryResolve = null; }
+          continue;
+        }
+        if (f.module !== moduleGamepad || !f.reply) continue;
+        const what = REQ_NAME[f.type & 0x7F] || ("type 0x" + f.type.toString(16));
+        if (f.type === T_INPUT) {
+          const d = decodeInput(f.payload);
+          if (d) onInput(d); else logLine("warn", "malformed INPUT (" + f.payload.length + " bytes)");
+        } else if (f.type === T_INFO) {
+          const d = decodeInfo(f.payload);
+          if (d) applyInfo(d); else logLine("warn", "malformed INFO (" + f.payload.length + " bytes)");
+        } else if (f.type === T_MAP) {
+          const d = decodeMapReply(f.payload);
+          if (d) onMapReply(d); else { pendingGet = null; logLine("warn", "malformed MAP (" + f.payload.length + " bytes)"); setEditStatus("The device sent a malformed map.", "err"); }
+        } else if (f.type === T_PROFILES) {
+          const d = decodeProfiles(f.payload);
+          if (d) applyProfiles(d); else logLine("warn", "malformed PROFILES (" + f.payload.length + " bytes)");
+        } else if (f.type === T_OK) {
+          const d = decodeOk(f.payload); if (!d) { logLine("warn", "malformed OK"); continue; }
+          onOk(d.requestType);
+        } else if (f.type === T_ERROR) {
+          const d = decodeError(f.payload); if (!d) { logLine("warn", "malformed ERROR (" + f.payload.length + " bytes)"); continue; }
+          onError(d);
+        } else {
+          logLine("warn", "unknown reply " + what + " (" + f.payload.length + " bytes)");
+        }
+      }
+    }
+    function onOk(rt) {
+      if (rt === T_SET_STREAM) { if (!streamAcked) { streamAcked = true; logLine("rx", "ok: " + REQ_NAME[rt]); } return; }
+      logLine("rx", "ok: " + (REQ_NAME[rt] || ("0x" + rt.toString(16))));
+      if (rt === T_SET_MAP) {
+        if (savingMap) { savedMap = savingMap; editExists = true; savingMap = null; }
+        setEditStatus("Saved " + describeTarget(editTarget) + ".", "ok");
+        renderEditor(); refreshDevice();
+      } else if (rt === T_ERASE_PROFILE) {
+        setEditStatus("Erased. The controller type now uses the default map.", "ok");
+        refreshDevice(); if (editTarget) requestLoad(editTarget);
+      } else if (rt === T_RESET_ALL) {
+        setEditStatus("Everything reset: no profiles, default map = identity.", "ok");
+        refreshDevice(); if (editTarget) requestLoad(editTarget);
+      }
+    }
+    function onError(e) {
+      const what = REQ_NAME[e.requestType] || ("request 0x" + e.requestType.toString(16));
+      logLine("err", what + " failed [" + e.code + "]: " + (e.message || "(no message)"));
+      if (e.requestType === T_GET_MAP) pendingGet = null;
+      if (e.requestType === T_SET_MAP) savingMap = null;
+      if (e.requestType === T_SET_STREAM) streamAcked = false;
+      if ([T_GET_MAP, T_SET_MAP, T_ERASE_PROFILE, T_RESET_ALL].includes(e.requestType))
+        setEditStatus("The device refused to " + what + ": " + (e.message || "error " + e.code) + ".", "err");
+      updateValidation();
+    }
+
+    // ===================== Connect / disconnect =====================
+    if (!navigator.usb) els.connectUsbBtn.disabled = true;
+    if (!navigator.serial) els.connectSerialBtn.disabled = true;
+    if (!navigator.usb && !navigator.serial) els.unsupported.style.display = "block";
+    els.connectUsbBtn.addEventListener("click", () => connect("usb"));
+    els.connectSerialBtn.addEventListener("click", () => connect("serial"));
+    els.disconnectBtn.addEventListener("click", () => disconnect());
+
+    // `preset`: an already-permitted USBDevice / SerialPort (no chooser).
+    // One open at a time (Connect button(s), auto-connect, reconnect) — see createOpenGate.
+    async function connect(kind, preset) {
+      return openGate.run(() => connectLocked(kind, preset));
+    }
+    async function connectLocked(kind, preset) {
+      if (transport) return;
+      const t = kind === "usb" ? new UsbTransport() : new SerialTransport();
+      try { if (kind === "usb") await t.open(els.anyDevice.checked, preset); else await t.open(preset); }
+      catch (e) { if (e && e.name === "NotFoundError" && !preset) logLine("sys", "Device selection cancelled."); else logLine("err", "Connect failed: " + (e && e.message ? e.message : e)); try { await t.close(); } catch(_){} return; }
+      transport = t; connIdentity = t.identity(); reconnect.connected(); parser.reset(); moduleReady = false;
+      const name = t.describe(); setStatus("connected", "Connected"); els.devInfo.textContent = name; logLine("sys", "Connected: " + name);
+      t.readLoop(onIncoming).catch((e) => { if (transport === t) { logLine("err", "Read loop error: " + (e && e.message ? e.message : e)); onLinkLost(); } });
+      // Resolve the gamepad map module id from discovery BEFORE the first request.
+      try { await checkModulePresent(); } catch (_) {}
+      if (transport !== t) return; // the link dropped while probing
+      setConnectedUI(true); // module id resolved: only now enable the controls
+      refreshDevice();
+      if (els.liveInput.checked) startStream(); else setLiveIdle("Live input is off.");
+      startInfoPoll();
+    }
+    async function disconnect() {
+      if (!transport) return; logLine("sys", "Disconnecting..."); stopInfoPoll(); cancelLearn(); await stopStream();
+      const t = transport; transport = null;
+      reconnect.stop(); const released = connIdentity; connIdentity = null; try { await t.close(); } catch(_){}
+      postReleased(deviceChannel, released); // only once the device is closed: the hub may reopen it on this notice
+      setConnectedUI(false); setStatus("", "Disconnected");
+    }
+    function onLinkLost() {
+      if (!transport) return; stopInfoPoll(); streamOn = false; const t = transport; transport = null; t.close().catch(()=>{});
+      cancelLearn(); setConnectedUI(false); setStatus("error", "Disconnected");
+      reconnect.onLinkLost(connIdentity);
+    }
+    if (navigator.usb && navigator.usb.addEventListener) navigator.usb.addEventListener("disconnect", (e) => { if (transport instanceof UsbTransport && e.device === transport.device) { logLine("err", "Device disconnected."); onLinkLost(); } });
+
+    if (navigator.serial && navigator.serial.addEventListener) {
+      navigator.serial.addEventListener("disconnect", (e) => {
+        const eventPort = e.port ?? e.target;
+        if (transport instanceof SerialTransport && eventPort === transport.port) { logLine("err", "Serial device disconnected."); onLinkLost(); }
+      });
+    }
+
+    function setConnectedUI(connected) {
+      els.connectUsbBtn.disabled = connected || !navigator.usb;
+      els.connectSerialBtn.disabled = connected || !navigator.serial;
+      els.disconnectBtn.disabled = !connected; els.anyDevice.disabled = connected;
+      if (!connected) {
+        els.devInfo.textContent = "Not connected. Default WebUSB filter: VID 0x1209 / PID 0x0d32 (espp default).";
+        for (const id of ["ctlName", "devProfiles", "devMaxRules", "devControls"]) els[id].textContent = "-";
+        els.ctlProfile.textContent = "-"; els.ctlProfile.className = "badge";
+        devInfo = null; profiles = []; infoKey = ""; pendingGet = null; savingMap = null;
+        setLiveIdle("No input yet: connect and keep “Live input” on.");
+        rebuildTargets();
+      }
+      // the editor keeps its contents across a disconnect (edits survive a reconnect)
+      renderProfiles();
+      updateValidation();
+    }
+
+    let infoTimer = null;
+    function startInfoPoll() { stopInfoPoll(); infoTimer = setInterval(() => { if (transport && moduleReady && !streamOn) send(T_GET_INFO); }, INFO_POLL_MS); }
+    function stopInfoPoll() { if (infoTimer) { clearInterval(infoTimer); infoTimer = null; } }
+
+    // ---- auto-connect (?autoconnect=1&transport=&vid=&pid=&serial=) + auto-reconnect ----
+    const connectParams = parseConnectParams(location.search);
+    let connIdentity = null; // identity of the current (or just lost) device
+    const deviceChannel = openDeviceChannel();
+    els.autoReconnect.checked = loadAutoReconnect();
+    els.autoReconnect.addEventListener("change", () => {
+      saveAutoReconnect(els.autoReconnect.checked);
+      if (!els.autoReconnect.checked) reconnect.stop("auto-reconnect is off");
+    });
+    const openGate = createOpenGate({ connected: () => !!transport });
+    const reconnect = createReconnectSupervisor({ gate: openGate, discard: () => disconnect(), enabled: () => els.autoReconnect.checked, log: logLine, reconnect: reconnectAttempt });
+    watchDeviceArrivals(reconnect);
+    // One reconnect attempt: the device must be back among the permitted ones.
+    // The lookup runs outside the open gate, so re-check afterwards that the
+    // attempt was not cancelled (checkbox unticked) and that no manual connect
+    // completed meanwhile — the gate refuses while connected as well.
+    async function reconnectAttempt(identity, attempt, token) {
+      if (transport) return true;
+      const preset = identity.transport === "usb" ? await findPermittedUsbDevice(identity) : await findPermittedSerialPort(identity);
+      if (token.cancelled() || transport) return false;
+      if (!preset) return false;
+      await connect(identity.transport, preset);
+      return !!transport;
+    }
+    async function autoConnect() {
+      const want = connectParams;
+      for (const kind of want.transport ? [want.transport] : ["usb", "serial"]) {
+        const preset = kind === "usb" ? await findPermittedUsbDevice(want) : await findPermittedSerialPort(want);
+        if (!preset) continue;
+        logLine("sys", "Auto-connecting to " + describeIdentity(kind === "usb" ? usbIdentity(preset) : serialIdentity(preset)) + "…");
+        await connect(kind, preset);
+        return;
+      }
+      logLine("warn", "Auto-connect: no permitted " + describeIdentity(want) + " found — use Connect (the browser only lists devices this page was already granted).");
+    }
+    // pagehide: the browser tears the handle down itself and an await cannot finish here, so the notice goes out before the close (best effort)
+    window.addEventListener("pagehide", () => { if (transport) postReleased(deviceChannel, connIdentity); });
+
+    setConnectedUI(false);
+    renderEditor();
+    // Device Hub / All apps links; a plain click on Device Hub while connected hands the device back
+    installAppNav();
+    installAppHandBack({ connected: () => !!transport, handBack: async () => { const id = connIdentity; await disconnect(); return id; } });
+    if (connectParams.autoconnect) autoConnect();
+    document.body.dataset.ready = "gamepad_map";
+  </script>
+</body>
+</html>

@@ -1,0 +1,27 @@
+menu "Example Configuration"
+
+    config EXAMPLE_BUTTON_GPIO
+        int "Real button GPIO (pressed = low)"
+        default 35 if IDF_TARGET_ESP32P4
+        default 0
+        help
+            A physical button read as the demo controller's South button, so the
+            web console's "learn" binding can be tried with a real press: the BOOT
+            button, GPIO 0 on most ESP32-S3 boards and GPIO 35 on the ESP32-P4
+            dev kits. -1 disables it.
+
+    choice EXAMPLE_USB_PORT
+        prompt "USB port (ESP32-P4)"
+        default EXAMPLE_USB_PORT_HIGH_SPEED
+        depends on IDF_TARGET_ESP32P4
+        help
+            The ESP32-P4 has a full-speed and a high-speed USB-OTG port; pick the
+            one the board's USB connector is wired to.
+
+        config EXAMPLE_USB_PORT_FULL_SPEED
+            bool "Full-speed port"
+        config EXAMPLE_USB_PORT_HIGH_SPEED
+            bool "High-speed port"
+    endchoice
+
+endmenu
