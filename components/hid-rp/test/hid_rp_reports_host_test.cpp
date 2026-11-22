@@ -23,6 +23,7 @@
 #include <cstdint>
 #include <cstdio>
 #include <cstring>
+#include <new>
 #include <vector>
 
 #include "hid-rp-3dconnexion.hpp"
@@ -156,6 +157,19 @@ static void test_xbox() {
   rumble0.set_data({0x0F, 10, 20, 30, 40, 50, 60, 70});
   check_offset_and_size(rumble0, 8);
   CHECK(rumble0.get_report() == bytes);
+
+  // the reserved high nibble of byte 0 is always 0, whatever the memory held
+  // before (it used to be an unnamed bit-field that reset() could not clear)
+  {
+    alignas(espp::XboxRumbleOutputReport<>) unsigned char
+        storage[sizeof(espp::XboxRumbleOutputReport<>)];
+    std::memset(storage, 0xFF, sizeof(storage));
+    auto *dirty = new (storage) espp::XboxRumbleOutputReport<>();
+    CHECK(dirty->get_report()[0] == 0x00);
+    dirty->set_enabled(0xFF);
+    CHECK(dirty->get_report()[0] == 0x0F && dirty->get_enabled() == 0x0F);
+    dirty->~XboxRumbleOutputReport();
+  }
 
   espp::XboxBatteryInputReport<> batt;
   batt.set_data({0xA5});

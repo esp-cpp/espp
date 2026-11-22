@@ -134,10 +134,10 @@ public:
 template <uint8_t REPORT_ID = 3>
 class XboxRumbleOutputReport : public hid::report::base<hid::report::type::OUTPUT, REPORT_ID> {
 protected:
-  struct {
-    std::uint8_t enabled : 4; // which motors are enabled
-    std::uint8_t : 4;
-  };
+  /// Low nibble: which motors are enabled; high nibble: reserved, always 0 (a
+  /// plain byte, not a bit-field struct whose unnamed padding bits could
+  /// never be cleared and went out uninitialized).
+  std::uint8_t enabled_byte{0};
 
   std::array<std::uint8_t, 4> magnitude{0}; // [0, 100] magnitude of the effect on each motor
   std::uint8_t duration{0};                 // [0, 255] duration of the effect
@@ -166,7 +166,7 @@ public:
 
   /// Reset the rumble effect
   constexpr void reset() {
-    enabled = 0;
+    enabled_byte = 0;
     std::fill(magnitude.begin(), magnitude.end(), 0);
     duration = 0;
     start_delay = 0;
@@ -175,11 +175,11 @@ public:
 
   /// Get the enabled mask for the rumble motors
   /// \return The enabled mask for the rumble motors
-  constexpr auto get_enabled() const { return enabled; }
+  constexpr std::uint8_t get_enabled() const { return enabled_byte & 0x0f; }
 
   /// Set the enabled mask for the rumble motors
   /// \param new_enabled The enabled mask for the rumble motors
-  constexpr void set_enabled(std::uint8_t new_enabled) { enabled = new_enabled; }
+  constexpr void set_enabled(std::uint8_t new_enabled) { enabled_byte = new_enabled & 0x0f; }
 
   /// Get the magnitude of the rumble effect for the specified motor
   /// \param motor The motor for which you want to get the magnitude.
