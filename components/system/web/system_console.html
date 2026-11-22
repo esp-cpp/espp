@@ -1659,8 +1659,17 @@
       const v = Number.parseInt(els.rebootDelay.value, 10);
       return Number.isInteger(v) && v >= 0 && v <= 65535 ? v : 500;
     }
+    // Release the device before it restarts into the ROM bootloader: a WebUSB
+    // device that is still claimed (an interface and a pending IN transfer)
+    // while the chip resets can leave the host -- macOS in particular --
+    // holding a stale record of it, so the ROM's USB device (other ids) does
+    // not enumerate until the board is replugged. The reset is asked for at
+    // least this far ahead, and the page closes the device as soon as the
+    // request is acknowledged, well before it fires. (A plain reboot comes back
+    // with the same ids and is reconnected as usual.)
+    const BOOTLOADER_REBOOT_MIN_DELAY_MS = 1000;
     async function requestReboot(bootloader) {
-      const delay = rebootDelayMs();
+      const delay = bootloader ? Math.max(BOOTLOADER_REBOOT_MIN_DELAY_MS, rebootDelayMs()) : rebootDelayMs();
       const type = bootloader ? SYS.REBOOT_TO_BOOTLOADER : SYS.REBOOT;
       logLine("tx", "> " + (bootloader ? "reboot into bootloader" : "reboot") + " in " + delay + " ms");
       // A plain reboot keeps the device's USB ids: auto-reconnect picks it up
@@ -1669,6 +1678,10 @@
       if (bootloader) reconnect.suppress(); else reconnect.expectReboot();
       try {
         await transact("sys", type, u16(delay), [SYS.OK]);
+        if (bootloader && transport) {
+          await disconnect(); // let go of it before it resets (see above)
+          logLine("sys", "Released the device so it can restart into its ROM download mode.");
+        }
         logLine("sys", "Acknowledged: the device " + (bootloader ?
                 "restarts into the ROM download mode (it re-enumerates as the ROM's USB CDC / DFU or USB-Serial-JTAG port; use esptool / idf.py flash, then reset it)." :
                 (els.autoReconnect.checked ? "restarts shortly; reconnecting automatically once it is back." : "restarts shortly. Reconnect once it is back.")));

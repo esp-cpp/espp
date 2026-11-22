@@ -13,6 +13,11 @@
 //   0x01 GET_INFO              (no payload)
 //   0x02 REBOOT                [delay_ms u16]
 //   0x03 REBOOT_TO_BOOTLOADER  [delay_ms u16]
+//                              A host should ask for a delay long enough to
+//                              close its connection first (>= 1000 ms) and
+//                              close it as soon as the OK arrives: see the
+//                              component README, "Host side: release the
+//                              device before it resets".
 // Replies (device -> host, high bit set = frame reply flag):
 //   0x81 INFO   a list of tagged records [tag u8][len u8][value...]; a host
 //               skips tags it does not know, so fields can be added without a

@@ -63,6 +63,7 @@ over HTTPS, or HTTP on localhost; a `file://` copy loses the grant on reload.
 
 - [System Component](#system-component)
   - [Protocol (module 7, `espp.system` v1)](#protocol-module-7-esppsystem-v1)
+  - [Host side: release the device before it resets](#host-side-release-the-device-before-it-resets)
   - [Example](#example)
 
 <!-- markdown-toc end -->
@@ -95,6 +96,33 @@ build time, 10 ELF SHA-256 (32 bytes), 11 running partition, 12 boot partition,
 u32), 22 capabilities (u32: bit0 reboot allowed, bit1 bootloader reboot allowed
 and supported). The delay is clamped to at least `Config::min_restart_delay`
 so the OK reply leaves the transport before the restart.
+
+## Host side: release the device before it resets
+
+A host that sends **REBOOT_TO_BOOTLOADER** over USB must have let go of the
+device before the reset fires. A device that is still open and claimed at that
+moment (a WebUSB interface with an IN transfer pending, a pyusb handle, an open
+serial port) can leave the host holding a stale record of it; macOS in
+particular. Then the ROM's USB device, which has other ids, does not enumerate
+until the board is unplugged and plugged back in. To the user it looks as if the
+device hung on its way into the bootloader.
+
+So, in a host (a web page, a script, a tool):
+
+1. Ask for a delay long enough to close the connection first: at least
+   **1000 ms**. The System Console sends `max(1000, the delay box)` for a
+   bootloader reboot.
+2. As soon as the OK reply arrives, stop anything that keeps transfers in
+   flight (e.g. a monitor stream), release the interface and close the device
+   (WebUSB: `releaseInterface()` then `close()`; Web Serial: cancel the reader
+   and `close()` the port). If the link drops before the OK, the device is
+   already on its way; close your side the same way.
+3. Only then wait for the ROM's device: it enumerates with different ids
+   (USB-Serial-JTAG `303a:1001` or the ROM's USB CDC `303a:0009` on the
+   ESP32-S3), so look for it rather than reconnecting to the old one.
+
+A plain **REBOOT** comes back with the same ids and is reconnected the usual
+way, but the same order (close, then let it reset) never hurts.
 
 ## Example
 
