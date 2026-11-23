@@ -14,7 +14,13 @@ CONFIG_PARTITION_TABLE_OFFSET=0x8000
 CONFIG_PARTITION_TABLE_CUSTOM_FILENAME="partitions.csv"
 CONFIG_SPIRAM=y
 CONFIG_SPIRAM_USE_MALLOC=y
-CONFIG_SPIRAM_MALLOC_ALWAYSINTERNAL=4096
+# Below an Ethernet frame (~1.5 KB): the openeth driver mallocs one per
+# received packet and lwIP holds it until the engine reads the datagram (up to
+# LWIP_UDP_RECVMBOX_SIZE per socket). With 4096 those frames sat in internal
+# RAM, and a participant recreated next to a dozen live peers (the restart
+# case) dropped to ~5 KB of internal RAM while creating its endpoints. Smaller
+# allocations (FreeRTOS objects, small engine state) stay internal.
+CONFIG_SPIRAM_MALLOC_ALWAYSINTERNAL=1024
 # Keep internal RAM for what must live there. The restart case tears the
 # participant down and builds a new one while a dozen peers from the earlier
 # cases are still announcing: the new participant discovers them all at once,

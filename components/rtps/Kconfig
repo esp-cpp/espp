@@ -433,22 +433,6 @@ menu "RTPS"
             firmware share it. 0 is the DDS default and matches a ROS 2 host
             with no ROS_DOMAIN_ID set.
 
-    config RTPS_PAYLOAD_PREFER_PSRAM
-        bool "Keep payload buffers in PSRAM first"
-        depends on SPIRAM_USE_MALLOC || SPIRAM_USE_CAPS_ALLOC
-        default y
-        help
-            Allocate the engine's payload bytes (history-cache samples, the
-            messages it builds, the datagrams it parses) from PSRAM first, and
-            from internal RAM only when PSRAM cannot satisfy them. They are
-            mostly below CONFIG_SPIRAM_MALLOC_ALWAYSINTERNAL, so a plain
-            malloc() would put them in internal RAM, and on a busy domain they
-            add up: a participant that joins (or restarts into) a domain with
-            many live peers receives all of their discovery announcements at
-            once, and the internal RAM a task stack or a FreeRTOS lock needs
-            runs out. Disable to keep them in internal RAM (slightly faster
-            access, at that cost).
-
     config RTPS_STORAGE_DYNAMIC
         bool "Use dynamic (heap) history/queue storage"
         default n

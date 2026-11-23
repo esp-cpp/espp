@@ -26,12 +26,11 @@ This file is part of the espp embeddedRTPS port.
 #include <vector>
 
 #include "rtps/common/types.hpp"
-#include "rtps/storages/PayloadAllocator.hpp"
 
 namespace rtps {
 
 struct PayloadBuffer {
-  PayloadBytes bytes; ///< PSRAM first where configured (PayloadAllocator)
+  std::vector<uint8_t> bytes;
 
   bool isValid() const { return true; }
 
