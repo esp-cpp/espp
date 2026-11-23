@@ -121,6 +121,43 @@ using a static address on that subnet. The emulated MAC has no multicast
 address filter (ESP-IDF logs ``add mac address to filter not supported`` when
 lwIP joins a group); multicast frames are received regardless.
 
+.. _qemu-receive-buffers:
+
+Receive buffers and memory
+--------------------------
+
+The emulated MAC's driver keeps received frames in two places:
+
+- **The DMA receive ring**: ``CONFIG_ETH_OPENETH_DMA_RX_BUFFER_NUM``
+  descriptors (default 4) of 1600 bytes, in internal DMA-capable RAM. The
+  emulator delivers a burst with no wire time between frames, so a burst
+  longer than the ring is dropped (``RX frame dropped (0x14)`` in the log). A
+  fragmented UDP datagram is such a burst (30 KB is 21 frames). Raise the ring
+  for it; the maximum, 64, costs about 100 KB of internal RAM.
+- **A heap buffer per frame**: the driver's receive task copies each frame
+  into a 1522-byte buffer from ``malloc()`` and hands it to lwIP, which frees
+  it only once the application has read the datagram. Until then it waits in
+  the socket's receive queue (up to ``CONFIG_LWIP_UDP_RECVMBOX_SIZE`` per UDP
+  socket, default 6), in the lwIP task's queue
+  (``CONFIG_LWIP_TCPIP_RECVMBOX_SIZE``) or in IP reassembly.
+
+With PSRAM (``idf.py qemu`` gives the ESP32 machine 4 MB), 1522 bytes is below
+the default ``CONFIG_SPIRAM_MALLOC_ALWAYSINTERNAL`` of 4096, so those buffers
+come from internal RAM. Deep queues on several sockets can then hold more
+internal RAM than is free, and the failure shows up elsewhere: creating a task
+or a FreeRTOS lock. With PSRAM, set ``CONFIG_SPIRAM_MALLOC_ALWAYSINTERNAL``
+below the frame size (1024, say); without it, keep queue depth x sockets x
+1.5 KB within budget. ``CONFIG_SPIRAM_TRY_ALLOCATE_WIFI_LWIP`` moves lwIP's
+own pbufs to PSRAM but not the driver's buffers. IP reassembly
+(``CONFIG_LWIP_IP4_REASSEMBLY``) is off by default; without it a UDP datagram
+larger than one frame never reaches the application.
+
+The RTPS interop firmware hit both limits. Fragmented 30 KB samples
+overflowed the default ring. After an in-process restart, a dozen live ROS 2
+peers answered every new endpoint at once, and their queued frames used up the
+internal RAM until creating a task failed. Its ``sdkconfig.defaults`` sets
+each option with the reasoning beside it.
+
 Debugging
 =========
 

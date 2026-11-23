@@ -17,7 +17,10 @@ three targets the emulator supports (``esp32``, ``esp32c3``, ``esp32s3``).
   with ``-display none`` the panel driver's first flush waits forever.
 - **Ethernet**: the OpenCores Ethernet MAC (``initialize_ethernet()``), a real
   lwIP interface on QEMU's user-mode NAT or on a tap device. Needs
-  ``CONFIG_ETH_USE_OPENETH``.
+  ``CONFIG_ETH_USE_OPENETH``. Its driver drops what overflows its small
+  receive ring and keeps every received frame in a 1522-byte heap buffer until
+  the application reads it, which matters for bursts and busy networks: see
+  :ref:`qemu-receive-buffers`.
 - **SD card** (ESP32 machine only): the SD/MMC host (``initialize_sdcard()``),
   a FAT volume on the image file passed with ``-drive file=...,if=sd``.
 

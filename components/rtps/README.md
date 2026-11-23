@@ -226,31 +226,53 @@ it had reached, and rediscovered on the spot.
 On an ESP32 with PSRAM, the first thing to run out is the byte-addressable
 internal RAM (`MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT`). Every new task's stack
 and every FreeRTOS lock behind a `std::mutex` / `std::condition_variable`
-comes from it. A participant that joins, or is recreated on, a domain with many
-live peers creates its endpoints while all of those peers answer at once. The
-answers queue in lwIP until the engine's receive workers read them: up to
-`CONFIG_LWIP_UDP_RECVMBOX_SIZE` datagrams per socket.
+comes from it, so when it runs out the device fails creating one of those,
+far from the cause: `pthread: Failed to create task!` and an abort, or an
+abort inside `pthread_cond_init`.
 
-Where each queued datagram's memory comes from depends on the network driver.
-The Ethernet drivers `malloc()` a full frame (about 1.5 KB) per received
-packet. That is below `CONFIG_SPIRAM_MALLOC_ALWAYSINTERNAL` (4096 by default),
-so the frames land in internal RAM. In the QEMU interop suite, a participant
-recreated next to a dozen ROS 2 peers lost 8-12 KB of internal RAM per endpoint
-this way, against about 1 KB on an empty domain. Eventually creating a task
-failed and the device aborted.
+The cause to look for is received datagrams waiting in lwIP. The engine
+listens on four sockets (metatraffic and user traffic, multicast and unicast,
+plus one per dedicated endpoint port; see
+[Priority scheduling](#priority-scheduling-bands-dedicated-ports-dscp)),
+and lwIP holds up to `CONFIG_LWIP_UDP_RECVMBOX_SIZE` datagrams per socket
+until the engine's receive workers read them. Where a waiting datagram's
+memory comes from depends on the network driver. The Ethernet driver of
+QEMU's emulated MAC allocates a 1522-byte buffer per received frame with plain
+`malloc()` (see the [QEMU board component](../qemu/README.md#receive-buffers-and-memory)).
+That is below `CONFIG_SPIRAM_MALLOC_ALWAYSINTERNAL` (4096 by default), so the
+frames land in internal RAM.
+
+The traffic comes in bursts when a participant creates endpoints on a busy
+domain. Every new endpoint is announced to every live peer, and they all
+answer at once with discovery data, HEARTBEATs and their history. A
+participant that boots before its peers spreads this out, but one that joins,
+or is recreated on, a running domain takes it all while it builds its
+endpoints. In the QEMU interop suite, a participant recreated next to a dozen
+ROS 2 peers lost 8-12 KB of internal RAM per endpoint this way, against about
+1 KB on an empty domain. Eventually creating a task failed and the device
+aborted.
 
 On a busy domain:
 
 - with PSRAM, set `CONFIG_SPIRAM_MALLOC_ALWAYSINTERNAL` below the frame size
-  (the QEMU firmware uses 1024) so received frames go to PSRAM; without PSRAM,
-  keep `CONFIG_LWIP_UDP_RECVMBOX_SIZE` x sockets x 1.5 KB within budget;
+  (the QEMU firmware uses 1024) so received frames go to PSRAM while small
+  allocations stay internal; without PSRAM, keep
+  `CONFIG_LWIP_UDP_RECVMBOX_SIZE` x sockets x 1.5 KB within budget;
 - keep `CONFIG_SPIRAM_MALLOC_RESERVE_INTERNAL` large enough for the tasks and
   locks the application creates at runtime (the QEMU firmware reserves 64 KB);
 - let lwIP allocate from PSRAM (`CONFIG_SPIRAM_TRY_ALLOCATE_WIFI_LWIP`); on
-  Wi-Fi it also moves the driver's dynamic receive buffers there;
+  Wi-Fi this also moves the driver's dynamic receive buffers there;
+- create the endpoints right after the participant starts, as one batch, and
+  measure there: that is where the low point is;
 - watch `heap_caps_get_minimum_free_size(MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT)`
   rather than the `MALLOC_CAP_INTERNAL` total, which on the ESP32 includes IRAM
   that neither stacks nor byte accesses can use.
+
+The QEMU interop firmware (`interop/qemu`) logs this figure after each
+endpoint it creates (`RTPSTEST dram <endpoint> free= min= largest= tasks=`),
+on first boot and after its in-process restart, so a regression shows up in
+the CI device log. Its `sdkconfig.defaults` explains each of the memory and
+lwIP options it sets.
 
 ### Per-limit capacity overrides
 

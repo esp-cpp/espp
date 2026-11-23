@@ -24,12 +24,12 @@ CONFIG_SPIRAM_MALLOC_ALWAYSINTERNAL=1024
 # Keep internal RAM for what must live there. The restart case tears the
 # participant down and builds a new one while a dozen peers from the earlier
 # cases are still announcing: the new participant discovers them all at once,
-# and the proxies (small allocations: internal first, see ALWAYSINTERNAL) plus
-# lwIP's receive / reassembly buffers (internal-only by default) took the data
-# RAM a task stack needs, so creating the publish timer's task failed and the
-# device aborted ("pthread: Failed to create task!"; every later case then
-# failed with it). lwIP now allocates from PSRAM first, and twice the default
-# is reserved for allocations that need internal RAM (FreeRTOS stacks, DMA).
+# and the frames queued for it (see ALWAYSINTERNAL above) plus lwIP's
+# receive / reassembly buffers (internal-only by default) took the data RAM a
+# task stack needs, so creating the publish timer's task failed and the device
+# aborted ("pthread: Failed to create task!"; every later case then failed
+# with it). lwIP now allocates from PSRAM first, and twice the default is
+# reserved for allocations that need internal RAM (FreeRTOS stacks, DMA).
 CONFIG_SPIRAM_TRY_ALLOCATE_WIFI_LWIP=y
 CONFIG_SPIRAM_MALLOC_RESERVE_INTERNAL=65536
 

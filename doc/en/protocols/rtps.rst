@@ -282,6 +282,37 @@ menuconfig under ``RTPS`` on ESP32; ``include/rtps/config.hpp`` defaults on host
      - Compile in services + actions (RMI/AMI). Disable to drop that code and its
        threads on a pure-pub/sub device.
 
+Internal RAM on a busy domain
+-----------------------------
+
+On an ESP32 with PSRAM, the byte-addressable internal RAM
+(``MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT``) runs out first. Task stacks and
+the FreeRTOS locks behind ``std::mutex`` / ``std::condition_variable`` come
+from it, so the failure shows up as a task or lock that cannot be created,
+far from the cause.
+
+The cause to look for is received datagrams waiting in lwIP: up to
+``CONFIG_LWIP_UDP_RECVMBOX_SIZE`` per socket, on each of the engine's four
+sockets (plus one per dedicated port). The Ethernet driver of QEMU's emulated
+MAC keeps each frame in a 1522-byte buffer from ``malloc()`` (see
+:ref:`qemu-receive-buffers`). That is below
+``CONFIG_SPIRAM_MALLOC_ALWAYSINTERNAL``, so the frames land in internal RAM.
+The traffic peaks when a participant creates its endpoints on a running
+domain, because every live peer answers every new endpoint at once. In the
+QEMU interop suite, a participant recreated next to a dozen ROS 2 peers lost
+8-12 KB of internal RAM per endpoint, against about 1 KB on an empty domain,
+until creating a task failed.
+
+On a busy domain, with PSRAM set ``CONFIG_SPIRAM_MALLOC_ALWAYSINTERNAL``
+below the frame size (the QEMU firmware uses 1024); without it, keep queue
+depth x sockets x 1.5 KB within budget. Reserve internal RAM for runtime
+tasks (``CONFIG_SPIRAM_MALLOC_RESERVE_INTERNAL``) and let lwIP use PSRAM
+(``CONFIG_SPIRAM_TRY_ALLOCATE_WIFI_LWIP``). Measure
+``heap_caps_get_minimum_free_size(MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT)``
+right after the endpoints are created; the ``MALLOC_CAP_INTERNAL`` total
+includes IRAM that stacks cannot use. The QEMU interop firmware logs that
+figure after each endpoint, on first boot and after its restart.
+
 Relevant Specifications
 -----------------------
 
