@@ -1,227 +1,235 @@
-# Espressif++ (ESPP)
+<h1 align="center">Espressif++ (ESPP)</h1>
 
-This is the repository for some c++ components developed for the
-[ESP-IDF](https://github.com/espressif/esp-idf) framework. Specifically we are
-targeting `ESP-IDF 6.0` currently, but we are maintaining support for `ESP-IDF
-v5.5.1` as well.
+<p align="center">
+  <strong>Modern C++ components for ESP-IDF: drivers, board support, USB, networking, ROS 2 / DDS and browser tools, ready to drop into your project.</strong><br>
+  160+ components, published one by one to the ESP Component Registry, most with a working example.
+</p>
 
-> NOTE: This repo attempts to stay up to date with ESP-IDF. This means that the
-> code within may not be supported on older ESP-IDF targets.
+<p align="center">
+  <a href="https://github.com/esp-cpp/espp/releases/latest"><img alt="Latest release" src="https://img.shields.io/github/v/release/esp-cpp/espp?label=release"></a>
+  <a href="https://components.espressif.com/components?q=namespace:espp"><img alt="ESP Component Registry" src="https://img.shields.io/badge/ESP%20Registry-espp-e7352c"></a>
+  <a href="https://pypi.org/project/espp/"><img alt="PyPI" src="https://img.shields.io/pypi/v/espp?label=pypi"></a>
+  <a href="https://esp-cpp.github.io/espp/"><img alt="Documentation" src="https://img.shields.io/github/actions/workflow/status/esp-cpp/espp/build_and_publish_docs.yml?branch=main&label=docs"></a>
+  <a href="LICENSE"><img alt="MIT license" src="https://img.shields.io/badge/license-MIT-blue"></a>
+  <a href="https://discord.gg/dvcQw37xAY"><img alt="Discord" src="https://img.shields.io/discord/1345508990716743741?label=discord&logo=discord&logoColor=white"></a>
+</p>
 
-Each component has an `example` folder which contains c++ code showing how to
-use the component and which has a README including instructions for how to run
-the example
+<p align="center">
+  <a href="https://esp-cpp.github.io/espp/getting_started.html">Get started</a> ·
+  <a href="https://esp-cpp.github.io/espp/api_reference.html">Components</a> ·
+  <a href="https://esp-cpp.github.io/espp/dev_boards/index.html">Boards</a> ·
+  <a href="https://esp-cpp.github.io/espp/apps/index.html">Web apps</a> ·
+  <a href="https://esp-cpp.github.io/espp/qemu.html">Run in QEMU</a> ·
+  <a href="https://esp-cpp.github.io/espp/">Documentation</a>
+</p>
 
-If you have questions or would like to chat, feel free to hop over to our discord!
+<p align="center">
+  <a href="#built-with-espp"><img src=".github/assets/readme/built-with-espp.jpg" alt="Projects built with espp: a T-Dongle-S3 USB dongle in a Switch dock, the esp-box-emu emulator on an ESP32-S3-BOX, the tab5-emu launcher on an M5Stack Tab5, a mini retro computer on a Byte90, a 3D renderer on an ESP32-S3-BOX, and a fluid simulation on an ESP32-S3-BOX-3" width="900"></a><br>
+  <sub>Built with espp: <a href="https://github.com/finger563/esp-usb-ble-hid">esp-usb-ble-hid</a> · <a href="https://github.com/esp-cpp/esp-box-emu">esp-box-emu</a> · <a href="https://github.com/esp-cpp/tab5-emu">tab5-emu</a> · <a href="https://github.com/finger563/mini-retro-computer">mini-retro-computer</a> · <a href="https://github.com/finger563/esp-simple-3d">esp-simple-3d</a> · <a href="https://github.com/finger563/esp-box-fluidsim">esp-box-fluidsim</a></sub>
+</p>
 
-[<img src="https://discord.com/api/guilds/1345508990716743741/widget.png?style=banner2" alt="Discord Banner 2"/>](https://discord.gg/dvcQw37xAY)
+espp is a collection of C++ components for the
+[ESP-IDF](https://github.com/espressif/esp-idf) framework. Each one is small,
+focused and usable on its own: add `espp/timer` and you get a timer, not a
+framework. Almost every component has an `example/` project, and each has a
+documentation page with its API reference. Together they cover most of what an ESP32 product
+needs: tasks and logging, sensor and display drivers, board support for nearly
+30 development boards, USB devices, Wi-Fi / Ethernet / BLE networking, ROS 2
+interop, over-the-air updates, and browser tools that talk straight to your
+hardware.
 
-<!-- markdown-toc start - Don't edit this section. Run M-x markdown-toc-refresh-toc -->
-**Table of Contents**
+The components are built and tested in CI with **ESP-IDF v6.1** on the ESP32,
+ESP32-S3, ESP32-C3, ESP32-C6 and ESP32-P4. Each declares the ESP-IDF version it
+needs in its manifest (most need 5.x). The portable subset also builds for
+**Linux, macOS and Windows**, and ships as a **Python** package.
 
-- [Espressif++ (ESPP)](#espressif-espp)
-    - [Getting Started](#getting-started)
-    - [Additional Information and Links](#additional-information-and-links)
-    - [Developing](#developing)
+## Quick start
 
-<!-- markdown-toc end -->
+Add a component to an ESP-IDF project with the component manager:
 
-## Getting Started
-
-The components in this repository are targeted towards ESP-IDF >=5.0, though
-they are mainly tested against 5.5.1 right now.
-
-There are a few different ways to use the components in this repository. **These
-are independent alternatives — pick the one that best fits your situation. You
-only need to do one of them; they are not steps to be run one after another.**
-
-- **Start from the template repository (recommended for new projects).** The
-  [esp-cpp/template](https://github.com/esp-cpp/template) repository is a
-  ready-to-go starting point that is similar to the esp-idf template but geared
-  towards C++ development, and is already set up to pull the `espp` components it
-  needs via the IDF component manager. It is set up as a GitHub *template
-  repository*, so you can create your own project from it directly using the
-  green **"Use this template"** button on its
-  [GitHub page](https://github.com/esp-cpp/template) — there's no need to fork or
-  clone it by hand. After creating your repository from the template, run the
-  included setup script to customize and configure the project (renaming it,
-  etc.) for your needs.
-
-- **Add individual components with the IDF component manager.** All `espp`
-  components are published to the [ESP Component
-  Registry](https://components.espressif.com/components?q=namespace:espp) under
-  the namespace `espp`. For example, if you want to use the `task` component and
-  the `ble_gatt_server` component, you could run:
-
-     ```console
-     idf.py add-dependency "espp/task^1.0"
-     idf.py add-dependency "espp/ble_gatt_server^1.0"
-     ```
-
-   Alternatively, you could add the following dependencies to your
-   `main/idf_component.yml`:
-
-     ```yaml
-     dependencies:
-        esp-cpp/ble_gatt_server: '>=1.0'
-        esp-cpp/task: '>=1.0'
-        # other dependencies here...
-     ```
-
-- **Add espp to an existing project as a submodule.**
-
-  > **Not recommended.** espp is a large repository with many submodules and
-  > supports many targets, so vendoring the whole repository this way is
-  > heavyweight, and this approach may not be fully supported going forward.
-  > Prefer the IDF component manager (above), which pulls in only the components
-  > you need. Use this approach only in exceptional cases where the component
-  > manager is not an option.
-
-  If you already have a project with a `components` directory, add `espp` as a
-  submodule there:
-
-    ```console
-    git submodule add https://github.com/esp-cpp/espp components/espp
-    git submodule update --init --recursive
-    ```
-
-  The `--recursive` flag is important: it pulls in the nested submodules that
-  some components require. Afterwards, update your top-level `CMakeLists.txt` to
-  add
-
-    ```cmake
-    # add the component directories that we want to use
-    set(EXTRA_COMPONENT_DIRS
-      "components/espp/components"
-    )
-    ```
-
-- **Clone espp anywhere and reference its components.** You can also clone espp
-  somewhere on your computer and then point your project to its `components`
-  directory to use any of the components it contains, similar to the option
-  above. The same caveat applies: this is **not recommended** and should be
-  reserved for exceptional cases — prefer the IDF component manager.
-
-   Note: you should ensure that you clone recursively or run `git submodule
-   update --init --recursive` to ensure that you have the latest versions of all
-   the submodules which are required to build the components in this repository.
-
-- **Use the cross-platform components from Python or desktop C++ (no ESP
-  hardware needed).** The portable subset of espp (tasks, timers, sockets,
-  RTSP, RTPS, CDR, COBS, serialization, math, and more) builds for Linux,
-  macOS, and Windows.
-
-  **From Python** — packaged as the [`espp` python
-  package](https://pypi.org/project/espp/):
-
-    ```console
-    pip install espp
-    # or, straight from the repository:
-    pip install git+https://github.com/esp-cpp/espp.git
-    ```
-
-  **From C++** — install it as a relocatable CMake package and consume it with
-  `find_package(espp)`. Link the `espp::espp` target; it carries the include
-  dirs, the C++23 requirement, and the system libraries, so nothing else is
-  needed:
-
-    ```sh
-    # build + install espp into a prefix (or just run lib/build.sh)
-    cmake -S lib -B build -DESPP_INSTALL=ON -DCMAKE_INSTALL_PREFIX=/path/to/install
-    cmake --build build --target install
-    ```
-
-    ```cmake
-    find_package(espp REQUIRED)
-    target_link_libraries(my_app PRIVATE espp::espp)
-    ```
-
-  Or pull it into your CMake build directly — no install step — with
-  FetchContent or [CPM](https://github.com/cpm-cmake/CPM.cmake), which expose the
-  same `espp::espp` target (both recurse espp's vendored submodules for you):
-
-    ```cmake
-    # FetchContent
-    include(FetchContent)
-    FetchContent_Declare(espp
-      GIT_REPOSITORY https://github.com/esp-cpp/espp.git
-      GIT_TAG main
-      SOURCE_SUBDIR lib)   # the cross-platform C++ library lives in lib/
-    FetchContent_MakeAvailable(espp)
-    target_link_libraries(my_app PRIVATE espp::espp)
-    ```
-
-    ```cmake
-    # CPM  (https://github.com/cpm-cmake/CPM.cmake)
-    CPMAddPackage(
-      NAME espp
-      GITHUB_REPOSITORY esp-cpp/espp
-      GIT_TAG main
-      SOURCE_SUBDIR lib)   # the cross-platform C++ library lives in lib/
-    target_link_libraries(my_app PRIVATE espp::espp)
-    ```
-
-  See [lib/](./lib) for the full C++ details (whole-archive linking, versioning,
-  the build scripts), [pc/](./pc) for example C++ tests that consume the
-  installed package, and [python/](./python) for example Python scripts.
-
-## Additional Information and Links
-
- * [Documentation](https://esp-cpp.github.io/espp/) - github hosted version of
-   the documentation found in [./docs](./docs). This documentation is
-   automatically built as part of the CI, but can be locally built for
-   validation by running [./build_docs.sh](./build_docs.sh). NOTE: to ensure
-   proper build environments, the local documentation build relies on docker, so
-   you'll need to run `docker build -t esp-docs doc` once before running
-   `build_docs.sh`. This is only required if you want to build the documentation
-   locally.
-
-Many components in this repo contain example code (referenced in the
-documentation above) that shows some basic usage. This example code can be found
-in that component's `example` directory. NOTE: many component examples also make
-use of other components (esp. some of the foundational components such as
-`format`, `logger`, and `task`.
-
-The [esp-cpp github organization](https://github.com/esp-cpp) contains other
-repositories that build specific demonstrations with these (and other)
-components.
-
-One such example is the [esp-box-emu](http://github.com/esp-cpp/esp-box-emu)
-repository, which builds upon these components to create a multiplatform
-emulation system using the ESP32-S3-BOX hardware.
-
-## Developing
-
-If you plan to develop espp components, then it is recommended to configure your
-development environment:
-
-### Code style
-
-1. Ensure `clang-format` is installed
-2. Ensure [pre-commit](https://pre-commit.com) is installed
-3. Set up `pre-commit` for this repository:
-
-  ``` console
-  pre-commit install
-  ```
-
-This helps ensure that consistent code formatting is applied.
-
-### Building and viewing documentation locally
-
-If you wish to build the documentation, you should have docker installed, then
-you can run
-
-``` console
-docker build -t esp-docs doc
+```console
+idf.py add-dependency "espp/timer^1.4"
 ```
 
-To build the docker container which you will use to build the documentation
-locally (for testing).
+```cpp
+#include <chrono>
+#include <thread>
 
-Thereafter, you can use the included build script to build the documentation
-locally.
+#include "logger.hpp"
+#include "timer.hpp"
 
-``` console
-./build_docs.sh
+using namespace std::chrono_literals;
+
+extern "C" void app_main(void) {
+  espp::Logger logger({.tag = "app", .level = espp::Logger::Verbosity::INFO});
+
+  // runs the callback every 500 ms on its own task; return true to stop
+  espp::Timer timer({.name = "heartbeat",
+                     .period = 500ms,
+                     .callback = [&]() {
+                       logger.info("tick");
+                       return false;
+                     }});
+
+  while (true) {
+    std::this_thread::sleep_for(1s);
+  }
+}
 ```
+
+Other ways to start:
+
+- **A new project:** create it from the [esp-cpp/template](https://github.com/esp-cpp/template)
+  repository (the green **Use this template** button). It is set up for C++ and
+  pulls espp components through the component manager.
+- **Desktop C++ or Python, no ESP hardware:** `pip install espp`, or
+  `find_package(espp)` / FetchContent / CPM from CMake. See
+  [Desktop and Python](#desktop-and-python).
+- **Every option, including a git submodule:** the
+  [Getting started](https://esp-cpp.github.io/espp/getting_started.html) guide.
+
+## What's inside
+
+| Capability | Some of the components | |
+|---|---|---|
+| **Core & RTOS** | `task`, `timer`, `logger`, `thread_pool`, `event_manager`, `state_machine`, `cli`, `coredump`, `system`, `monitor` | [docs](https://esp-cpp.github.io/espp/api_reference.html#api-core-rtos) |
+| **Storage & configuration** | `nvs`, `persistent_data` (versioned settings with migrations), `file_system`, `littlefs`, `sdcard` | [docs](https://esp-cpp.github.io/espp/api_reference.html#api-storage-configuration) |
+| **Buses & I/O** | `i2c`, `spi`, `twai` (CAN), `rmt`, `adc`, IO expanders (`mcp23x17`, `aw9523`, `pca9535`…) | [docs](https://esp-cpp.github.io/espp/api_reference.html#api-buses-i-o) |
+| **Sensors** | IMUs (`bmi270`, `icm42607`, `lsm6dso`, `qmi8658`, `bno055`…), magnetic encoders (`as5600`, `mt6701`), multizone time-of-flight (`vl53l`), fuel gauges, RTCs, power monitors, GPS | [docs](https://esp-cpp.github.io/espp/api_reference.html#api-sensors) |
+| **Motor control** | FOC `bldc_motor` and drivers, `bldc_haptics`, `pid`, `adrc`, `trajectory_planner`, ODrive (`odrive_ascii`, `odrive_native`), CANopen / DS402 (`canopen`), Basicmicro controllers | [docs](https://esp-cpp.github.io/espp/api_reference.html#api-motor-control) |
+| **Audio** | `audio`, `codec` | [docs](https://esp-cpp.github.io/espp/api_reference.html#api-audio) |
+| **Displays, LEDs & haptics** | `display` + `display_drivers` on LVGL, `led`, `led_strip`, `neopixel`, `drv2605`, `expressive_eyes` | [docs](https://esp-cpp.github.io/espp/api_reference.html#api-displays-leds-haptics) |
+| **Input & HID** | touch controllers, `button`, `joystick`, `usb_device` (CDC, HID, MSC, WebUSB, X-Input), `usb_host`, `hid-rp`, `gamepad_map`, `switch_pro`, `switch2_pro` | [docs](https://esp-cpp.github.io/espp/api_reference.html#api-input-hid) |
+| **Connectivity & protocols** | `wifi`, `ethernet`, `provisioning`, `socket`, `rtsp`, `rtps` (ROS 2 / DDS), `ble_gatt_server`, `ota`, `dispatcher` + `stream_frame`, `telemetry`, `ftp`, LoRa (`sx126x`, `meshtastic`), NFC | [docs](https://esp-cpp.github.io/espp/api_reference.html#api-connectivity-protocols) |
+| **Math & DSP** | `math`, `filters`, `esp-dsp` | [docs](https://esp-cpp.github.io/espp/api_reference.html#api-math-dsp) |
+| **Data & serialization** | `serialization`, `cdr`, `cobs`, `csv`, `binary-log`, `reflect_cpp`, `format` | [docs](https://esp-cpp.github.io/espp/api_reference.html#api-data-serialization) |
+
+## Highlights
+
+- **Board support for nearly 30 boards.** One-call setup for the display,
+  touch, audio, buttons, IMU and SD card on boards from Espressif, M5Stack,
+  LilyGo, Waveshare, Seeed, Adafruit, MotorGo and others: the ESP32-S3-BOX,
+  M5Stack Tab5 and Cardputer, LilyGo T-Deck, Waveshare ESP32-P4 boards and more.
+  [All boards →](https://esp-cpp.github.io/espp/dev_boards/index.html)
+- **ROS 2 on a microcontroller.** `rtps` is an RTPS / DDS stack with
+  publishers, subscribers, services and actions that interoperates with ROS 2
+  nodes over Fast DDS and Cyclone DDS. CI checks it against ROS 2 Humble and
+  Jazzy, and against an emulated ESP32 in QEMU.
+  [RTPS →](https://esp-cpp.github.io/espp/protocols/rtps.html)
+- **USB the easy way.** `usb_device` builds composite devices (CDC serial, HID,
+  mass storage, WebUSB vendor, X-Input) from a config struct, and `usb_host`
+  reads HID devices such as gamepads, keyboards and 3D mice.
+- **Browser tools for your device.** Self-contained web apps talk to your
+  hardware over WebUSB, Web Serial or WebHID, with nothing to install. The
+  `dispatcher` lets one USB link serve OTA updates, crash dumps, system info and
+  your own modules, and the Device Hub finds the right console for whatever a
+  device runs. [Browser tools →](#browser-tools)
+- **Run without hardware.** The `qemu` board package brings up the display,
+  Ethernet and an SD card in Espressif's QEMU, for development and CI.
+  [QEMU guide →](https://esp-cpp.github.io/espp/qemu.html)
+- **Desktop and Python too.** Tasks, timers, sockets, RTSP, RTPS, serialization
+  and more run on your computer, from C++ or Python.
+
+## Browser tools
+
+The web apps are single HTML files that talk to a device over WebUSB, Web
+Serial or WebHID from desktop Chrome or Edge, with nothing to install. Each
+espp component that has one keeps it in its `web/` folder, and they are all
+published on the [web apps page](https://esp-cpp.github.io/espp/apps/index.html).
+
+<table>
+  <tr>
+    <td width="50%"><a href="https://esp-cpp.github.io/espp/apps/telemetry.html"><img src=".github/assets/readme/telemetry.jpg" alt="The espp Serial Plotter plotting a motor's target, position, velocity and current over time"></a><br><b>Serial plotter</b> (<code>telemetry</code>): live plots from CSV over a serial port, or binary telemetry over WebUSB</td>
+    <td width="50%"><a href="https://esp-cpp.github.io/espp/apps/vl53l5cx_console.html"><img src=".github/assets/readme/vl53l5cx-console.jpg" alt="The espp VL53L5CX console showing an 8x8 time-of-flight frame as 3D bars and a zone grid"></a><br><b>VL53L5CX console</b> (<code>vl53l</code>): a multizone time-of-flight sensor in 3D, with its settings</td>
+  </tr>
+  <tr>
+    <td width="50%"><a href="https://esp-cpp.github.io/espp/apps/gamepad_map_console.html"><img src=".github/assets/readme/gamepad-map-console.jpg" alt="The espp Gamepad Map Console showing a controller's live input before and after its button map, its profiles and the map editor"></a><br><b>Gamepad map console</b> (<code>gamepad_map</code>): live input before and after the button map, per-controller profiles</td>
+    <td width="50%"><a href="https://esp-cpp.github.io/espp/apps/system_console.html"><img src=".github/assets/readme/system-console.jpg" alt="The espp System Console showing chip and firmware info, reboot controls, heap gauges and the task table"></a><br><b>System console</b> (<code>system</code>, <code>monitor</code>): chip and firmware info, reboot, heap and tasks</td>
+  </tr>
+</table>
+
+<sub>The screenshots show the published apps fed with sample data.</sub>
+
+## Desktop and Python
+
+The portable subset of espp (tasks, timers, sockets, RTSP, RTPS, CDR, COBS,
+serialization, math and more) builds for Linux, macOS and Windows.
+
+**Python** ([`espp` on PyPI](https://pypi.org/project/espp/)):
+
+```console
+pip install espp
+```
+
+The [python/](./python) folder has example scripts for timers, tasks, sockets,
+RTSP and RTPS.
+
+**C++:** link the `espp::espp` CMake target, which carries the include
+directories, the C++23 requirement and the system libraries. Install it and use
+`find_package`, or pull it in directly:
+
+```cmake
+include(FetchContent)
+FetchContent_Declare(espp
+  GIT_REPOSITORY https://github.com/esp-cpp/espp.git
+  GIT_TAG main
+  SOURCE_SUBDIR lib)   # the cross-platform C++ library lives in lib/
+FetchContent_MakeAvailable(espp)
+target_link_libraries(my_app PRIVATE espp::espp)
+```
+
+```sh
+# or build + install espp into a prefix (or run lib/build.sh)
+cmake -S lib -B build -DESPP_INSTALL=ON -DCMAKE_INSTALL_PREFIX=/path/to/install
+cmake --build build --target install
+```
+
+```cmake
+find_package(espp REQUIRED)
+target_link_libraries(my_app PRIVATE espp::espp)
+```
+
+[CPM](https://github.com/cpm-cmake/CPM.cmake) works the same way
+(`CPMAddPackage(NAME espp GITHUB_REPOSITORY esp-cpp/espp GIT_TAG main SOURCE_SUBDIR lib)`).
+See [lib/](./lib) for whole-archive linking, versioning and the build scripts,
+and [pc/](./pc) for example C++ programs that use the installed package.
+
+## Built with espp
+
+| Project | What it is |
+|---|---|
+| [esp-box-emu](https://github.com/esp-cpp/esp-box-emu) | Retro game emulators (NES, Game Boy, Genesis, MSX, Doom, Dark Forces…) on the ESP32-S3-BOX with a custom gamepad |
+| [tab5-emu](https://github.com/esp-cpp/tab5-emu) | Emulation and games on the M5Stack Tab5 (ESP32-P4) |
+| [esp-usb-ble-hid](https://github.com/finger563/esp-usb-ble-hid) | A USB dongle that turns Bluetooth LE gamepads into a wired Switch Pro or Xbox 360 controller, with a browser console |
+| [camera-streamer](https://github.com/esp-cpp/camera-streamer) and [camera-display](https://github.com/esp-cpp/camera-display) | An ESP32 TimerCam streaming MJPEG over RTSP, shown on an ESP32-S3-BOX |
+| [software-defined-haptics](https://github.com/esp-cpp/software-defined-haptics) | Software-defined haptic knobs on a BLDC motor |
+| [wireless-debug-display](https://github.com/esp-cpp/wireless-debug-display) | Plots and logs from another system, sent over UDP to an ESP32 display |
+| [mini-retro-computer](https://github.com/finger563/mini-retro-computer) | A tiny retro computer on the ALXV Labs Byte90 or a Waveshare ESP32-S3 Touch LCD |
+| [esp-simple-3d](https://github.com/finger563/esp-simple-3d) | A textured 3D renderer on the ESP32-S3-BOX |
+| [esp-box-fluidsim](https://github.com/finger563/esp-box-fluidsim) | An interactive fluid simulation on the ESP32-S3-BOX, tilted with its IMU |
+| [esp-box-motor-gesture-control](https://github.com/finger563/esp-box-motor-gesture-control) and [esp-motorgo-mini-gesture-control](https://github.com/finger563/esp-motorgo-mini-gesture-control) | ESP32-S3-BOX tilt gestures driving a MotorGo Mini's motors over ESP-NOW |
+
+Built something with espp? Tell us on [Discord](https://discord.gg/dvcQw37xAY).
+
+## Community
+
+Questions, ideas or something to show? Join the Discord:
+
+[<img src="https://discord.com/api/guilds/1345508990716743741/widget.png?style=banner2" alt="espp Discord server"/>](https://discord.gg/dvcQw37xAY)
+
+Bug reports and feature requests go to
+[GitHub issues](https://github.com/esp-cpp/espp/issues).
+
+## Contributing
+
+To work on espp itself:
+
+1. Install `clang-format` and [pre-commit](https://pre-commit.com), then run
+   `pre-commit install` in the repository so every commit is formatted.
+2. Build a component's example from its folder, for example
+   `cd components/timer/example && idf.py build`.
+3. To build the documentation locally, install Docker, build the image once
+   with `docker build -t esp-docs doc`, then run `./build_docs.sh`. The sources
+   are in [doc/](./doc); the published site is built by CI.
+
+espp is released under the [MIT License](LICENSE).
