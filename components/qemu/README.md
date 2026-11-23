@@ -68,6 +68,49 @@ MAC has no multicast address filter, so ESP-IDF logs
 `add mac address to filter not supported` when lwIP joins a group; the frames
 are received regardless.
 
+### Receive buffers and memory
+
+The emulated MAC's driver keeps received frames in two places, and both
+matter to an application that receives bursts or listens on a busy network:
+
+- **The DMA receive ring.** `CONFIG_ETH_OPENETH_DMA_RX_BUFFER_NUM` descriptors
+  (default 4) of 1600 bytes each, allocated from internal DMA-capable RAM when
+  the interface starts. In the emulator a burst arrives with no wire time
+  between frames, so anything longer than the ring is dropped
+  (`RX frame dropped (0x14)` in the log). A fragmented UDP datagram is one
+  such burst: a 30 KB datagram is 21 frames back to back. Raise the ring for
+  that (64 is the maximum, about 100 KB of internal RAM).
+- **One heap buffer per received frame.** The driver's receive task copies
+  each frame out of the ring into a freshly `malloc()`ed 1522-byte buffer and
+  hands it to lwIP. The buffer is freed only when the application has read the
+  datagram. Until then it waits in the socket's receive queue: up to
+  `CONFIG_LWIP_UDP_RECVMBOX_SIZE` datagrams per UDP socket (default 6),
+  behind `CONFIG_LWIP_TCPIP_RECVMBOX_SIZE` in the lwIP task's own queue, and,
+  for a fragmented datagram, in IP reassembly (`CONFIG_LWIP_IP_REASS_MAX_PBUFS`).
+
+On a machine with PSRAM (`idf.py qemu` gives the ESP32 machine 4 MB, `-m 4M`),
+1522 bytes is below the default `CONFIG_SPIRAM_MALLOC_ALWAYSINTERNAL` (4096),
+so those buffers come from internal RAM first. A deep queue on several sockets
+can then hold more internal RAM than the chip has free, and the application
+fails somewhere unrelated: creating a task or a FreeRTOS lock, both of which
+need internal RAM. To avoid that:
+
+- with PSRAM, set `CONFIG_SPIRAM_MALLOC_ALWAYSINTERNAL` below the frame size
+  (1024, for example), so the frame buffers go to PSRAM while smaller
+  allocations stay internal;
+- without PSRAM, size the queues so that queue depth x sockets x 1.5 KB fits
+  what the application can spare;
+- `CONFIG_SPIRAM_TRY_ALLOCATE_WIFI_LWIP` moves lwIP's own allocations (pbufs,
+  reassembly) to PSRAM. It does not move the driver's frame buffers, which are
+  a plain `malloc()`.
+
+IP reassembly is off in ESP-IDF's default lwIP configuration
+(`CONFIG_LWIP_IP4_REASSEMBLY`): without it, a UDP datagram larger than one
+frame is dropped by the stack. The RTPS interop firmware
+([`components/rtps/interop/qemu`](../rtps/interop/qemu/sdkconfig.defaults))
+sets all of these for a dozen ROS 2 peers sending fragmented samples, with
+the reasoning beside each option.
+
 ## API
 
 ```cpp
