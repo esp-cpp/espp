@@ -14,6 +14,7 @@
 #include <esp_timer.h>
 
 #include "base_component.hpp"
+#include "hid-rp-rumble.hpp"
 #include "hid-rp-switch-pro.hpp"
 #include "high_resolution_timer.hpp"
 
@@ -53,6 +54,12 @@ public:
 
   /// @brief Configuration for the SwitchPro engine.
   struct Config {
+    /// Called with the motor levels of every host OUTPUT report that carries
+    /// rumble data (0x01 rumble + subcommand, 0x10 rumble only), neutral (0 /
+    /// 0) packets included: the host sends rumble continuously, so dedupe or
+    /// rate-limit downstream as needed. Runs on the caller of on_hid_report()
+    /// (usually the TinyUSB task), so it must not block. Optional.
+    std::function<void(const hid_rp::SwitchRumble &rumble)> on_rumble{nullptr};
     espp::Logger::Verbosity log_level{espp::Logger::Verbosity::WARN}; ///< Logger verbosity.
   };
 
@@ -92,6 +99,7 @@ public:
   ///
   /// Feed every OUTPUT report the host sends (report ids 0x80 init, 0x01 output /
   /// subcommand, 0x10 rumble) here; byte 0 of @p data must be the report id.
+  /// The rumble data in 0x01 / 0x10 reports goes to Config::on_rumble.
   /// Returns the INPUT report to send back (report id + bytes), or std::nullopt if
   /// no reply is warranted.
   /// @param report_id The HID report id (ignored; the type is read from data[0]).
@@ -175,6 +183,7 @@ protected:
   // streamed 0x30 report with them), so they are atomic.
   std::atomic<uint8_t> vibrator_report_{0}; // randomly selected from sp::vibrator_bytes
   std::atomic<bool> imu_enabled_{false};
+  std::function<void(const hid_rp::SwitchRumble &)> on_rumble_; // Config::on_rumble
   uint8_t input_report_id_ = 0x21;
   sp::TriggerTimes trigger_times_{};
 

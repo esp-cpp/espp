@@ -124,6 +124,21 @@ if (decoder.update(report_id, payload, report))   // BLE: the ID comes out of ba
   send(map.apply(espp::to_gamepad_state(report)));
 ```
 
+## Rumble
+
+`RumbleState` (`rumble_state.hpp`) is the output-direction counterpart of
+`GamepadState`: how strongly to drive each motor (strong / weak, plus the two
+impulse-trigger motors), 0..255. A host's rumble request is decoded into it, and
+it is encoded into whatever drives the motors. `gamepad_state_hid_rp.hpp` bridges
+it to `hid-rp`:
+
+```cpp
+// a Switch host's rumble (espp::SwitchPro::Config::on_rumble) to a BLE
+// controller's rumble report (hid_rp::RumbleEncoder from its report map)
+auto state = espp::to_rumble_state(switch_rumble);
+auto payload = encoder.encode(espp::to_rumble_levels(state), 200);
+```
+
 ## Web console
 
 `espp::GamepadMapService` serves a `GamepadProfiles` store over any framed byte

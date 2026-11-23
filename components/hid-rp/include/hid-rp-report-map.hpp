@@ -23,11 +23,14 @@
 #include "hid/rdf/descriptor_view.hpp"
 #include "hid/rdf/exception.hpp"
 #include "hid/rdf/parser.hpp"
+#include "hid/rdf/unit.hpp"
 
 namespace espp {
 namespace hid_rp {
 
-/// One Input data field of a device's report(s), as laid out in the report.
+/// One data field of a device's report(s), as laid out in the report: an
+/// Input field (ReportMap::fields()) or an Output field
+/// (ReportMap::output_fields()).
 struct ReportField {
   uint8_t report_id{0};   ///< 0 when the device does not use report IDs
   uint32_t bit_offset{0}; ///< bit position within the report (after the ID byte, if any)
@@ -37,16 +40,20 @@ struct ReportField {
   uint16_t usage_max{0};  ///< array fields: usage maximum (variable: unused)
   int32_t logical_min{0};
   int32_t logical_max{0};
-  bool array{false};    ///< array item: the value selects a usage (usage + value - logical_min)
-  bool relative{false}; ///< relative (mouse motion) rather than absolute
+  bool array{false};       ///< array item: the value selects a usage (usage + value - logical_min)
+  bool relative{false};    ///< relative (mouse motion) rather than absolute
+  uint32_t unit{0};        ///< the global Unit item (0 = none), as declared
+  int8_t unit_exponent{0}; ///< the global Unit Exponent: the value is in unit * 10^exponent
 };
 
 /// The Input fields of a report descriptor, parsed at runtime.
 class ReportMap {
 public:
   /// Parse a report descriptor. Returns nullopt for a descriptor the parser
-  /// rejects (malformed items, unmatched push/pop). Only Input items are
-  /// mapped; Output/Feature items are skipped (they live in other reports).
+  /// rejects (malformed items, unmatched push/pop) or that has no Input
+  /// fields. Input items are mapped into fields(), Output items into
+  /// output_fields() (each with its own report layout, as a device's input and
+  /// output reports are separate); Feature items are skipped.
   static std::optional<ReportMap> parse(std::span<const uint8_t> descriptor) {
     ReportMap map;
     // hid-rp reports malformed descriptors through HID_RDF_ASSERT, which
@@ -76,6 +83,10 @@ public:
 
   /// Every Input field, in descriptor order.
   const std::vector<ReportField> &fields() const { return fields_; }
+  /// Every Output field (host -> device: rumble, LEDs...), in descriptor order.
+  /// Constant (padding) items are not listed; they only move the next field's
+  /// bit_offset.
+  const std::vector<ReportField> &output_fields() const { return output_fields_; }
   /// Whether the device's reports start with a report ID byte.
   bool uses_report_ids() const { return uses_report_ids_; }
   /// Size in bytes of the Input report with the given ID (0 = no report IDs),
@@ -83,6 +94,12 @@ public:
   size_t report_bytes(uint8_t report_id) const {
     auto it = bit_cursor_.find(report_id);
     return it == bit_cursor_.end() ? 0 : (it->second + 7) / 8;
+  }
+  /// Size in bytes of the Output report with the given ID (0 = no report IDs),
+  /// without the ID byte; 0 if the device declares no such output report.
+  size_t output_report_bytes(uint8_t report_id) const {
+    auto it = out_bit_cursor_.find(report_id);
+    return it == out_bit_cursor_.end() ? 0 : (it->second + 7) / 8;
   }
 
   /// Extract a field's value from a report (`report` excludes the ID byte;
@@ -155,9 +172,15 @@ private:
                                     const items_view_type &main_section,
                                     unsigned /*tlc_number*/) override {
       namespace rdf = ::hid::rdf;
-      if (main_item.main_tag() != rdf::main::tag::INPUT) {
+      // Input and Output items are laid out in separate reports (an Input
+      // report and an Output report of the same ID are different reports), so
+      // each kind keeps its own fields and bit cursors. Feature items are not
+      // mapped.
+      const bool is_input = main_item.main_tag() == rdf::main::tag::INPUT;
+      if (!is_input && main_item.main_tag() != rdf::main::tag::OUTPUT) {
         return control::CONTINUE;
       }
+      auto &fields = is_input ? map_.fields_ : map_.output_fields_;
       const uint32_t flags = main_item.value_unsigned();
       const bool constant = flags & 0x1;
       const bool variable = flags & 0x2;
@@ -176,13 +199,19 @@ private:
       const uint16_t usage_page = static_cast<uint16_t>(global_u(rdf::global::tag::USAGE_PAGE, 0));
       const int32_t logical_min = global_s(rdf::global::tag::LOGICAL_MINIMUM, 0);
       const int32_t logical_max = global_s(rdf::global::tag::LOGICAL_MAXIMUM, 0);
+      const uint32_t unit = global_u(rdf::global::tag::UNIT, 0);
+      const auto *exponent_item = global_state.get_item(rdf::global::tag::UNIT_EXPONENT);
+      const int8_t unit_exponent =
+          exponent_item ? static_cast<int8_t>(rdf::unit::get_exponent(*exponent_item)) : 0;
       if (report_size == 0 || report_count == 0) {
         return control::CONTINUE; // a field without bits: nothing in the report to map
       }
-      if (report_id != 0) {
+      if (report_id != 0 && is_input) {
+        // (input reports only: split() strips the ID from input reports, and an
+        // output report's ID is carried by whoever builds it)
         map_.uses_report_ids_ = true;
       }
-      uint32_t &cursor = map_.bit_cursor_[report_id];
+      uint32_t &cursor = (is_input ? map_.bit_cursor_ : map_.out_bit_cursor_)[report_id];
 
       // local items of this main section: a usage list and/or a usage range
       std::vector<uint32_t> usages; // full usage (page << 16 | id)
@@ -233,6 +262,8 @@ private:
         f.logical_min = logical_min;
         f.logical_max = logical_max;
         f.relative = relative;
+        f.unit = unit;
+        f.unit_exponent = unit_exponent;
         if (variable) {
           uint32_t u = 0;
           if (have_range) {
@@ -274,7 +305,7 @@ private:
           f.usage_max = static_cast<uint16_t>(hi & 0xFFFF);
         }
         cursor += report_size;
-        map_.fields_.push_back(f);
+        fields.push_back(f);
       }
       return control::CONTINUE;
     }
@@ -291,7 +322,9 @@ private:
   };
 
   std::vector<ReportField> fields_;
-  std::map<uint8_t, uint32_t> bit_cursor_; ///< input bit position per report ID
+  std::vector<ReportField> output_fields_;
+  std::map<uint8_t, uint32_t> bit_cursor_;     ///< input bit position per report ID
+  std::map<uint8_t, uint32_t> out_bit_cursor_; ///< output bit position per report ID
   bool uses_report_ids_{false};
 };
 
@@ -306,6 +339,7 @@ constexpr uint16_t PAGE_SIMULATION = 0x02;
 constexpr uint16_t PAGE_KEYBOARD = 0x07;
 constexpr uint16_t PAGE_BUTTON = 0x09;
 constexpr uint16_t PAGE_CONSUMER = 0x0C;
+constexpr uint16_t PAGE_PHYSICAL_INPUT_DEVICE = 0x0F; ///< PID: force feedback / rumble
 constexpr uint16_t GD_X = 0x30, GD_Y = 0x31, GD_Z = 0x32, GD_RX = 0x33, GD_RY = 0x34, GD_RZ = 0x35;
 constexpr uint16_t GD_WHEEL = 0x38, GD_HAT = 0x39;
 constexpr uint16_t SIM_ACCELERATOR = 0xC4, SIM_BRAKE = 0xC5;
@@ -314,6 +348,9 @@ constexpr uint16_t GD_DPAD_UP = 0x90, GD_DPAD_DOWN = 0x91, GD_DPAD_RIGHT = 0x92,
 constexpr uint16_t CONSUMER_MENU = 0x0040, CONSUMER_RECORD = 0x00B2, CONSUMER_AC_EXIT = 0x0204,
                    CONSUMER_AC_PROPERTIES = 0x0209, CONSUMER_AC_HOME = 0x0223,
                    CONSUMER_AC_BACK = 0x0224;
+// Physical Interface Device (force feedback) usages used for rumble
+constexpr uint16_t PID_SET_EFFECT_REPORT = 0x21, PID_DURATION = 0x50, PID_MAGNITUDE = 0x70,
+                   PID_LOOP_COUNT = 0x7C, PID_DC_ENABLE_ACTUATORS = 0x97, PID_START_DELAY = 0xA7;
 } // namespace usage
 
 /// A gamepad report decoded into positions rather than button numbers.

@@ -19,6 +19,8 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <optional>
+#include <span>
 #include <vector>
 
 namespace espp {
@@ -111,6 +113,24 @@ struct GamepadState {
     return r;
   }
 };
+
+/// The two motor levels of an X-Input rumble report.
+struct Rumble {
+  uint8_t left{0};  ///< the large, low-frequency motor (left grip), 0..255
+  uint8_t right{0}; ///< the small, high-frequency motor (right grip), 0..255
+  constexpr bool operator==(const Rumble &) const = default;
+};
+
+/// The motor levels in a report the host sent on the X-Input OUT endpoint
+/// (UsbDevice::XInputFunction::on_rumble), or nullopt for a report that is not
+/// a rumble report. The host sends two kinds of 8-byte reports there:
+///  - rumble: `00 08 00 <left> <right> 00 00 00`
+///  - LED ring: `01 03 <pattern>` (not rumble: nullopt)
+inline std::optional<Rumble> decode_rumble(std::span<const uint8_t> report) {
+  if (report.size() < 5 || report[0] != 0x00)
+    return std::nullopt;
+  return Rumble{report[3], report[4]};
+}
 
 /// Build the interface + XID + two interrupt-endpoint descriptor bytes for an
 /// X-Input interface. @p ep_in and @p ep_out are the full endpoint ADDRESSES

@@ -40,3 +40,4 @@ API Reference
 .. include-build-file:: inc/gamepad_map_service.inc
 .. include-build-file:: inc/gamepad_profiles.inc
 .. include-build-file:: inc/gamepad_state_hid_rp.inc
+.. include-build-file:: inc/rumble_state.inc

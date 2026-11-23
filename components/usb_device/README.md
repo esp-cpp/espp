@@ -232,7 +232,9 @@ X-Input interface (class 0xFF / subclass 0x5D / protocol 0x01), so it coexists
 with the built-in CDC, HID and vendor drivers when those are enabled.
 
 Set `Config::xinput`, send gamepad state with `update_xinput_state(GamepadState)`,
-and receive rumble/LED reports via `XInputFunction::on_rumble`. The interface uses
+and receive rumble/LED reports via `XInputFunction::on_rumble`
+(`xinput::decode_rumble()` reads the two motor levels out of a rumble report and
+skips LED reports). The interface uses
 one interrupt-IN endpoint (0x81, 20-byte input reports) and one interrupt-OUT
 endpoint (rumble/LED); the two use **separate endpoint numbers**, and the DMA
 report buffers are word-aligned, as the ESP32-S3 DWC2 requires. See
