@@ -7,7 +7,8 @@ components and abstractions for the `ESP-IDF
 its own, and many also build on a few foundational components such as
 ``format``, ``logger``, and ``task``.
 
-ESPP currently targets ESP-IDF ``6.0`` while maintaining support for ``5.5.1``.
+The components are built and tested in CI with ESP-IDF ``v6.1``. Each one declares
+the ESP-IDF version it needs in its ``idf_component.yml`` (most need ``5.x``).
 
 How this documentation is organized
 ===================================
