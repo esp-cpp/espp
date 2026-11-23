@@ -745,6 +745,10 @@ extern "C" void espp_usb_device_event_cb(tinyusb_event_t *event, void *arg) {
     dev->handle_usb_mount();
   else if (event->id == TINYUSB_EVENT_DETACHED)
     dev->handle_usb_unmount();
+  else if (event->id == TINYUSB_EVENT_SUSPENDED)
+    dev->handle_usb_suspend();
+  else if (event->id == TINYUSB_EVENT_RESUMED)
+    dev->handle_usb_resume();
 }
 
 #if (CFG_TUD_HID > 0)
@@ -1852,6 +1856,36 @@ void UsbDevice::set_mount_callback(const event_callback_fn &cb) {
 void UsbDevice::set_unmount_callback(const event_callback_fn &cb) {
   std::scoped_lock lk(cb_mutex_);
   on_unmount_ = cb;
+}
+
+void UsbDevice::set_suspend_callback(const event_callback_fn &cb) {
+  std::scoped_lock lk(cb_mutex_);
+  on_suspend_ = cb;
+}
+
+void UsbDevice::set_resume_callback(const event_callback_fn &cb) {
+  std::scoped_lock lk(cb_mutex_);
+  on_resume_ = cb;
+}
+
+void UsbDevice::handle_usb_suspend() {
+  event_callback_fn cb;
+  {
+    std::scoped_lock lk(cb_mutex_);
+    cb = on_suspend_;
+  }
+  if (cb)
+    cb(); // runs in the TinyUSB task context
+}
+
+void UsbDevice::handle_usb_resume() {
+  event_callback_fn cb;
+  {
+    std::scoped_lock lk(cb_mutex_);
+    cb = on_resume_;
+  }
+  if (cb)
+    cb(); // runs in the TinyUSB task context
 }
 
 void UsbDevice::handle_usb_mount() {

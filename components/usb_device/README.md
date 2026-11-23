@@ -156,6 +156,9 @@ Key methods:
   would be a duplicate symbol). On unmount the component first clears the vendor
   + CDC TX FIFOs — so a departed host's queued backlog is not delivered to the
   next host that mounts — then invokes your callback.
+- `void set_suspend_callback(...)` / `void set_resume_callback(...)` — the host
+  suspended / resumed the bus (a PC going to sleep). The device stays powered and
+  configured, so stop whatever the host was driving (rumble, say) on suspend.
 - `size_t vendor_write_available() const` / `size_t cdc_write_available() const`
   and `void vendor_write_clear()` / `void cdc_write_clear()` — TX-FIFO free space
   and flush helpers (skip/defer or drop a streaming frame when the host stops
