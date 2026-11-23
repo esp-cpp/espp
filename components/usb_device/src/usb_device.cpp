@@ -14,6 +14,7 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 
+#include "soc/soc_caps.h" // SOC_USB_OTG_PERIPH_NUM: which USB-OTG cores the target has
 #include "tinyusb.h"
 #include "tinyusb_default_config.h"
 #if CONFIG_IDF_TARGET_ESP32P4
@@ -202,12 +203,39 @@ ssize_t cdc_console_write(int, const void *data, size_t size) {
 constexpr TickType_t kUsbWriteTimeoutTicks = pdMS_TO_TICKS(250);
 constexpr TickType_t kUsbWriteDrainPollTicks = pdMS_TO_TICKS(1) > 0 ? pdMS_TO_TICKS(1) : 1;
 
-// ESP32-S3 / -S2 USB-OTG (DWC2, full-speed) endpoint budget: besides the control
-// endpoint EP0, there are ~5 usable data IN endpoints and ~5 usable data OUT
-// endpoints. See the README endpoint-budget table for which class combinations
-// fit.
-constexpr uint8_t kMaxInEndpoints = 5;
-constexpr uint8_t kMaxOutEndpoints = 5;
+// Endpoint limits of the USB-OTG (DWC2) core behind a port, as TinyUSB's DWC2
+// driver enforces them (the _dwc2_controller table in its dwc2_esp32.h):
+//  - endpoint numbers 0 .. ep_count - 1, for IN and OUT alike;
+//  - ep_in_count IN endpoints, EP0 IN included, so ep_in_count - 1 data IN; and
+//    IN endpoint n uses TX FIFO n, so a data IN endpoint must also be numbered
+//    below ep_in_count. A data IN endpoint over the count fails to open at
+//    SET_CONFIGURATION and leaves the device unconfigured
+//    (hathach/tinyusb#4450); one numbered past the FIFOs opens but never
+//    transmits (hathach/tinyusb#4007).
+// The FIFO RAM never binds for what initialize() builds (no double buffering):
+// the full-speed worst case (EP0 + 4 x 64-byte IN, 64-byte OUT) needs ~142 of
+// 256 words, the high-speed one (EP0, 3 x 512-byte bulk IN, CDC notification,
+// HID, X-Input, 512-byte OUT) ~730 of 992.
+struct OtgEndpointLimits {
+  uint8_t ep_count;    ///< endpoint numbers 0 .. ep_count - 1
+  uint8_t ep_in_count; ///< IN endpoints (TX FIFOs), EP0 IN included
+  const char *core;    ///< for the error message
+};
+constexpr OtgEndpointLimits kFullSpeedCore{7, 5, "full-speed"};
+constexpr OtgEndpointLimits kHighSpeedCore{16, 8, "high-speed"};
+
+// The core behind TinyUSB port `port`: ESP32-S2 / -S3 / -H4 have the
+// full-speed core only; the ESP32-P4 has the full-speed core on port 0 and
+// the high-speed core on port 1; the ESP32-S31 has the high-speed core only.
+constexpr OtgEndpointLimits otg_endpoint_limits([[maybe_unused]] int port) {
+#if CONFIG_IDF_TARGET_ESP32S31
+  return kHighSpeedCore;
+#elif (SOC_USB_OTG_PERIPH_NUM > 1)
+  return port == static_cast<int>(TINYUSB_PORT_HIGH_SPEED_0) ? kHighSpeedCore : kFullSpeedCore;
+#else
+  return kFullSpeedCore;
+#endif
+}
 // esp_tinyusb's MSC storage backend supports two LUNs, and at most one medium of
 // each type (its SD card and wear-levelling media are singletons).
 constexpr size_t kMaxMscLuns = 2;
@@ -1061,11 +1089,11 @@ bool UsbDevice::initialize(std::error_code &ec) {
     impl_->owned_strings.push_back(config_.xinput->interface_name);
     // Use SEPARATE endpoint numbers for IN and OUT. The retail controller shares
     // number 1, but the ESP32-S3 DWC2 corrupts the interrupt-IN stream (a leading
-    // 0x01 byte) when the same number is used for both directions.
+    // 0x01 byte) when the same number is used for both directions. The OUT
+    // number is taken after every other function's (below), so the IN numbers
+    // stay contiguous and within the TX FIFOs (see otg_endpoint_limits).
     const uint8_t in_ep = next_ep++;
-    const uint8_t out_ep = next_ep++;
     impl_->xinput_ep_in = static_cast<uint8_t>(0x80 | in_ep); // interrupt IN
-    impl_->xinput_ep_out = out_ep;                            // interrupt OUT
     in_used++;
     out_used++;
     impl_->xinput_itf = xinput_itf;
@@ -1085,10 +1113,27 @@ bool UsbDevice::initialize(std::error_code &ec) {
     out_used++;
   }
 
-  // --- Endpoint budget check ---
-  if (in_used > kMaxInEndpoints || out_used > kMaxOutEndpoints) {
-    logger_.error("Endpoint budget exceeded: IN={} (max {}), OUT={} (max {})", in_used,
-                  kMaxInEndpoints, out_used, kMaxOutEndpoints);
+  // Every IN endpoint is numbered by now (contiguously from 1): the highest
+  // number any of them has.
+  const uint8_t max_in_number = static_cast<uint8_t>(next_ep - 1);
+
+  if (config_.xinput) {
+    impl_->xinput_ep_out = next_ep++; // interrupt OUT (see the X-Input block above)
+  }
+
+  // --- Endpoint budget check, against the core of the port this device will use
+  // (Config::port, else esp_tinyusb's default for the target) ---
+  const tinyusb_config_t default_tusb_cfg = TINYUSB_DEFAULT_CONFIG();
+  const int usb_port = config_.port >= 0 ? config_.port : static_cast<int>(default_tusb_cfg.port);
+  const OtgEndpointLimits limits = otg_endpoint_limits(usb_port);
+  const uint8_t max_data_in = static_cast<uint8_t>(limits.ep_in_count - 1);
+  const uint8_t max_number = static_cast<uint8_t>(next_ep - 1); // IN or OUT
+  if (in_used > max_data_in || max_in_number > max_data_in || max_number >= limits.ep_count) {
+    logger_.error("Endpoint budget exceeded on the {} USB-OTG core (port {}): {} data IN "
+                  "endpoints (max {}), highest IN number {} (max {}), highest endpoint "
+                  "number {} (max {}), {} OUT endpoints",
+                  limits.core, usb_port, in_used, max_data_in, max_in_number, max_data_in,
+                  max_number, limits.ep_count - 1, out_used);
     ec = std::make_error_code(std::errc::value_too_large);
     return false;
   }
