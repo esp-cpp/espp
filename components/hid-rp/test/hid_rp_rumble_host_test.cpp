@@ -12,6 +12,7 @@
 //
 // No ESP-IDF headers required.
 
+#include <algorithm>
 #include <cstdint>
 #include <cstdio>
 #include <vector>
@@ -38,12 +39,12 @@ template <typename D> static std::vector<uint8_t> bytes_of(const D &d) {
 }
 
 static const ReportField *find_output(const ReportMap &m, uint8_t id, uint16_t usage, int nth = 0) {
-  for (const auto &f : m.output_fields()) {
-    if (f.report_id == id && f.usage_page == u::PAGE_PHYSICAL_INPUT_DEVICE && f.usage == usage &&
-        nth-- == 0)
-      return &f;
-  }
-  return nullptr;
+  const auto &outs = m.output_fields();
+  const auto it = std::find_if(outs.begin(), outs.end(), [&](const ReportField &f) {
+    return f.report_id == id && f.usage_page == u::PAGE_PHYSICAL_INPUT_DEVICE && f.usage == usage &&
+           nth-- == 0;
+  });
+  return it == outs.end() ? nullptr : &*it;
 }
 
 // --- the Xbox Wireless controller's report map ------------------------------

@@ -180,7 +180,7 @@ private:
       if (!is_input && main_item.main_tag() != rdf::main::tag::OUTPUT) {
         return control::CONTINUE;
       }
-      auto &fields = is_input ? map_.fields_ : map_.output_fields_;
+      auto &dest_fields = is_input ? map_.fields_ : map_.output_fields_;
       const uint32_t flags = main_item.value_unsigned();
       const bool constant = flags & 0x1;
       const bool variable = flags & 0x2;
@@ -305,7 +305,7 @@ private:
           f.usage_max = static_cast<uint16_t>(hi & 0xFFFF);
         }
         cursor += report_size;
-        fields.push_back(f);
+        dest_fields.push_back(f);
       }
       return control::CONTINUE;
     }

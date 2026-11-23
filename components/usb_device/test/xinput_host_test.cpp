@@ -70,8 +70,8 @@ int main() {
   // --- rumble reports from the host ---
   {
     const uint8_t rumble[8] = {0x00, 0x08, 0x00, 0xC8, 0x40, 0x00, 0x00, 0x00};
-    const auto r = decode_rumble(rumble);
-    CHECK(r.has_value() && r->left == 0xC8 && r->right == 0x40);
+    const auto decoded = decode_rumble(rumble);
+    CHECK(decoded.has_value() && decoded->left == 0xC8 && decoded->right == 0x40);
     const uint8_t stop[8] = {0x00, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
     CHECK(decode_rumble(stop) == Rumble{});
     const uint8_t led[3] = {0x01, 0x03, 0x06}; // LED ring: not rumble
