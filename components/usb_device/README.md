@@ -61,7 +61,7 @@ for back-compatibility.
   - [Enabling X-Input (Xbox 360)](#enabling-x-input-xbox-360)
   - [Enabling mass storage (MSC)](#enabling-mass-storage-msc)
   - [Routing the console over CDC](#routing-the-console-over-cdc)
-  - [Endpoint budget (ESP32-S3 USB-OTG)](#endpoint-budget-esp32-s3-usb-otg)
+  - [Endpoint budget](#endpoint-budget)
   - [Example](#example)
   - [Notes](#notes)
 
@@ -397,11 +397,29 @@ successful `initialize()`.
 The `ota` example uses this to carry its logs alongside the OTA vendor / WebUSB
 interface on one cable.
 
-## Endpoint budget (ESP32-S3 USB-OTG)
+## Endpoint budget
 
-The ESP32-S3 / -S2 USB-OTG core is full-speed and, besides EP0, provides roughly
-**5 usable data IN endpoints** and **5 usable data OUT endpoints**. Each function
-consumes:
+`initialize()` checks the endpoints against the USB-OTG core behind the port the
+device will use (`Config::port`, or esp_tinyusb's default for the target), with
+the limits TinyUSB's DWC2 driver enforces:
+
+| Core | Where | Data IN endpoints | Endpoint numbers |
+|---|---|---|---|
+| Full-speed | ESP32-S2, ESP32-S3, ESP32-P4 port 0 | 4 (5 IN, EP0 IN included) | 1 to 6 |
+| High-speed | ESP32-P4 port 1 (its default) | 7 (8 IN, EP0 IN included) | 1 to 15 |
+
+TinyUSB also gives IN endpoint *n* the core's TX FIFO *n*, so a data IN endpoint
+must be *numbered* within the data IN count as well (1 to 4 on the full-speed
+core). Past the count, an IN endpoint fails to open when the host configures the
+device, which then stays unconfigured
+([hathach/tinyusb#4450](https://github.com/hathach/tinyusb/issues/4450)); past
+the FIFOs, it opens but never transmits
+([hathach/tinyusb#4007](https://github.com/hathach/tinyusb/issues/4007)).
+`initialize()` numbers the IN endpoints contiguously from 1, and gives X-Input's
+separate OUT endpoint the number after all of them, so a combination within the
+count also fits the numbering. OUT endpoints share their function's number, so
+only the highest number limits them. The FIFO RAM is not a limit for any
+combination of these functions. Each function consumes:
 
 | Function          | IN endpoints                                | OUT endpoints                  |
 |-------------------|---------------------------------------------|--------------------------------|
@@ -411,11 +429,19 @@ consumes:
 | X-Input (Xbox 360)| 1 (interrupt-IN)                            | 1 (interrupt-OUT)              |
 | MSC               | 1 (bulk-IN)                                  | 1 (bulk-OUT)                   |
 
-This is why the device is **selectable** ("not all at once"). Combinations that
-fit comfortably: CDC+Vendor (3 IN / 2 OUT, used by the example), CDC+Vendor+HID,
-CDC+Vendor+MSC. Enabling CDC+Vendor+HID+MSC reaches 5 IN endpoints — at the hard
-limit, not recommended. `initialize()` returns `std::errc::value_too_large` if the
-IN or OUT budget is exceeded.
+On the full-speed core this is why the device is **selectable** ("not all at
+once"). Combinations that fit there:
+
+- CDC + Vendor: 3 IN / 2 OUT (used by the example)
+- CDC + Vendor + HID, CDC + Vendor + MSC, CDC + Vendor + X-Input: 4 IN, the limit
+- Vendor + HID + X-Input + MSC: 4 IN
+
+CDC + Vendor + HID + MSC needs 5 data IN endpoints: it does not fit the
+full-speed core, and `initialize()` returns `std::errc::value_too_large` for it
+there, logging which limit was exceeded. Every combination fits the high-speed
+core (CDC + Vendor + HID + X-Input + MSC is 6 data IN). To offer files next to CDC + Vendor + HID, carry them over the
+vendor interface (a file-transfer protocol on the vendor / WebUSB link) instead of
+MSC.
 
 ## Example
 

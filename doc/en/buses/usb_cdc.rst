@@ -266,12 +266,39 @@ console config: UART0 primary (``CONFIG_ESP_CONSOLE_UART_DEFAULT``) with
 USB-Serial-JTAG as the secondary console for early-boot logs. The ``ota`` example
 uses this.
 
-Endpoint budget (ESP32-S3 USB-OTG)
-----------------------------------
+Endpoint budget
+---------------
 
-The ESP32-S3 (and -S2) USB-OTG core is full-speed and, besides the control
-endpoint EP0, provides roughly **5 usable data IN endpoints** and **5 usable data
-OUT endpoints**. Each function consumes:
+``initialize()`` checks the endpoints against the USB-OTG core behind the port
+the device will use (``Config::port``, or esp_tinyusb's default for the target),
+with the limits TinyUSB's DWC2 driver enforces:
+
+.. list-table::
+   :header-rows: 1
+
+   * - Core
+     - Where
+     - Data IN endpoints
+     - Endpoint numbers
+   * - Full-speed
+     - ESP32-S2, ESP32-S3, ESP32-P4 port 0
+     - 4 (5 IN, EP0 IN included)
+     - 1 to 6
+   * - High-speed
+     - ESP32-P4 port 1 (its default)
+     - 7 (8 IN, EP0 IN included)
+     - 1 to 15
+
+TinyUSB also gives IN endpoint *n* the core's TX FIFO *n*, so a data IN endpoint
+must be *numbered* within the data IN count as well (1 to 4 on the full-speed
+core). Past the count, an IN endpoint fails to open when the host configures the
+device, which then stays unconfigured (`hathach/tinyusb#4450
+<https://github.com/hathach/tinyusb/issues/4450>`_); past the FIFOs, it opens
+but never transmits (`hathach/tinyusb#4007
+<https://github.com/hathach/tinyusb/issues/4007>`_). ``initialize()`` numbers
+the IN endpoints contiguously from 1, with X-Input's separate OUT number after
+them, so a combination within the count also fits the numbering. The FIFO RAM is
+not a limit for any combination of these functions. Each function consumes:
 
 .. list-table::
    :header-rows: 1
@@ -295,17 +322,21 @@ OUT endpoints**. Each function consumes:
      - 1 (bulk-IN)
      - 1 (bulk-OUT)
 
-This is why the device is **selectable** ("not all at once"). Combinations that
-fit comfortably:
+On the full-speed core this is why the device is **selectable** ("not all at
+once"). Combinations that fit there:
 
 - CDC + Vendor: 3 IN / 2 OUT (used by the example)
-- CDC + Vendor + HID: 4 IN / 2-3 OUT
-- CDC + Vendor + MSC: 4 IN / 3 OUT
+- CDC + Vendor + HID: 4 IN / 2-3 OUT, the limit
+- CDC + Vendor + MSC: 4 IN / 3 OUT, the limit
+- CDC + Vendor + X-Input: 4 IN / 3 OUT, the limit
+- Vendor + HID + X-Input + MSC: 4 IN / 3-4 OUT
 
-Enabling CDC + Vendor + HID + MSC together reaches 5 IN endpoints, which is at the
-hard limit and is not recommended. ``espp::UsbDevice`` computes the totals as
-functions are enabled and returns ``std::errc::value_too_large`` if the IN or OUT
-budget is exceeded.
+CDC + Vendor + HID + MSC needs 5 data IN endpoints: it does not fit the
+full-speed core, and ``espp::UsbDevice`` returns ``std::errc::value_too_large``
+for it there, logging which limit was exceeded. Every combination fits the
+high-speed core. To offer files next to CDC + Vendor + HID on the full-speed
+core, carry them over the vendor interface (a file-transfer protocol on the
+vendor / WebUSB link) instead of MSC.
 
 Notes
 -----
