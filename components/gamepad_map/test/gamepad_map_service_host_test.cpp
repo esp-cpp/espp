@@ -245,6 +245,67 @@ int main() {
     service.clear_controller();
   }
 
+  // 8. the reconnect alone triggers the callbacks: X connected with map MX /
+  //    options swap150; during the save Y connects (set_controller returns Y's
+  //    old map) and Y's profile becomes MX / swap150. The values before and
+  //    after are equal, so only the controller generation tells change() that
+  //    Y was handed a stale map.
+  {
+    GamepadMap mx;
+    mx.left_deadzone_percent = 11;
+    CHECK(profiles.set_profile(
+        {.vid = x.vid, .pid = x.pid, .name = x.name, .map = mx, .rumble = swap150}, ec));
+    CHECK(profiles.set_profile(
+        {.vid = y.vid, .pid = y.pid, .name = y.name, .map = {}, .rumble = {}}, ec));
+    service.set_controller(x.vid, x.pid, x.name);
+    h.reset_calls();
+    GamepadMap handed;
+    CHECK(service.run_change([&] {
+      handed = service.set_controller(y.vid, y.pid, y.name); // Y's map before the save
+      return profiles.set_profile(
+          {.vid = y.vid, .pid = y.pid, .name = y.name, .map = mx, .rumble = swap150}, ec);
+    }));
+    CHECK(handed.is_identity());
+    CHECK(h.map_calls == 1 && h.last_map == mx);
+    CHECK(h.rumble_calls == 1 && h.last_rumble == swap150);
+    service.clear_controller();
+  }
+
+  // 9. a controller that connects while the callbacks run is told too: the
+  //    first map callback (for X) stands in for Y connecting just before it
+  //    ran (the app would then hold X's values for Y); change() notices and
+  //    runs the callbacks again with Y's values, so the last ones match Y.
+  {
+    GamepadMap my;
+    my.right_deadzone_percent = 13;
+    CHECK(profiles.set_profile(
+        {.vid = y.vid, .pid = y.pid, .name = y.name, .map = my, .rumble = off100}, ec));
+    Harness h2;
+    TestService *self = nullptr;
+    bool connected_y = false;
+    auto config = h2.config(&profiles);
+    config.on_active_map_changed = [&](const GamepadMap &m) {
+      ++h2.map_calls;
+      h2.last_map = m;
+      if (!connected_y && self) {
+        connected_y = true;
+        self->set_controller(y.vid, y.pid, y.name); // (test only: the app's connect path)
+      }
+    };
+    TestService second(config);
+    self = &second;
+    second.set_controller(x.vid, x.pid, x.name);
+    GamepadMap mx2;
+    mx2.left_deadzone_percent = 17;
+    CHECK(second.run_change([&] {
+      return profiles.set_profile(
+          {.vid = x.vid, .pid = x.pid, .name = x.name, .map = mx2, .rumble = p150}, ec);
+    }));
+    // round 1 delivered X's new values; round 2 Y's own, last
+    CHECK(h2.map_calls == 2 && h2.last_map == my);
+    CHECK(h2.rumble_calls == 2 && h2.last_rumble == off100);
+  }
+
   fs::remove_all(dir);
   if (failures == 0) {
     std::printf("gamepad_map_service_host_test: all checks passed\n");

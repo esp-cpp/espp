@@ -27,6 +27,7 @@
 #include <string>
 #include <string_view>
 #include <system_error>
+#include <utility>
 #include <vector>
 
 #include "dispatcher.hpp"
@@ -158,7 +159,11 @@ public:
    * @brief A controller connected (or the connected one changed).
    * @details Call active_rumble() right after for its rumble options, under the
    *          same lock your change callbacks take, so a host's change cannot
-   *          slip in between.
+   *          slip in between. With several services on one store, call
+   *          set_controller() on every one of them first, then look the map
+   *          and rumble options up once (from any of them), all under that
+   *          lock: a change through any service then either lands before the
+   *          lookup or notifies.
    * @return The map to apply to it (its profile's, else the default map).
    */
   GamepadMap set_controller(uint16_t vid, uint16_t pid, const std::string &name) {
@@ -494,33 +499,62 @@ protected:
     return info;
   }
 
+  /// The connected controller and its generation, read together.
+  std::pair<std::optional<Controller>, uint32_t> controller_snapshot() const {
+    std::lock_guard<std::mutex> lock(mutex_);
+    return {controller_, controller_generation_.load()};
+  }
+
+  /// The map / rumble options for a controller (none: the default ones).
+  GamepadMap map_of(const std::optional<Controller> &c) const {
+    return c ? config_.profiles->map_for(c->vid, c->pid, c->name) : config_.profiles->default_map();
+  }
+  RumbleOptions rumble_of(const std::optional<Controller> &c) const {
+    return c ? config_.profiles->rumble_for(c->vid, c->pid, c->name)
+             : config_.profiles->default_rumble();
+  }
+
   /// Apply one change to the store (`save` returns whether it was saved) and,
   /// when it gives the connected controller a different map or different
   /// rumble options, tell the application -- all under the store's change
   /// mutex, so services sharing a store change and notify one at a time and
-  /// the last notification carries what the store holds. Whether to notify is
-  /// decided after the save: a controller that connected while it ran (its
-  /// map looked up before the save landed) is told too.
+  /// the last notification carries what the store holds.
+  ///
+  /// Whether to notify is decided after the save, for the controller
+  /// connected then: one that connected while the save ran (its values looked
+  /// up before the save landed) is told too. The controller is re-checked
+  /// after the callbacks: if another one connected while they ran (it may
+  /// have been handed its values just before a callback delivered the
+  /// previous controller's), the callbacks run again for it, so the last
+  /// notification always matches the connected controller.
   template <typename Save> bool change(Save save) {
     std::lock_guard<std::mutex> lock(config_.profiles->change_mutex());
-    const uint32_t generation = controller_generation_.load();
-    const GamepadMap map_before = config_.on_active_map_changed ? active_map() : GamepadMap{};
+    const auto [before, before_generation] = controller_snapshot();
+    const GamepadMap map_before = config_.on_active_map_changed ? map_of(before) : GamepadMap{};
     const RumbleOptions rumble_before =
-        config_.on_active_rumble_changed ? active_rumble() : RumbleOptions{};
+        config_.on_active_rumble_changed ? rumble_of(before) : RumbleOptions{};
     if (!save())
       return false;
-    if (controller().has_value()) {
-      const bool reconnected = controller_generation_.load() != generation;
+    uint32_t seen = before_generation;
+    // bounded: a controller would have to reconnect during every round
+    for (int round = 0; round < 4; ++round) {
+      const auto [now, generation] = controller_snapshot();
+      if (!now)
+        break; // nothing connected: the next connect looks its values up
+      const bool reconnected = generation != seen;
       if (config_.on_active_map_changed) {
-        const GamepadMap now = active_map();
-        if (reconnected || now != map_before)
-          config_.on_active_map_changed(now);
+        const GamepadMap map = map_of(now);
+        if (reconnected || map != map_before)
+          config_.on_active_map_changed(map);
       }
       if (config_.on_active_rumble_changed) {
-        const RumbleOptions now = active_rumble();
-        if (reconnected || now != rumble_before)
-          config_.on_active_rumble_changed(now);
+        const RumbleOptions rumble = rumble_of(now);
+        if (reconnected || rumble != rumble_before)
+          config_.on_active_rumble_changed(rumble);
       }
+      if (controller_snapshot().second == generation)
+        break;
+      seen = generation; // another controller connected meanwhile: tell it too
     }
     return true;
   }

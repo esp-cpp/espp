@@ -265,9 +265,15 @@ service.publish_input(raw, mapped); // a 32-byte copy under a lock; never sends
 
 Each callback fires only when a change from the console gives the connected
 controller a different value (or when the controller changed while the change
-was being saved), and never while no controller is connected. The callbacks
-run on the thread that handles the request; they must not call back into the
-service or change the store.
+was being saved, or while the callbacks ran: they then run again for the new
+controller, so the last call always matches the connected one), and never while
+no controller is connected. The callbacks run on the thread that handles the
+request; they must not call back into the service or change the store.
+
+With several services on one store (one per transport), call `set_controller()`
+on every one of them first, then look the map and rumble options up once, all
+under the same lock: a change through any service then either lands before the
+lookup or notifies (see the webapp example).
 
 The INPUT stream ends by itself when the host stops renewing it
 (`Config::stream_lease`), so a closed browser tab does not leave it running.

@@ -158,14 +158,16 @@ extern "C" void app_main(void) {
                                    .task_config = {.name = "gpmap_c", .stack_size_bytes = 4096},
                                    .log_level = espp::Logger::Verbosity::INFO});
 
-  // A controller connected: tell every service, and start from its map and
-  // rumble options (under the same mutex as the callbacks above, which may run
-  // on a dispatcher thread).
+  // A controller connected: tell every service first, then start from its map
+  // and rumble options (all under the same mutex as the callbacks above, which
+  // may run on a dispatcher thread), so a change through either service lands
+  // before the lookup or notifies.
   {
     std::lock_guard<std::mutex> lock(map_mutex);
-    active_map = vendor_map.set_controller(demo_vid, demo_pid, demo_name);
-    active_rumble = vendor_map.active_rumble();
+    vendor_map.set_controller(demo_vid, demo_pid, demo_name);
     cdc_map.set_controller(demo_vid, demo_pid, demo_name);
+    active_map = vendor_map.active_map();
+    active_rumble = vendor_map.active_rumble();
   }
   //! [gamepad_map_webapp_example]
 

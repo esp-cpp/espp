@@ -1425,6 +1425,7 @@
       els.ctlProfile.textContent = c ? (c.hasProfile ? "own profile" : "default map") : "-";
       els.ctlProfile.className = "badge" + (c ? (c.hasProfile ? " ok" : " info") : "");
       els.devRumble.textContent = info.rumbleOptions ? "per map" : "not in this firmware";
+      if (!!(prev && prev.rumbleOptions) !== !!info.rumbleOptions || !prev) { renderRumble(); updateValidation(); }
       els.devProfiles.textContent = info.profileCount + " / " + info.maxProfiles;
       els.devMaxRules.textContent = String(info.maxRules);
       els.devControls.textContent = info.buttonCount + " buttons, " + info.axisCount + " axes";
@@ -1586,13 +1587,23 @@
       els[id].addEventListener("input", () => { if (!editMap) return; editMap[key] = Math.round(Number(els[id].value)) || 0; updateDeadzoneText(); updateValidation(); });
 
     // ---- rumble options (per map, saved in the same SET_MAP) ----
-    // Enabled only when the device sent rumble options with the map (MAP flags
-    // bit1). Each control rewrites only its own bit / field: the other flag
-    // bits, reserved ones included, are kept and echoed back as loaded.
+    // Editable only when the map came with rumble options (MAP flags bit1) AND
+    // the connected device stores them (INFO flags bit1): an editor kept across
+    // a reconnect may face other firmware. Offline, the loaded map decides
+    // (Save is disabled then anyway). Each control rewrites only its own bit /
+    // field: the other flag bits, reserved ones included, are kept and echoed
+    // back as loaded.
+    const deviceStoresRumble = () => !devInfo || !!devInfo.rumbleOptions;
+    // the rumble options Save sends: null (the v1 form, which keeps what the
+    // device stores) unless both the map and the device have them
+    const rumbleToSave = (m) => (m && m.rumble && deviceStoresRumble() ? m.rumble : null);
     function rumbleNoteText() {
       if (!editMap) return "";
       const r = editMap.rumble;
-      if (!r) return "This device's firmware does not store rumble options (update it to set them per controller).";
+      if (!deviceStoresRumble()) return "This device's firmware does not store rumble options (update it to set them per controller)." +
+        (r ? " Save keeps the map only." : "");
+      if (!r) return devInfo ? "Load the map again to edit its rumble options (it was loaded from firmware without them)." :
+        "This device's firmware does not store rumble options (update it to set them per controller).";
       const off = !!(r.flags & RUMBLE_OFF);
       let s = off ? "Off: the host's rumble never reaches this controller type; the device sends a stop instead." :
               r.strength === 0 ? "0 %: silent, like off." :
@@ -1604,7 +1615,7 @@
       return s + " Applies at once to the rumble this device forwards, as soon as it is saved.";
     }
     function renderRumble() {
-      const r = editMap ? editMap.rumble : null;
+      const r = rumbleToSave(editMap);
       const off = !!r && !!(r.flags & RUMBLE_OFF);
       els.rumbleOn.disabled = !r;
       // (while off, the strength and swap keep their values but are not in effect)
@@ -1617,7 +1628,7 @@
       els.rumbleNote.textContent = rumbleNoteText();
     }
     function editRumble(fn) {
-      if (!editMap || !editMap.rumble) return;
+      if (!rumbleToSave(editMap)) return;
       fn(editMap.rumble);
       renderRumble(); updateValidation();
     }
@@ -1760,7 +1771,7 @@
       const errors = loaded ? validateMap(editMap, limits()) : [];
       const tErr = loaded ? validateTarget(editTarget) : null;
       if (tErr) errors.unshift({ rule: -1, why: tErr });
-      const rErr = loaded && editMap.rumble ? validateRumble(editMap.rumble) : null;
+      const rErr = loaded ? validateRumble(rumbleToSave(editMap)) : null;
       if (rErr) errors.push({ rule: -1, why: rErr });
       const bad = new Set(errors.filter((e) => e.rule >= 0).map((e) => e.rule));
       [...els.rulesBody.children].forEach((tr, i) => tr.classList.toggle("invalid", bad.has(i)));
@@ -1824,11 +1835,12 @@
       if (editTarget.profile && !editExists && devInfo && devInfo.profileCount >= devInfo.maxProfiles)
         logLine("warn", "The device already holds " + devInfo.profileCount + " of " + devInfo.maxProfiles + " profiles; it will likely refuse a new one (erase one first).");
       savingMap = cloneMap(editMap);
-      logLine("tx", "Saving the " + describeTarget(editTarget) + ": " + savingMap.rules.length + " rule(s), dead zones " + savingMap.leftDeadzone + " / " + savingMap.rightDeadzone + " %" + rumbleLogText(savingMap) + ".");
+      const savingRumble = rumbleToSave(savingMap);
+      logLine("tx", "Saving the " + describeTarget(editTarget) + ": " + savingMap.rules.length + " rule(s), dead zones " + savingMap.leftDeadzone + " / " + savingMap.rightDeadzone + " %" + (savingRumble ? ", rumble " + describeRumble(savingRumble) : "") + ".");
       setEditStatus("Saving...");
       // map + rumble options in one SET_MAP (saved atomically); without rumble
       // options (firmware that has none) the v1 form, which keeps the stored ones
-      send(T_SET_MAP, encodeSetMap(editTarget, savingMap, savingMap.rumble));
+      send(T_SET_MAP, encodeSetMap(editTarget, savingMap, savingRumble));
       updateValidation();
     }
     function refreshDevice() { send(T_GET_INFO); send(T_LIST_PROFILES); }
