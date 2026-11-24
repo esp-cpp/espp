@@ -2,6 +2,8 @@
 
 #include "gamepad_state.hpp"
 #include "hid-rp-report-map.hpp"
+#include "hid-rp-rumble.hpp"
+#include "rumble_state.hpp"
 
 namespace espp {
 
@@ -46,6 +48,35 @@ inline GamepadState to_gamepad_state(const hid_rp::GamepadReport &r) {
   s.set(A::RightY, r.ry);
   s.set(A::LeftTrigger, r.lt);
   s.set(A::RightTrigger, r.rt);
+  return s;
+}
+
+/**
+ * @brief The levels to hand a hid_rp::RumbleEncoder for a RumbleState.
+ * @param r The rumble state.
+ * @return The same levels, motor by motor.
+ */
+inline hid_rp::RumbleLevels to_rumble_levels(const RumbleState &r) {
+  using M = RumbleState::Motor;
+  return {.strong = r.level(M::Strong),
+          .weak = r.level(M::Weak),
+          .left_trigger = r.level(M::LeftTrigger),
+          .right_trigger = r.level(M::RightTrigger)};
+}
+
+/**
+ * @brief A RumbleState from the motor levels of a Switch host's rumble packet
+ *        (hid_rp::decode_switch_rumble()).
+ *
+ * @details The left Joy-Con / grip motor drives Strong and the right one
+ *          Weak, as a hand-held controller places them.
+ * @param r The decoded packet.
+ * @return The state.
+ */
+inline RumbleState to_rumble_state(const hid_rp::SwitchRumble &r) {
+  RumbleState s;
+  s.set(RumbleState::Motor::Strong, r.left);
+  s.set(RumbleState::Motor::Weak, r.right);
   return s;
 }
 

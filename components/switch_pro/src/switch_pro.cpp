@@ -5,7 +5,8 @@
 using namespace espp;
 
 SwitchPro::SwitchPro(const Config &config)
-    : BaseComponent("SwitchPro", config.log_level) {
+    : BaseComponent("SwitchPro", config.log_level)
+    , on_rumble_(config.on_rumble) {
   // start the input-report counter timer
   counter_timer_.periodic(counter_period_us);
 
@@ -117,6 +118,14 @@ std::optional<SwitchPro::ReportData> SwitchPro::on_hid_report(uint8_t report_id,
 
   using namespace sp;
 
+  // 0x01 (rumble + subcommand) and 0x10 (rumble only) both carry the rumble
+  // data at bytes 2..9 (after the report id and the packet number)
+  if (on_rumble_ && (data[0] == HOST_OUTPUT_REPORT || data[0] == HOST_RUMBLE_REPORT)) {
+    if (const auto rumble = hid_rp::decode_switch_rumble_report({data, len})) {
+      on_rumble_(*rumble);
+    }
+  }
+
   switch (data[0]) {
   case HOST_INIT_REPORT: {
     if (len < 2)
@@ -155,7 +164,7 @@ std::optional<SwitchPro::ReportData> SwitchPro::on_hid_report(uint8_t report_id,
   case HOST_OUTPUT_REPORT:
     return process_command(data, len);
   case HOST_RUMBLE_REPORT:
-    // TODO: process the rumble packet (no reply required)
+    // rumble only: delivered to on_rumble above; no reply
     return std::nullopt;
   default:
     logger_.debug("Unhandled host report type: 0x{:02x}", data[0]);

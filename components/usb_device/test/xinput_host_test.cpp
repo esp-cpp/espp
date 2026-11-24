@@ -67,6 +67,19 @@ int main() {
   // OUT endpoint
   CHECK(d[33] == 0x07 && d[34] == 0x05 && d[35] == 0x03 && d[36] == 0x03 && d[37] == kEpSize);
 
+  // --- rumble reports from the host ---
+  {
+    const uint8_t rumble[8] = {0x00, 0x08, 0x00, 0xC8, 0x40, 0x00, 0x00, 0x00};
+    const auto decoded = decode_rumble(rumble);
+    CHECK(decoded.has_value() && decoded->left == 0xC8 && decoded->right == 0x40);
+    const uint8_t stop[8] = {0x00, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+    CHECK(decode_rumble(stop) == Rumble{});
+    const uint8_t led[3] = {0x01, 0x03, 0x06}; // LED ring: not rumble
+    CHECK(!decode_rumble(led).has_value());
+    const uint8_t short_report[4] = {0x00, 0x08, 0x00, 0xFF};
+    CHECK(!decode_rumble(short_report).has_value());
+  }
+
   if (g_failures == 0)
     std::printf("all xinput host tests passed\n");
   else

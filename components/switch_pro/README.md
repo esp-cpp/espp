@@ -65,6 +65,10 @@ Key class: `espp::SwitchPro` (`switch_pro.hpp`)
 - `on_attach()` → `optional<ReportData>` — the initial report to send on mount.
 - `on_hid_report(report_id, data, len)` → `optional<ReportData>` — handle a host
   OUTPUT report; returns the INPUT report to send back (`{report_id, bytes}`).
+- `Config::on_rumble` — called with the two motor levels (`hid_rp::SwitchRumble`,
+  0..255 each) of every host report that carries rumble data (`0x01`, `0x10`),
+  neutral packets included; runs on the caller of `on_hid_report()`, so it must
+  not block.
 - `get_input_report()` — the current standard (`0x30`) input report bytes.
 - `update_input_report(fn)` — thread-safely set buttons / sticks via the `hid-rp`
   report setters.

@@ -672,6 +672,17 @@ public:
   ///        (esp_tinyusb already defines it).
   void set_unmount_callback(const event_callback_fn &cb);
 
+  /// @brief Register a callback invoked when the host suspends the bus (a PC
+  ///        going to sleep, a selective suspend). The device stays powered (in
+  ///        the bus's suspend current budget) and configured; outputs the host
+  ///        was driving, such as rumble, should stop. Runs in the TinyUSB
+  ///        device-task context; nullptr detaches.
+  void set_suspend_callback(const event_callback_fn &cb);
+
+  /// @brief Register a callback invoked when the host resumes the bus after a
+  ///        suspend. Runs in the TinyUSB device-task context; nullptr detaches.
+  void set_resume_callback(const event_callback_fn &cb);
+
   /// @brief Whether initialize() has completed successfully.
   bool is_initialized() const;
 
@@ -808,6 +819,8 @@ private:
   ///        (clears the TX FIFOs on unmount, then invokes the app callback).
   void handle_usb_mount();
   void handle_usb_unmount();
+  void handle_usb_suspend();
+  void handle_usb_resume();
 
   struct Impl; // holds TinyUSB descriptors, kept alive for driver lifetime
   std::unique_ptr<Impl> impl_;
@@ -826,6 +839,8 @@ private:
   receive_callback_fn on_hid_receive_;
   event_callback_fn on_mount_;
   event_callback_fn on_unmount_;
+  event_callback_fn on_suspend_;
+  event_callback_fn on_resume_;
   msc_event_callback_fn on_msc_event_;
 
   // Preallocated RX scratch buffers (sized in initialize()) so the TinyUSB-task

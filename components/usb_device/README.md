@@ -156,6 +156,9 @@ Key methods:
   would be a duplicate symbol). On unmount the component first clears the vendor
   + CDC TX FIFOs — so a departed host's queued backlog is not delivered to the
   next host that mounts — then invokes your callback.
+- `void set_suspend_callback(...)` / `void set_resume_callback(...)` — the host
+  suspended / resumed the bus (a PC going to sleep). The device stays powered and
+  configured, so stop whatever the host was driving (rumble, say) on suspend.
 - `size_t vendor_write_available() const` / `size_t cdc_write_available() const`
   and `void vendor_write_clear()` / `void cdc_write_clear()` — TX-FIFO free space
   and flush helpers (skip/defer or drop a streaming frame when the host stops
@@ -232,7 +235,9 @@ X-Input interface (class 0xFF / subclass 0x5D / protocol 0x01), so it coexists
 with the built-in CDC, HID and vendor drivers when those are enabled.
 
 Set `Config::xinput`, send gamepad state with `update_xinput_state(GamepadState)`,
-and receive rumble/LED reports via `XInputFunction::on_rumble`. The interface uses
+and receive rumble/LED reports via `XInputFunction::on_rumble`
+(`xinput::decode_rumble()` reads the two motor levels out of a rumble report and
+skips LED reports). The interface uses
 one interrupt-IN endpoint (0x81, 20-byte input reports) and one interrupt-OUT
 endpoint (rumble/LED); the two use **separate endpoint numbers**, and the DMA
 report buffers are word-aligned, as the ESP32-S3 DWC2 requires. See

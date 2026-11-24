@@ -360,6 +360,7 @@ INPUT = \
   $(PROJECT_PATH)/components/gamepad_map/include/gamepad_profiles.hpp \
   $(PROJECT_PATH)/components/gamepad_map/include/gamepad_state.hpp \
   $(PROJECT_PATH)/components/gamepad_map/include/gamepad_state_hid_rp.hpp \
+  $(PROJECT_PATH)/components/gamepad_map/include/rumble_state.hpp \
   $(PROJECT_PATH)/components/gfps_service/include/gfps.hpp \
   $(PROJECT_PATH)/components/gfps_service/include/gfps_characteristic_callbacks.hpp \
   $(PROJECT_PATH)/components/gfps_service/include/gfps_service.hpp \
@@ -373,6 +374,7 @@ INPUT = \
   $(PROJECT_PATH)/components/hid-rp/include/hid-rp-gamepad.hpp \
   $(PROJECT_PATH)/components/hid-rp/include/hid-rp-playstation.hpp \
   $(PROJECT_PATH)/components/hid-rp/include/hid-rp-ps4.hpp \
+  $(PROJECT_PATH)/components/hid-rp/include/hid-rp-rumble.hpp \
   $(PROJECT_PATH)/components/hid-rp/include/hid-rp-switch-pro.hpp \
   $(PROJECT_PATH)/components/hid-rp/include/hid-rp-xbox.hpp \
   $(PROJECT_PATH)/components/hid_service/include/hid_service.hpp \

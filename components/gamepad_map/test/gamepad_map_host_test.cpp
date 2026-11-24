@@ -27,6 +27,7 @@
 #include "gamepad_profiles.hpp"
 #include "gamepad_state_formatters.hpp"
 #include "gamepad_state_hid_rp.hpp"
+#include "rumble_state.hpp"
 
 static int failures = 0;
 #define CHECK(cond)                                                                                \
@@ -360,6 +361,26 @@ static void test_profiles() {
   fs::remove_all(dir);
 }
 
+static void test_rumble_state() {
+  using espp::RumbleState;
+  using M = RumbleState::Motor;
+  RumbleState r;
+  CHECK(!r.any());
+  r.set(M::Strong, 200);
+  r.set(M::RightTrigger, 10);
+  r.set(M::Count, 99); // ignored
+  CHECK(r.any() && r.level(M::Strong) == 200 && r.level(M::Weak) == 0 &&
+        r.level(M::RightTrigger) == 10 && r.level(M::Count) == 0);
+  // to the encoder's levels, motor by motor
+  const auto l = espp::to_rumble_levels(r);
+  CHECK(l.strong == 200 && l.weak == 0 && l.left_trigger == 0 && l.right_trigger == 10);
+  // a Switch host's left / right motors are strong / weak
+  const auto s = espp::to_rumble_state(espp::hid_rp::SwitchRumble{.left = 117, .right = 40});
+  CHECK(s.level(M::Strong) == 117 && s.level(M::Weak) == 40 && s.level(M::LeftTrigger) == 0);
+  r.clear();
+  CHECK(!r.any() && r == RumbleState{});
+}
+
 int main() {
   test_state();
   test_identity();
@@ -372,6 +393,7 @@ int main() {
   test_validation();
   test_aliasing();
   test_hid_rp_bridge();
+  test_rumble_state();
   test_profiles();
   if (failures == 0) {
     std::printf("gamepad_map_host_test: all checks passed\n");
