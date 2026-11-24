@@ -4,8 +4,9 @@
 // profiles in a LittleFS file) to the hosted gamepad map console web app over
 // USB, on the vendor (WebUSB) OR CDC (Web Serial) interface, through
 // espp::GamepadMapService (protocol: detail/gamepad_map_protocol.hpp,
-// dispatcher module 11). The console edits the maps and shows the input before
-// and after mapping, live.
+// dispatcher module 11). The console edits the maps and their rumble options
+// (off / strength / swap motors) and shows the input before and after mapping,
+// live.
 //
 // There is no real controller here: a demo controller task generates input
 // (sticks circling, triggers ramping, all below the console's 50% "learn"
@@ -38,6 +39,7 @@
 #include "monitor_service.hpp"
 #include "ota.hpp"
 #include "ota_service.hpp"
+#include "rumble_options.hpp"
 #include "system_service.hpp"
 #include "task.hpp"
 #include "usb_device.hpp"
@@ -79,9 +81,13 @@ extern "C" void app_main(void) {
   static const std::string demo_name = "Demo controller";
 
   // The map the input task applies; swapped (under the mutex) when the console
-  // changes the demo controller's map.
+  // changes the demo controller's map. Its rumble options are kept the same
+  // way: the demo controller has no motors, but a real application hands them
+  // to its rumble sender, which applies them once to the host's raw rumble
+  // request each time it sends (RumbleOptions::apply()).
   std::mutex map_mutex;
   espp::GamepadMap active_map;
+  espp::RumbleOptions active_rumble;
 
   // --- USB: vendor (WebUSB) + CDC (Web Serial), both carry the protocol ------
   espp::UsbDevice::Config usb_cfg;
@@ -130,22 +136,35 @@ extern "C" void app_main(void) {
     active_map = map;
     logger.info("Map changed from the console: {} rule(s)", map.rules.size());
   };
+  // Likewise when the console changes its rumble options: a real application
+  // passes them to its rumble sender, which re-applies them to the host's last
+  // raw request, so the change is felt at once.
+  auto on_rumble_changed = [&](const espp::RumbleOptions &rumble) {
+    std::lock_guard<std::mutex> lock(map_mutex);
+    active_rumble = rumble;
+    logger.info("Rumble options changed from the console: off={} strength={}% swap={}",
+                rumble.is_off(), rumble.strength_percent, rumble.swaps_motors());
+  };
   espp::GamepadMapService vendor_map({.send = vendor_send,
                                       .profiles = &profiles,
                                       .on_active_map_changed = on_map_changed,
+                                      .on_active_rumble_changed = on_rumble_changed,
                                       .task_config = {.name = "gpmap_v", .stack_size_bytes = 4096},
                                       .log_level = espp::Logger::Verbosity::INFO});
   espp::GamepadMapService cdc_map({.send = cdc_send,
                                    .profiles = &profiles,
                                    .on_active_map_changed = on_map_changed,
+                                   .on_active_rumble_changed = on_rumble_changed,
                                    .task_config = {.name = "gpmap_c", .stack_size_bytes = 4096},
                                    .log_level = espp::Logger::Verbosity::INFO});
 
-  // A controller connected: tell every service, and start from its map (under
-  // the same mutex as on_map_changed, which may run on a dispatcher thread).
+  // A controller connected: tell every service, and start from its map and
+  // rumble options (under the same mutex as the callbacks above, which may run
+  // on a dispatcher thread).
   {
     std::lock_guard<std::mutex> lock(map_mutex);
     active_map = vendor_map.set_controller(demo_vid, demo_pid, demo_name);
+    active_rumble = vendor_map.active_rumble();
     cdc_map.set_controller(demo_vid, demo_pid, demo_name);
   }
   //! [gamepad_map_webapp_example]

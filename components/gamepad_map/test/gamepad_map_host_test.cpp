@@ -1,5 +1,6 @@
 // Host-buildable unit tests for the gamepad_map component (GamepadState,
-// GamepadMap, the hid-rp conversion and GamepadProfiles). Build & run from the
+// GamepadMap, the hid-rp conversion, RumbleOptions and GamepadProfiles,
+// including the version 1 -> 2 file migration). Build & run from the
 // repository root (third-party headers are -isystem so their own warnings do
 // not fail the build):
 //
@@ -20,6 +21,7 @@
 #include <cstdio>
 #include <filesystem>
 #include <fstream>
+#include <iterator>
 #include <string>
 #include <vector>
 
@@ -27,6 +29,7 @@
 #include "gamepad_profiles.hpp"
 #include "gamepad_state_formatters.hpp"
 #include "gamepad_state_hid_rp.hpp"
+#include "rumble_options.hpp"
 #include "rumble_state.hpp"
 
 static int failures = 0;
@@ -381,6 +384,275 @@ static void test_rumble_state() {
   CHECK(!r.any() && r == RumbleState{});
 }
 
+static void test_rumble_options() {
+  using espp::RumbleOptions;
+  using espp::RumbleState;
+  using M = RumbleState::Motor;
+  constexpr auto make = [](uint8_t strong, uint8_t weak, uint8_t lt, uint8_t rt) {
+    RumbleState r;
+    r.set(M::Strong, strong);
+    r.set(M::Weak, weak);
+    r.set(M::LeftTrigger, lt);
+    r.set(M::RightTrigger, rt);
+    return r;
+  };
+  constexpr RumbleState sample = make(200, 10, 5, 7);
+  static_assert(RumbleOptions{}.apply(sample) == sample); // neutral, at compile time
+
+  // 100 % with no flags is the exact identity for every level on every motor
+  bool identity = true;
+  for (int level = 0; level <= 255; ++level) {
+    const auto l = static_cast<uint8_t>(level);
+    identity = identity && RumbleOptions{}.apply(make(l, l, l, l)) == make(l, l, l, l);
+  }
+  CHECK(identity);
+
+  // the parity table (the console's applyRumble() is tested against the same rows)
+  struct Row {
+    RumbleOptions o;
+    RumbleState in, out;
+  };
+  constexpr uint8_t OFF = RumbleOptions::RUMBLE_OFF;
+  constexpr uint8_t SWAP = RumbleOptions::SWAP_MOTORS;
+  const Row rows[] = {
+      {{0, 100}, make(200, 10, 5, 7), make(200, 10, 5, 7)},
+      {{OFF, 100}, make(200, 10, 5, 7), make(0, 0, 0, 0)},
+      {{0, 0}, make(200, 10, 5, 7), make(0, 0, 0, 0)},
+      {{0, 50}, make(255, 1, 3, 0), make(128, 1, 2, 0)},
+      {{0, 1}, make(255, 1, 0, 0), make(3, 0, 0, 0)},
+      {{0, 49}, make(1, 0, 0, 0), make(0, 0, 0, 0)},
+      {{0, 150}, make(100, 200, 128, 0), make(150, 255, 192, 0)},
+      {{0, 200}, make(127, 128, 255, 100), make(254, 255, 255, 200)},
+      {{SWAP, 100}, make(200, 10, 5, 7), make(10, 200, 5, 7)},
+      {{SWAP, 50}, make(200, 10, 5, 7), make(5, 100, 3, 4)},
+      {{0xFC, 100}, make(200, 10, 5, 7), make(200, 10, 5, 7)}, // unknown bits only
+      {{0, 250}, make(100, 0, 0, 0), make(200, 0, 0, 0)},      // invalid: behaves as 200
+  };
+  for (const auto &row : rows) {
+    if (row.o.apply(row.in) != row.out) {
+      std::printf("FAIL rumble parity row {0x%02x, %u}\n", row.o.flags, row.o.strength_percent);
+      failures++;
+    }
+  }
+
+  // a stop stays a stop for every option value
+  bool stop_safe = true;
+  for (uint8_t flags = 0; flags <= 3; ++flags)
+    for (int pct = 0; pct <= 200; ++pct)
+      stop_safe = stop_safe && RumbleOptions{flags, static_cast<uint8_t>(pct)}.apply(
+                                   RumbleState{}) == RumbleState{};
+  CHECK(stop_safe);
+
+  // monotonic in the level and in the strength
+  bool monotonic = true;
+  for (int pct = 0; pct <= 200; ++pct) {
+    const RumbleOptions o{0, static_cast<uint8_t>(pct)};
+    for (int level = 1; level <= 255; ++level)
+      monotonic =
+          monotonic && o.apply(make(static_cast<uint8_t>(level), 0, 0, 0)).level(M::Strong) >=
+                           o.apply(make(static_cast<uint8_t>(level - 1), 0, 0, 0)).level(M::Strong);
+  }
+  for (int level = 0; level <= 255; ++level)
+    for (int pct = 1; pct <= 200; ++pct)
+      monotonic = monotonic && RumbleOptions{0, static_cast<uint8_t>(pct)}
+                                       .apply(make(static_cast<uint8_t>(level), 0, 0, 0))
+                                       .level(M::Strong) >=
+                                   RumbleOptions{0, static_cast<uint8_t>(pct - 1)}
+                                       .apply(make(static_cast<uint8_t>(level), 0, 0, 0))
+                                       .level(M::Strong);
+  CHECK(monotonic);
+
+  // swap twice at 100 % is the identity; swap and scaling commute
+  const RumbleOptions swap{SWAP, 100};
+  CHECK(swap.apply(swap.apply(sample)) == sample);
+  CHECK((RumbleOptions{SWAP, 150}.apply(sample)) ==
+        swap.apply(RumbleOptions{0, 150}.apply(sample)));
+  // off keeps the stored strength (turning it back on restores it)
+  const RumbleOptions off{OFF, 150};
+  CHECK(off.is_off() && off.strength_percent == 150);
+
+  // validation
+  std::string why;
+  CHECK((RumbleOptions{0x03, 200}.valid()));
+  CHECK(!(RumbleOptions{0x04, 100}.valid(&why)) && why == "unknown rumble flags");
+  CHECK(!(RumbleOptions{0, 201}.valid(&why)) && why == "strength out of range (0..200 %)");
+  // neutral: unknown bits ignored
+  CHECK(RumbleOptions{}.is_neutral() && (RumbleOptions{0xFC, 100}.is_neutral()));
+  CHECK(!(RumbleOptions{SWAP, 100}.is_neutral()) && !(RumbleOptions{0, 99}.is_neutral()));
+}
+
+static std::vector<uint8_t> read_file(const std::filesystem::path &path) {
+  std::ifstream in(path, std::ios::binary);
+  return {std::istreambuf_iterator<char>(in), std::istreambuf_iterator<char>()};
+}
+
+static uint32_t file_version(const std::filesystem::path &path) {
+  const auto bytes = read_file(path);
+  return bytes.size() < 8 ? 0
+                          : static_cast<uint32_t>(bytes[4] | (bytes[5] << 8) | (bytes[6] << 16) |
+                                                  (bytes[7] << 24));
+}
+
+static void test_profiles_rumble() {
+  namespace fs = std::filesystem;
+  using espp::RumbleOptions;
+  const fs::path dir = fs::temp_directory_path() / "gamepad_map_host_test_rumble";
+  fs::remove_all(dir);
+  fs::create_directories(dir);
+  const fs::path file = dir / "profiles.bin";
+  std::error_code ec;
+  const RumbleOptions swap150{.flags = RumbleOptions::SWAP_MOTORS, .strength_percent = 150};
+  const RumbleOptions off{.flags = RumbleOptions::RUMBLE_OFF, .strength_percent = 100};
+  const RumbleOptions half{.flags = 0, .strength_percent = 50};
+  GamepadMap bsp;
+  bsp.swap(B::South, B::East);
+  {
+    // Config::default_rumble applies with no file, and nothing is written
+    espp::GamepadProfiles profiles({.file_path = file, .default_rumble = half});
+    CHECK(profiles.default_rumble() == half && !fs::exists(file));
+    CHECK(profiles.rumble_for(1, 2) == half);
+  }
+  {
+    // an invalid configured default becomes neutral
+    espp::GamepadProfiles profiles({.file_path = file, .default_rumble = {0, 250}});
+    CHECK(profiles.default_rumble() == RumbleOptions{});
+  }
+  {
+    espp::GamepadProfiles profiles({.file_path = file});
+    CHECK(profiles.set_profile(
+        {.vid = 0x1949, .pid = 0x0402, .name = "BSP-D8", .map = bsp, .rumble = swap150}, ec));
+    CHECK(profiles.rumble_for(0x1949, 0x0402) == swap150);
+    CHECK(profiles.rumble_for(0x045e, 0x0b13) == profiles.default_rumble());
+    CHECK(profiles.set_default_rumble(half, ec) && profiles.default_rumble() == half);
+    GamepadMap inverted;
+    inverted.invert(A::LeftY);
+    CHECK(profiles.set_defaults(inverted, off, ec));
+    CHECK(profiles.default_map() == inverted && profiles.default_rumble() == off);
+    CHECK(profiles.set_default_map(GamepadMap{}, ec) && profiles.default_rumble() == off);
+  }
+  {
+    // reloaded: everything persisted
+    espp::GamepadProfiles profiles({.file_path = file});
+    CHECK(!profiles.load_error());
+    CHECK(profiles.rumble_for(0x1949, 0x0402) == swap150);
+    CHECK(profiles.default_rumble() == off && profiles.default_map().is_identity());
+
+    // set_profile_map keeps a stored profile's rumble, changes its map
+    GamepadMap other;
+    other.left_deadzone_percent = 7;
+    CHECK(profiles.set_profile_map(0x1949, 0x0402, "BSP-D8", other, ec));
+    CHECK(profiles.map_for(0x1949, 0x0402) == other &&
+          profiles.rumble_for(0x1949, 0x0402) == swap150);
+    // ... and a new profile starts from the default rumble
+    CHECK(profiles.set_profile_map(0x0001, 0x0002, "new", other, ec));
+    CHECK(profiles.rumble_for(0x0001, 0x0002) == off);
+    CHECK(!profiles.set_profile_map(0, 0, "", other, ec) && ec == std::errc::invalid_argument);
+
+    // set_profile replaces the whole profile, rumble included
+    CHECK(profiles.set_profile({.vid = 0x0001, .pid = 0x0002, .name = "new", .map = other}, ec));
+    CHECK(profiles.rumble_for(0x0001, 0x0002) == RumbleOptions{});
+
+    // invalid options are refused and nothing is written
+    const auto before = read_file(file);
+    CHECK(!profiles.set_profile({.vid = 3, .pid = 4, .name = "x", .map = {}, .rumble = {0x04, 100}},
+                                ec) &&
+          ec == std::errc::invalid_argument);
+    CHECK(!profiles.set_default_rumble({0, 201}, ec) && ec == std::errc::invalid_argument);
+    CHECK(!profiles.set_defaults(GamepadMap{}, {0, 201}, ec) && ec == std::errc::invalid_argument);
+    CHECK(read_file(file) == before);
+
+    // erase: the controller falls back to the default; reset: default neutral
+    CHECK(profiles.erase_profile(0x1949, 0x0402, "", ec));
+    CHECK(profiles.rumble_for(0x1949, 0x0402) == off);
+    CHECK(profiles.reset(ec) && profiles.default_rumble() == RumbleOptions{});
+  }
+  {
+    // full store: set_profile_map reports no_buffer_space
+    espp::GamepadProfiles profiles({.file_path = file, .max_profiles = 1});
+    CHECK(profiles.set_profile_map(1, 1, "a", GamepadMap{}, ec));
+    CHECK(!profiles.set_profile_map(2, 2, "b", GamepadMap{}, ec) &&
+          ec == std::errc::no_buffer_space);
+  }
+  {
+    // stored options are sanitized: unknown bits cleared, strength clamped, the profile kept
+    espp::GamepadProfiles::Data d;
+    d.default_rumble = {0xFC, 250};
+    d.profiles.push_back({.vid = 1, .pid = 2, .name = "ok", .map = {}, .rumble = {0x06, 255}});
+    espp::GamepadProfiles::Storage raw({.file_path = file, .auto_load = false});
+    CHECK(raw.save(d, ec));
+    espp::GamepadProfiles profiles({.file_path = file});
+    CHECK(!profiles.load_error());
+    CHECK((profiles.default_rumble() == RumbleOptions{0x00, 200}));
+    CHECK(profiles.profile_count() == 1 && (profiles.rumble_for(1, 2) == RumbleOptions{0x02, 200}));
+  }
+  fs::remove_all(dir);
+}
+
+static void test_profiles_v1_migration() {
+  namespace fs = std::filesystem;
+  using espp::RumbleOptions;
+  // A version 1 file as espp before rumble options wrote it (default map
+  // invert(LeftY); 1949:0402 "BSP-D8" swap(South, East); 0:0 "NoPnP" with a
+  // 12 % left dead zone), from GamepadProfiles::Storage::encode().
+  static const uint8_t kV1File[] = {
+      0x45, 0x53, 0x50, 0x44, 0x01, 0x00, 0x00, 0x00, 0x3b, 0xa1, 0xd1, 0x4e, 0x43, 0x00, 0x00,
+      0x00, 0x4a, 0x32, 0xe8, 0x17, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x03, 0x01, 0x01, 0x00,
+      0x9c, 0xff, 0x02, 0x00, 0x00, 0x00, 0x49, 0x19, 0x02, 0x04, 0x06, 0x00, 0x00, 0x00, 0x42,
+      0x53, 0x50, 0x2d, 0x44, 0x38, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00,
+      0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x05, 0x00, 0x00,
+      0x00, 0x4e, 0x6f, 0x50, 0x6e, 0x50, 0x0c, 0x00, 0x00, 0x00, 0x00, 0x00,
+  };
+  // changing this means V1 files no longer load: GamepadProfileV1 /
+  // GamepadProfilesV1 (and GamepadMap / GamepadMapRule) are frozen
+  CHECK(espp::persistent_data::layout::fingerprint<espp::GamepadProfilesV1>() == 0x4ed1a13b);
+  // a change to the V2 layout needs a V3
+  CHECK(espp::GamepadProfiles::Storage::layout_fingerprint() == 0x64dff6d1);
+  CHECK(espp::GamepadProfiles::Storage::CURRENT_VERSION == 2);
+
+  const fs::path dir = fs::temp_directory_path() / "gamepad_map_host_test_v1";
+  fs::remove_all(dir);
+  fs::create_directories(dir);
+  const fs::path file = dir / "profiles.bin";
+  {
+    std::ofstream out(file, std::ios::binary | std::ios::trunc);
+    out.write(reinterpret_cast<const char *>(kV1File), sizeof(kV1File));
+  }
+  std::error_code ec;
+  GamepadMap legacy;
+  legacy.invert(A::LeftY);
+  GamepadMap bsp;
+  bsp.swap(B::South, B::East);
+  GamepadMap named;
+  named.left_deadzone_percent = 12;
+  espp::GamepadProfiles::Data loaded;
+  {
+    // the configured default rumble does not apply to a migrated file
+    espp::GamepadProfiles profiles({.file_path = file, .default_rumble = {0, 50}});
+    CHECK(!profiles.load_error());
+    CHECK(profiles.default_map() == legacy);
+    CHECK(profiles.map_for(0x1949, 0x0402) == bsp && profiles.map_for(0, 0, "NoPnP") == named);
+    CHECK(profiles.default_rumble() == RumbleOptions{});
+    CHECK(profiles.rumble_for(0x1949, 0x0402) == RumbleOptions{} &&
+          profiles.rumble_for(0, 0, "NoPnP") == RumbleOptions{});
+    CHECK(file_version(file) == 1); // not rewritten on load
+    CHECK(profiles.set_default_rumble(RumbleOptions{}, ec));
+    CHECK(file_version(file) == 2); // the first change writes version 2
+    loaded = profiles.data();
+  }
+  {
+    espp::GamepadProfiles profiles({.file_path = file});
+    const auto again = profiles.data();
+    CHECK(!profiles.load_error() && again.default_map == loaded.default_map &&
+          again.default_rumble == loaded.default_rumble && again.profiles == loaded.profiles);
+  }
+  {
+    // older firmware (V1 only) cannot read a version 2 file
+    espp::PersistentData<espp::GamepadProfilesV1> old({.file_path = file, .auto_load = false});
+    CHECK(!old.load(ec) && ec == espp::PersistentDataErrc::unknown_version);
+  }
+  fs::remove_all(dir);
+}
+
 int main() {
   test_state();
   test_identity();
@@ -394,7 +666,10 @@ int main() {
   test_aliasing();
   test_hid_rp_bridge();
   test_rumble_state();
+  test_rumble_options();
   test_profiles();
+  test_profiles_rumble();
+  test_profiles_v1_migration();
   if (failures == 0) {
     std::printf("gamepad_map_host_test: all checks passed\n");
     return 0;

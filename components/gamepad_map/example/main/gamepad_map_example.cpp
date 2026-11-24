@@ -9,6 +9,8 @@
 #include "gamepad_state_formatters.hpp"
 #include "gamepad_state_hid_rp.hpp"
 #include "logger.hpp"
+#include "rumble_options.hpp"
+#include "rumble_state.hpp"
 
 using namespace std::chrono_literals;
 
@@ -120,6 +122,57 @@ extern "C" void app_main(void) {
           reloaded.map_for(0x1949, 0x0402) == bsp_d8 && reloaded.default_map() == default_map);
     check("erase a profile", reloaded.erase_profile(0x1949, 0x0402, "", ec) && !ec &&
                                  reloaded.map_for(0x1949, 0x0402) == default_map);
+  }
+
+  {
+    logger.info("Rumble options per controller type");
+    auto &fs = espp::FileSystem::get();
+    const std::filesystem::path path = fs.get_root_path() / "gamepad_profiles.bin";
+    std::error_code ec;
+    using M = espp::RumbleState::Motor;
+    //! [rumble options example]
+    espp::GamepadProfiles profiles({.file_path = path});
+
+    // This controller type's motors come out the wrong way round and feel weak:
+    // swap the strong and weak motors and play every motor at 150 % of what the
+    // host asks. set_profile() replaces the whole profile, rumble included;
+    // set_profile_map() would change only the map and keep the stored options.
+    const espp::RumbleOptions bsp_d8_rumble{.flags = espp::RumbleOptions::SWAP_MOTORS,
+                                            .strength_percent = 150};
+    if (!profiles.set_profile({.vid = 0x1949,
+                               .pid = 0x0402,
+                               .name = "BSP-D8",
+                               .map = profiles.default_map(),
+                               .rumble = bsp_d8_rumble},
+                              ec))
+      logger.error("Could not save the profile: {}", ec.message());
+
+    // When a controller connects, look its rumble options up once (next to
+    // map_for()) and keep them with the host's raw rumble request.
+    const espp::RumbleOptions options = profiles.rumble_for(0x1949, 0x0402, "BSP-D8");
+
+    // Each time the rumble is sent: apply the options once to the host's raw
+    // request. Here the host asks for strong 100, weak 200.
+    espp::RumbleState host_request;
+    host_request.set(M::Strong, 100);
+    host_request.set(M::Weak, 200);
+    const espp::RumbleState played = options.apply(host_request);
+    logger.info("host asks for strong {} weak {}; the controller plays strong {} weak {}",
+                host_request.level(M::Strong), host_request.level(M::Weak), played.level(M::Strong),
+                played.level(M::Weak));
+    // `played` then goes to the controller, e.g. through a hid_rp::RumbleEncoder:
+    // encoder.encode(espp::to_rumble_levels(played), 200). An all-zero result
+    // (rumble off, or the host's stop) is sent too: it is a stop.
+    //! [rumble options example]
+    // weak 200 x 150 % = 300 saturates at 255 and plays on the strong motor;
+    // strong 100 x 150 % = 150 plays on the weak motor
+    check("the options swap and scale the motors",
+          played.level(M::Strong) == 255 && played.level(M::Weak) == 150);
+    check("other controllers play the host's rumble as asked",
+          profiles.rumble_for(0x045e, 0x0b13).is_neutral() &&
+              profiles.default_rumble().is_neutral());
+    espp::GamepadProfiles reloaded({.file_path = path});
+    check("rumble options survive a reload", reloaded.rumble_for(0x1949, 0x0402) == bsp_d8_rumble);
   }
 
   logger.info("{} passed, {} failed", passed, failed);

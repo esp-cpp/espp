@@ -46,6 +46,8 @@ namespace espp {
  *
  *          The struct is plain data (it is stored with PersistentData and
  *          sent over the wire as is); build rules with the static helpers.
+ *          Stored as is inside GamepadProfiles' file: a layout change needs a
+ *          new schema version (see GamepadProfileV1).
  */
 struct GamepadMapRule {
   using Button = GamepadState::Button;
@@ -162,7 +164,8 @@ private:
  *
  *          A GamepadMap is plain data: copy it, store it (see GamepadProfiles),
  *          send it. Use valid() on one that came from outside (a file, a web
- *          page) before using it.
+ *          page) before using it. Stored as is inside GamepadProfiles' file: a
+ *          layout change needs a new schema version (see GamepadProfileV1).
  *
  * \section gamepad_map_ex1 Gamepad Map Example
  * \snippet gamepad_map_example.cpp gamepad map example

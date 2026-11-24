@@ -21,6 +21,7 @@ namespace proto = espp::detail::gamepad_map_protocol;
 using espp::GamepadMap;
 using espp::GamepadMapRule;
 using espp::GamepadState;
+using espp::RumbleOptions;
 using B = GamepadState::Button;
 using A = GamepadState::Axis;
 
@@ -53,8 +54,9 @@ static void test_map_encoding() {
   const auto back = proto::decode_set_map(p);
   CHECK(back.has_value());
   if (back) {
-    CHECK(back->first == t);
-    CHECK(back->second == m);
+    CHECK(back->target == t);
+    CHECK(back->map == m);
+    CHECK(!back->rumble); // the v1 form: the device keeps the stored rumble options
   }
   // the default target is one byte
   const Bytes def = proto::encode_get_map({});
@@ -72,7 +74,7 @@ static void test_map_encoding() {
   // service's job
   const Bytes bad_rule{0x00, 0, 0, 1, 0x07, 0x40, 0x00, 0x00, 0x00, 0x00};
   const auto invalid = proto::decode_set_map(bad_rule);
-  CHECK(invalid.has_value() && !invalid->second.valid());
+  CHECK(invalid.has_value() && !invalid->map.valid());
 
   // MAP: the target, the exists flag, the map; a host ignores appended fields
   Bytes reply = proto::encode_map_reply(t, false, m);
@@ -85,6 +87,64 @@ static void test_map_encoding() {
   reply.push_back(0xAA); // a later version's field
   decoded = proto::decode_map_reply(reply);
   CHECK(decoded.has_value() && decoded->exists && !decoded->target.profile);
+}
+
+// Rumble options (still protocol v1): SET_MAP's optional trailing block, MAP's
+// flags bit1 + block, INFO's capability bit.
+static void test_rumble_wire() {
+  GamepadMap m;
+  m.left_deadzone_percent = 10;
+  m.right_deadzone_percent = 5;
+  m.add(GamepadMapRule::button(B::South, B::East))
+      .add(GamepadMapRule::axis_to_button(A::LeftY, -16384, B::Up, true));
+  const proto::Target t{.profile = true, .vid = 0x1949, .pid = 0x0402, .name = "BSP"};
+  const Bytes v1 = proto::encode_set_map(t, m);
+
+  // SET_MAP: the v1 form is unchanged; with a block, [flags][strength] follows
+  const RumbleOptions off80{.flags = RumbleOptions::RUMBLE_OFF, .strength_percent = 80};
+  Bytes with = proto::encode_set_map(t, m, off80);
+  Bytes expected = v1;
+  expected.insert(expected.end(), {0x01, 0x50});
+  CHECK(with == expected);
+  auto back = proto::decode_set_map(with);
+  CHECK(back.has_value() && back->target == t && back->map == m && back->rumble == off80);
+  // default target, empty map, neutral options
+  CHECK(proto::encode_set_map({}, GamepadMap{}, RumbleOptions{}) ==
+        (Bytes{0x00, 0x00, 0x00, 0x00, 0x00, 0x64}));
+  // exactly 0 or 2 bytes may follow the map
+  Bytes one = v1;
+  one.push_back(0x01);
+  CHECK(!proto::decode_set_map(one));
+  Bytes three = with;
+  three.push_back(0x00);
+  CHECK(!proto::decode_set_map(three));
+  // the layout decodes even when the options are invalid: valid() is the service's job
+  Bytes bad = v1;
+  bad.insert(bad.end(), {0xFF, 250});
+  back = proto::decode_set_map(bad);
+  CHECK(back.has_value() && back->rumble.has_value() && !back->rumble->valid());
+
+  // MAP: flags bit1 + the block after the map
+  const RumbleOptions swap150{.flags = RumbleOptions::SWAP_MOTORS, .strength_percent = 150};
+  Bytes reply = proto::encode_map_reply({}, true, GamepadMap{}, swap150);
+  CHECK(reply == (Bytes{0x00, 0x03, 0x00, 0x00, 0x00, 0x02, 0x96}));
+  auto decoded = proto::decode_map_reply(reply);
+  CHECK(decoded.has_value() && decoded->exists && decoded->rumble == swap150);
+  // bytes after the block are ignored (a later field)
+  Bytes longer = reply;
+  longer.push_back(0xAA);
+  decoded = proto::decode_map_reply(longer);
+  CHECK(decoded.has_value() && decoded->rumble == swap150);
+  // bit1 with no block, or a 1-byte block, is truncated
+  CHECK(!proto::decode_map_reply(Bytes{0x00, 0x03, 0x00, 0x00, 0x00}));
+  CHECK(!proto::decode_map_reply(Bytes{0x00, 0x03, 0x00, 0x00, 0x00, 0x02}));
+  // without bit1 there is no rumble, whatever follows the map
+  decoded = proto::decode_map_reply(Bytes{0x00, 0x01, 0x00, 0x00, 0x00, 0xAA, 0xBB});
+  CHECK(decoded.has_value() && !decoded->rumble);
+  // a missing profile: exists 0 plus the default options
+  reply = proto::encode_map_reply(t, false, GamepadMap{}, RumbleOptions{});
+  CHECK(reply.size() == 9 + 1 + 3 + 2 && reply[9] == 0x02 && reply[13] == 0x00 &&
+        reply[14] == 0x64);
 }
 
 static void test_info() {
@@ -101,11 +161,29 @@ static void test_info() {
   CHECK(p == (Bytes{22, 6, 64, 16, 1, 0x01, 0x5e, 0x04, 0x13, 0x0b, 4, 'X', 'b', 'o', 'x', 1}));
   back = proto::decode_info(p);
   CHECK(back.has_value() && *back == info);
+  CHECK(!back->rumble_options); // flags bit1 clear: an older device
   Bytes longer = p;
   longer.push_back(0x55); // device -> host: appended fields are ignored
   CHECK(proto::decode_info(longer).has_value() && *proto::decode_info(longer) == info);
   p.pop_back();
   CHECK(!proto::decode_info(p));
+
+  // flags bit1: the device stores rumble options per map (adds no bytes)
+  proto::Info rumble_info{.button_count = 22,
+                          .axis_count = 6,
+                          .max_rules = 64,
+                          .max_profiles = 16,
+                          .profile_count = 1,
+                          .rumble_options = true};
+  p = proto::encode_info(rumble_info);
+  CHECK(p == (Bytes{22, 6, 64, 16, 1, 0x02}));
+  back = proto::decode_info(p);
+  CHECK(back.has_value() && *back == rumble_info);
+  rumble_info.controller = info.controller;
+  p = proto::encode_info(rumble_info);
+  CHECK(p == (Bytes{22, 6, 64, 16, 1, 0x03, 0x5e, 0x04, 0x13, 0x0b, 4, 'X', 'b', 'o', 'x', 1}));
+  back = proto::decode_info(p);
+  CHECK(back.has_value() && *back == rumble_info);
 }
 
 static void test_profiles() {
@@ -177,6 +255,7 @@ static void test_erase_error_frame() {
 
 int main() {
   test_map_encoding();
+  test_rumble_wire();
   test_info();
   test_profiles();
   test_input_and_stream();

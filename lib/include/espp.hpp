@@ -33,6 +33,7 @@ extern "C" {
 #include "gamepad_state.hpp"
 #include "gamepad_state_formatters.hpp"
 #include "gaussian.hpp"
+#include "rumble_options.hpp"
 #include "rumble_state.hpp"
 // TODO: these are not working
 // #include "hid-rp.hpp"
