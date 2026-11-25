@@ -6,10 +6,10 @@
 // espp::Dispatcher on module 11 by default (`espp.gamepad_map` v1 through
 // discovery).
 //
-// This header is deliberately host-buildable (stream_frame.hpp, gamepad_map.hpp
-// and the standard library only) so the codec is unit-tested on the host
-// (components/gamepad_map/test/gamepad_map_protocol_host_test.cpp) and so host
-// tools can reuse it. All multi-byte fields are little-endian; a `str` is
+// This header is deliberately host-buildable (stream_frame.hpp, gamepad_map.hpp,
+// rumble_options.hpp and the standard library only) so the codec is unit-tested
+// on the host (components/gamepad_map/test/gamepad_map_protocol_host_test.cpp)
+// and so host tools can reuse it. All multi-byte fields are little-endian; a `str` is
 // [len u8][utf8 bytes].
 //
 // Shared encodings:
@@ -22,13 +22,23 @@
 //           (GamepadMapRule field for field; 6 bytes per rule)
 //   state   [buttons u32][left_x i16][left_y i16][right_x i16][right_y i16]
 //           [left_trigger i16][right_trigger i16]          (16 bytes)
+//   rumble  [flags u8][strength_percent u8]   (2 bytes; RumbleOptions field for field)
+//           flags bit0 = RUMBLE_OFF, bit1 = SWAP_MOTORS, bits 2-7 reserved;
+//           strength 0..200; neutral = 00 64
 //
 // Requests (host -> device, reply flag clear):
 //   0x01 GET_INFO       (no payload)
 //   0x02 GET_MAP        [target]
-//   0x03 SET_MAP        [target][map]       validated, then saved; a profile
-//                                           target adds or replaces that profile
+//   0x03 SET_MAP        [target][map]  or  [target][map][rumble]
+//                       validated, then saved; a profile target adds or
+//                       replaces that profile. Exactly 0 or 2 bytes may follow
+//                       the map (anything else is malformed). With the rumble
+//                       block, the map and the options are saved together;
+//                       without it the stored options are kept (a new profile
+//                       starts from the default rumble options)
 //   0x04 ERASE_PROFILE  [vid u16][pid u16][name str]
+//                       the profile's rumble options go with it (the controller
+//                       falls back to the default rumble options)
 //   0x05 LIST_PROFILES  (no payload)
 //   0x06 SET_STREAM     [enable u8][period_ms u16]
 //                       INPUT events every period while enabled; the device
@@ -36,12 +46,21 @@
 //                       when no SET_STREAM enable renews the stream within its
 //                       lease (GamepadMapService::Config::stream_lease), so a
 //                       closed page does not leave it streaming
-//   0x07 RESET_ALL      (no payload)    every profile erased, default = identity
+//   0x07 RESET_ALL      (no payload)    every profile erased, default = identity,
+//                                       default rumble options = neutral
+//   0x08 TEST_RUMBLE    [rumble]        play a short test pattern on the
+//                                       connected controller through these
+//                                       (unsaved) rumble options; nothing is
+//                                       saved. Only when INFO flags bit2 is
+//                                       set; otherwise refused (not supported)
 // Replies / events (device -> host, high bit set = frame reply flag):
 //   0x81 INFO      [button_count u8][axis_count u8][max_rules u8]
 //                  [max_profiles u8][profile_count u8][flags u8]
 //                  flags bit0 = a controller is connected, then:
 //                  [vid u16][pid u16][name str][has_profile u8]
+//                  flags bit1 = the device stores rumble options per map (MAP
+//                  carries them and SET_MAP accepts them); adds no bytes
+//                  flags bit2 = the device takes TEST_RUMBLE; adds no bytes
 //                  Answers GET_INFO, and is also sent unsolicited (no
 //                  correlation id) when the INPUT stream starts and when the
 //                  connected controller changes while it is on.
@@ -51,6 +70,9 @@
 //                                          profile that does not exist answers
 //                                          with the map its controller uses
 //                                          today, the default map, exists 0)
+//                  then [rumble] when flags bit1 is set: the profile's rumble
+//                  options, else the default ones (what the controller uses
+//                  today). A host fails a MAP whose bit1 block is short.
 //   0x83 OK        [request_type u8]
 //   0x84 ERROR     [request_type u8][code u32][utf8 message]
 //                  code = the POSIX errno value of the std::errc the service
@@ -66,6 +88,18 @@
 // listed with no payload must have none), but a host
 // decodes device -> host messages leniently: bytes after the fields it knows
 // are ignored, so a later version of the protocol may append fields to them.
+//
+// Revision: rumble options (still v1). The rumble additions (INFO flags bit1,
+// MAP flags bit1 + its block, SET_MAP's optional block) keep the protocol at
+// version 1 and are found through capability bits instead, because a released
+// console hides a module advertised at another version. Every addition is
+// compatible both ways: an older host tests only bit0 and ignores the bytes
+// after the map, and its SET_MAP (no block) keeps the stored rumble options; a
+// newer host sees INFO bit1 clear on older firmware and sends SET_MAP without
+// the block, byte-identical to before. Firmware that does not know the block
+// rejects a SET_MAP that carries one as malformed (nothing is saved).
+// TEST_RUMBLE (0x08) is offered only behind INFO flags bit2, so a host never
+// sends it to firmware that does not know it.
 
 #include <cstdint>
 #include <optional>
@@ -76,6 +110,7 @@
 
 #include "gamepad_map.hpp"
 #include "gamepad_state.hpp"
+#include "rumble_options.hpp"
 #include "stream_frame.hpp"
 
 namespace espp::detail::gamepad_map_protocol {
@@ -96,6 +131,7 @@ enum class Type : uint8_t {
   ListProfiles = 0x05,
   SetStream = 0x06,
   ResetAll = 0x07,
+  TestRumble = 0x08,
   // device -> host (high bit set)
   Info = 0x81,
   Map = 0x82,
@@ -111,11 +147,19 @@ inline constexpr uint8_t kFlagConnected = 0x01;
 inline constexpr uint8_t kFlagChanged = 0x02;
 /// MAP flag: the requested map exists (a profile that does not answers with the default map).
 inline constexpr uint8_t kFlagExists = 0x01;
+/// INFO flag: the device stores rumble options per map (MAP carries them, SET_MAP accepts them).
+inline constexpr uint8_t kFlagRumbleOptions = 0x02;
+/// INFO flag: the device takes TEST_RUMBLE (plays a test pattern through given options).
+inline constexpr uint8_t kFlagTestRumble = 0x04;
+/// MAP flag: a rumble block follows the map.
+inline constexpr uint8_t kFlagRumble = 0x02;
 
 /// Bytes of an encoded GamepadState.
 inline constexpr size_t kStateSize = 16;
 /// Bytes of one encoded GamepadMapRule.
 inline constexpr size_t kRuleSize = 6;
+/// Bytes of an encoded RumbleOptions.
+inline constexpr size_t kRumbleSize = 2;
 
 /// Which map a GET_MAP / SET_MAP addresses.
 struct Target {
@@ -142,6 +186,8 @@ struct Info {
   uint8_t max_rules{0};
   uint8_t max_profiles{0};
   uint8_t profile_count{0};
+  bool rumble_options{false}; ///< flags bit1: the device stores rumble options per map
+  bool test_rumble{false};    ///< flags bit2: the device takes TEST_RUMBLE
   std::optional<Controller> controller{};
   bool operator==(const Info &) const = default;
 };
@@ -227,6 +273,8 @@ public:
     return true;
   }
   bool done() const { return ok_ && pos_ == data_.size(); }
+  /// Bytes not read yet (0 once a read has failed).
+  size_t remaining() const { return ok_ ? data_.size() - pos_ : 0; }
   /// For device -> host messages: every known field was read (trailing bytes,
   /// fields of a later protocol version, are ignored).
   bool known_fields_read() const { return ok_; }
@@ -319,6 +367,18 @@ inline bool read_map(Reader &r, GamepadMap &m) {
   return true;
 }
 
+/// Encode rumble options: [flags u8][strength_percent u8].
+inline void put_rumble(std::vector<uint8_t> &out, const RumbleOptions &o) {
+  put_u8(out, o.flags);
+  put_u8(out, o.strength_percent);
+}
+/// Decode rumble options. Only the layout is checked here; check the result
+/// with RumbleOptions::valid() before using it.
+inline bool read_rumble(Reader &r, RumbleOptions &o) {
+  o = {};
+  return r.u8(o.flags) && r.u8(o.strength_percent);
+}
+
 inline void put_state(std::vector<uint8_t> &out, const GamepadState &s) {
   put_u32(out, s.buttons);
   for (const int16_t a : s.axes)
@@ -348,20 +408,43 @@ inline std::optional<Target> decode_get_map(std::span<const uint8_t> payload) {
   return t;
 }
 
-inline std::vector<uint8_t> encode_set_map(const Target &t, const GamepadMap &m) {
+/// Decoded SET_MAP.
+struct SetMapRequest {
+  Target target{};
+  GamepadMap map{};
+  /// The rumble block, if the request carried one (absent: keep the stored options).
+  std::optional<RumbleOptions> rumble{};
+  bool operator==(const SetMapRequest &) const = default;
+};
+
+/// Encode SET_MAP; without `rumble` the request is the original v1 form (the
+/// device keeps the stored rumble options).
+inline std::vector<uint8_t>
+encode_set_map(const Target &t, const GamepadMap &m,
+               const std::optional<RumbleOptions> &rumble = std::nullopt) {
   std::vector<uint8_t> p;
   put_target(p, t);
   put_map(p, m);
+  if (rumble)
+    put_rumble(p, *rumble);
   return p;
 }
-inline std::optional<std::pair<Target, GamepadMap>>
-decode_set_map(std::span<const uint8_t> payload) {
+/// Decode SET_MAP: exactly 0 (no rumble) or kRumbleSize (a rumble block) bytes
+/// may follow the map. Only the layout is checked (see read_map / read_rumble).
+inline std::optional<SetMapRequest> decode_set_map(std::span<const uint8_t> payload) {
   Reader r(payload);
-  Target t;
-  GamepadMap m;
-  if (!read_target(r, t) || !read_map(r, m) || !r.done())
+  SetMapRequest req;
+  if (!read_target(r, req.target) || !read_map(r, req.map))
     return std::nullopt;
-  return std::make_pair(std::move(t), std::move(m));
+  if (r.remaining() == kRumbleSize) {
+    RumbleOptions o;
+    if (!read_rumble(r, o))
+      return std::nullopt;
+    req.rumble = o;
+  }
+  if (!r.done())
+    return std::nullopt;
+  return req;
 }
 
 inline std::vector<uint8_t> encode_erase_profile(uint16_t vid, uint16_t pid,
@@ -397,6 +480,21 @@ inline std::optional<StreamRequest> decode_set_stream(std::span<const uint8_t> p
   return s;
 }
 
+/// Encode TEST_RUMBLE: [rumble].
+inline std::vector<uint8_t> encode_test_rumble(const RumbleOptions &rumble) {
+  std::vector<uint8_t> p;
+  put_rumble(p, rumble);
+  return p;
+}
+/// Decode TEST_RUMBLE: exactly one rumble block (layout only; check valid()).
+inline std::optional<RumbleOptions> decode_test_rumble(std::span<const uint8_t> payload) {
+  Reader r(payload);
+  RumbleOptions o;
+  if (!read_rumble(r, o) || !r.done())
+    return std::nullopt;
+  return o;
+}
+
 // ---- replies / events (device -> host) -----------------------------------------
 
 inline std::vector<uint8_t> encode_info(const Info &info) {
@@ -406,7 +504,9 @@ inline std::vector<uint8_t> encode_info(const Info &info) {
   put_u8(p, info.max_rules);
   put_u8(p, info.max_profiles);
   put_u8(p, info.profile_count);
-  put_u8(p, info.controller ? kFlagConnected : 0);
+  put_u8(p, static_cast<uint8_t>((info.controller ? kFlagConnected : 0) |
+                                 (info.rumble_options ? kFlagRumbleOptions : 0) |
+                                 (info.test_rumble ? kFlagTestRumble : 0)));
   if (info.controller) {
     put_u16(p, info.controller->vid);
     put_u16(p, info.controller->pid);
@@ -422,6 +522,8 @@ inline std::optional<Info> decode_info(std::span<const uint8_t> payload) {
   if (!r.u8(info.button_count) || !r.u8(info.axis_count) || !r.u8(info.max_rules) ||
       !r.u8(info.max_profiles) || !r.u8(info.profile_count) || !r.u8(flags))
     return std::nullopt;
+  info.rumble_options = flags & kFlagRumbleOptions;
+  info.test_rumble = flags & kFlagTestRumble;
   if (flags & kFlagConnected) {
     Controller c;
     uint8_t has = 0;
@@ -440,23 +542,40 @@ struct MapReply {
   Target target{};
   bool exists{false};
   GamepadMap map{};
+  /// The rumble block (flags bit1), if the device sent one.
+  std::optional<RumbleOptions> rumble{};
 };
 
-inline std::vector<uint8_t> encode_map_reply(const Target &t, bool exists, const GamepadMap &m) {
+/// Encode MAP; with `rumble`, flags bit1 is set and the block follows the map.
+inline std::vector<uint8_t>
+encode_map_reply(const Target &t, bool exists, const GamepadMap &m,
+                 const std::optional<RumbleOptions> &rumble = std::nullopt) {
   std::vector<uint8_t> p;
   put_target(p, t);
-  put_u8(p, exists ? kFlagExists : 0);
+  put_u8(p, static_cast<uint8_t>((exists ? kFlagExists : 0) | (rumble ? kFlagRumble : 0)));
   put_map(p, m);
+  if (rumble)
+    put_rumble(p, *rumble);
   return p;
 }
+/// Decode MAP. Flags bit1 with a missing or short rumble block fails; bytes
+/// after the known fields are ignored (without bit1 there is no rumble block,
+/// whatever follows the map).
 inline std::optional<MapReply> decode_map_reply(std::span<const uint8_t> payload) {
   Reader r(payload);
   MapReply reply;
   uint8_t flags = 0;
-  if (!read_target(r, reply.target) || !r.u8(flags) || !read_map(r, reply.map) ||
-      !r.known_fields_read())
+  if (!read_target(r, reply.target) || !r.u8(flags) || !read_map(r, reply.map))
     return std::nullopt;
   reply.exists = flags & kFlagExists;
+  if (flags & kFlagRumble) {
+    RumbleOptions o;
+    if (!read_rumble(r, o))
+      return std::nullopt;
+    reply.rumble = o;
+  }
+  if (!r.known_fields_read())
+    return std::nullopt;
   return reply;
 }
 

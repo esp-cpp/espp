@@ -2,12 +2,15 @@ name: Gamepad map host test
 
 # Builds and runs, on the host with g++ -std=c++23:
 #  - components/gamepad_map/test/gamepad_map_host_test.cpp (GamepadState,
-#    GamepadMap rules + validation, the hid-rp conversion, GamepadProfiles'
-#    file round trip)
+#    GamepadMap rules + validation, the hid-rp conversion, RumbleOptions,
+#    GamepadProfiles' file round trip and its version 1 -> 2 migration)
 #  - components/hid-rp/test/hid_rp_report_map_host_test.cpp (the runtime
 #    report map + Gamepad / Keyboard / Mouse decoders the map is fed from)
 #  - components/gamepad_map/test/gamepad_map_protocol_host_test.cpp (the
 #    GamepadMapService wire protocol codec)
+#  - components/gamepad_map/test/gamepad_map_service_host_test.cpp
+#    (GamepadMapService against a real store: rumble options on the wire, the
+#    change callbacks)
 #  - components/gamepad_map/web/test/gamepad_map_codec_test.js (the web
 #    console's copy of that codec, with node)
 # Runs whenever either component, or what they store / log with, changes.
@@ -27,6 +30,8 @@ on:
       - "components/format/**"
       - "components/base_component/**"
       - "components/stream_frame/**"
+      - "components/task/**"
+      - "components/dispatcher/**"
       - ".github/workflows/gamepad_map_tests.yml"
   push:
     branches:
@@ -40,6 +45,8 @@ on:
       - "components/format/**"
       - "components/base_component/**"
       - "components/stream_frame/**"
+      - "components/task/**"
+      - "components/dispatcher/**"
       - ".github/workflows/gamepad_map_tests.yml"
   workflow_dispatch:
 
@@ -86,6 +93,20 @@ jobs:
             components/gamepad_map/test/gamepad_map_protocol_host_test.cpp \
             -o gamepad_map_protocol_host_test
           ./gamepad_map_protocol_host_test
+      - name: Build and run gamepad_map_service_host_test
+        run: |
+          g++ -std=c++23 -Wall -Wextra -Werror -Wno-comment \
+            -I components/gamepad_map/include -I components/persistent_data/include \
+            -I components/serialization/include -I components/base_component/include \
+            -I components/logger/include -I components/format/include \
+            -I components/task/include -I components/dispatcher/include \
+            -I components/stream_frame/include \
+            -isystem components/serialization/detail/alpaca/include \
+            -isystem components/format/detail/fmt/include \
+            components/gamepad_map/test/gamepad_map_service_host_test.cpp \
+            components/logger/src/logger.cpp components/task/src/task.cpp -lpthread \
+            -o gamepad_map_service_host_test
+          ./gamepad_map_service_host_test
       - name: Run the web console codec test
         run: |
           node --version

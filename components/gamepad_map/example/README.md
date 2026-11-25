@@ -13,6 +13,12 @@ comes next:
 3. `espp::GamepadProfiles` stores a default map and a per-controller-type
    profile in a file on a [littlefs](https://github.com/littlefs-project/littlefs)
    partition, and reloads them.
+4. The same store keeps each controller type's rumble options. A profile saved
+   with its strong and weak motors swapped and a strength of 150 % is looked up
+   with `rumble_for()`, and `espp::RumbleOptions::apply()` turns a host's rumble
+   request (strong 100, weak 200) into the levels the controller plays (strong
+   255, saturated, and weak 150). Other controllers keep the default's neutral
+   options, and the profile's options survive a reload.
 
 It ends with a pass / fail summary.
 
@@ -56,6 +62,11 @@ I (…) gamepad map example: BSP-D8 map: 4 rule(s); default map: 2 rule(s)
   [PASS] other controllers get the default map
   [PASS] profiles survive a reload
   [PASS] erase a profile
-I (…) gamepad map example: 8 passed, 0 failed
+I (…) gamepad map example: Rumble options per controller type
+I (…) gamepad map example: host asks for strong 100 weak 200; the controller plays strong 255 weak 150
+  [PASS] the options swap and scale the motors
+  [PASS] other controllers play the host's rumble as asked
+  [PASS] rumble options survive a reload
+I (…) gamepad map example: 11 passed, 0 failed
 I (…) gamepad map example: Gamepad map example complete!
 ```

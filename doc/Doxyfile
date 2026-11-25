@@ -361,6 +361,7 @@ INPUT = \
   $(PROJECT_PATH)/components/gamepad_map/include/gamepad_state.hpp \
   $(PROJECT_PATH)/components/gamepad_map/include/gamepad_state_hid_rp.hpp \
   $(PROJECT_PATH)/components/gamepad_map/include/rumble_state.hpp \
+  $(PROJECT_PATH)/components/gamepad_map/include/rumble_options.hpp \
   $(PROJECT_PATH)/components/gfps_service/include/gfps.hpp \
   $(PROJECT_PATH)/components/gfps_service/include/gfps_characteristic_callbacks.hpp \
   $(PROJECT_PATH)/components/gfps_service/include/gfps_service.hpp \

@@ -27,6 +27,7 @@
 #include <string>
 #include <string_view>
 #include <system_error>
+#include <utility>
 #include <vector>
 
 #include "dispatcher.hpp"
@@ -60,22 +61,30 @@ namespace espp {
  *          When a change affects the map of the connected controller (its
  *          profile, or the default map it falls back to), the service calls
  *          Config::on_active_map_changed with the new map: the application
- *          swaps the map it applies. publish_input() only copies the state
- *          under a lock (no I/O), so it can be called for every report.
+ *          swaps the map it applies. Likewise, when a change gives the
+ *          connected controller different rumble options (see RumbleOptions),
+ *          the service calls Config::on_active_rumble_changed with them: the
+ *          application applies the new options to the rumble it forwards.
+ *          With Config::on_test_rumble set, a host can also try rumble
+ *          options before saving them (TEST_RUMBLE): the application plays a
+ *          short test pattern through them on the connected controller.
+ *          publish_input() only copies the state under a lock (no I/O), so it
+ *          can be called for every report.
  *
  *          Several services (one per transport) may share one GamepadProfiles
  *          store; tell each about the controller and feed each the input.
  *          Their changes and notifications are serialized on the store's
  *          change_mutex(), so the last notification always carries the map
- *          the store holds.
+ *          (and rumble options) the store holds.
  *
  * **Threading**: an internal mutex covers the parser, the controller state and
  * the stream task; every outbound frame is serialized on a send mutex held
  * across `send`, so frames never interleave. set_controller(),
  * clear_controller() and publish_input() never send (an INFO for a controller
  * change goes out from the stream task), so they are safe to call from a
- * radio / host task. `send` and `on_active_map_changed` must not re-enter this
- * object (nor change the store).
+ * radio / host task. `send`, `on_active_map_changed` and
+ * `on_active_rumble_changed` must not re-enter this object (nor change the
+ * store).
  *
  * \section gamepad_map_service_ex1 GamepadMapService Example
  * \snippet gamepad_map_webapp_example.cpp gamepad_map_webapp_example
@@ -96,6 +105,13 @@ public:
   using send_fn = std::function<void(std::span<const uint8_t> frame)>;
   /// Called with the connected controller's new map after a host changed it.
   using map_changed_fn = std::function<void(const GamepadMap &map)>;
+  /// Called with the connected controller's new rumble options after a host changed them.
+  using rumble_changed_fn = std::function<void(const RumbleOptions &rumble)>;
+  /// Plays a short rumble test pattern on the connected controller through
+  /// `options` (not saved). Returns false, with `error` set to a short reason
+  /// for the host, when it cannot (e.g. no controller connected, or one that
+  /// cannot rumble).
+  using test_rumble_fn = std::function<bool(const RumbleOptions &options, std::string &error)>;
 
   /// Configuration for the GamepadMapService.
   struct Config {
@@ -104,6 +120,17 @@ public:
     /// Called (without the service's locks held) when a host's change gives the
     /// connected controller a new map.
     map_changed_fn on_active_map_changed{nullptr};
+    /// Called (without the service's locks held, under the store's
+    /// change_mutex()) when a host's change gives the connected controller
+    /// different rumble options.
+    rumble_changed_fn on_active_rumble_changed{nullptr};
+    /// Called (without the service's locks held, on the thread handling the
+    /// request) when a host asks to try rumble options before saving them
+    /// (TEST_RUMBLE): play a short test pattern through them. Must return
+    /// promptly (start the pattern, do not wait for it) and must not re-enter
+    /// this object. Unset: the device does not offer the test (INFO flags bit2
+    /// clear).
+    test_rumble_fn on_test_rumble{nullptr};
     /// Dispatcher module id this instance answers on (and stamps on every
     /// frame it sends). A routing key only (0x00..0xEF).
     uint8_t module{kModule};
@@ -135,7 +162,8 @@ public:
   Dispatcher::ModuleInfo module_info() const {
     return {.name = "Gamepad map",
             .app = "gamepad_map_console.html",
-            .description = "Gamepad button / axis mapping and per-controller profiles",
+            .description =
+                "Gamepad button / axis mapping, rumble options and per-controller profiles",
             .protocol = kProtocol,
             .protocol_version = kProtocolVersion};
   }
@@ -144,6 +172,13 @@ public:
 
   /**
    * @brief A controller connected (or the connected one changed).
+   * @details Call active_rumble() right after for its rumble options, under the
+   *          same lock your change callbacks take, so a host's change cannot
+   *          slip in between. With several services on one store, call
+   *          set_controller() on every one of them first, then look the map
+   *          and rumble options up once (from any of them), all under that
+   *          lock: a change through any service then either lands before the
+   *          lookup or notifies.
    * @return The map to apply to it (its profile's, else the default map).
    */
   GamepadMap set_controller(uint16_t vid, uint16_t pid, const std::string &name) {
@@ -153,6 +188,8 @@ public:
       const Controller c{vid, pid, name};
       changed = !controller_ || !(*controller_ == c);
       controller_ = c;
+      if (changed)
+        ++controller_generation_; // a change() in flight notifies for this controller
     }
     if (changed) {
       reset_input(); // nothing from the previous controller carries over
@@ -168,6 +205,8 @@ public:
       std::lock_guard<std::mutex> lock(mutex_);
       changed = controller_.has_value();
       controller_.reset();
+      if (changed)
+        ++controller_generation_;
     }
     if (changed) {
       reset_input();
@@ -181,6 +220,17 @@ public:
       return {};
     const auto c = controller();
     return c ? config_.profiles->map_for(c->vid, c->pid, c->name) : config_.profiles->default_map();
+  }
+
+  /// @brief The rumble options the connected controller should use now (the
+  ///        default ones when none is connected). Apply them once, where the
+  ///        host's raw rumble becomes the controller's motor command.
+  RumbleOptions active_rumble() const {
+    if (!config_.profiles)
+      return {};
+    const auto c = controller();
+    return c ? config_.profiles->rumble_for(c->vid, c->pid, c->name)
+             : config_.profiles->default_rumble();
   }
 
   /**
@@ -261,6 +311,7 @@ public:
     case Type::ListProfiles:
     case Type::SetStream:
     case Type::ResetAll:
+    case Type::TestRumble:
       break;
     default:
       return false; // not a gamepad map request: ignore so the service can share a stream
@@ -290,19 +341,25 @@ public:
       }
       proto::Target resolved = *target;
       GamepadMap map;
+      RumbleOptions rumble;
       bool exists = true;
       if (target->profile) {
         if (const auto p = profiles.profile(target->vid, target->pid, target->name)) {
           map = p->map;
+          rumble = p->rumble;
           resolved.name = p->name; // as stored
         } else {
-          exists = false; // no such profile: the controller uses the default map today
+          // no such profile: the controller uses the default map and rumble today
+          exists = false;
           map = profiles.default_map();
+          rumble = profiles.default_rumble();
         }
       } else {
         map = profiles.default_map();
+        rumble = profiles.default_rumble();
       }
-      send_frame(proto::build_frame(Type::Map, proto::encode_map_reply(resolved, exists, map),
+      send_frame(proto::build_frame(Type::Map,
+                                    proto::encode_map_reply(resolved, exists, map, rumble),
                                     module_id(), correlation));
       break;
     }
@@ -312,19 +369,33 @@ public:
         send_error(type, std::errc::invalid_argument, "malformed SET_MAP", correlation);
         break;
       }
-      const auto &[target, map] = *req;
+      const auto &target = req->target;
+      const auto &map = req->map;
+      const auto &rumble = req->rumble;
       std::string why;
       if (!map.valid(&why)) {
         send_error(type, std::errc::invalid_argument, "invalid map: " + why, correlation);
         break;
       }
+      if (rumble && !rumble->valid(&why)) {
+        send_error(type, std::errc::invalid_argument, "invalid rumble options: " + why,
+                   correlation);
+        break;
+      }
       std::error_code ec;
+      // with a rumble block, the map and the options are saved together; without
+      // one (an older host) the stored options are kept
       const bool saved = change([&] {
-        return target.profile
-                   ? profiles.set_profile(
-                         {.vid = target.vid, .pid = target.pid, .name = target.name, .map = map},
-                         ec)
-                   : profiles.set_default_map(map, ec);
+        if (target.profile) {
+          return rumble ? profiles.set_profile({.vid = target.vid,
+                                                .pid = target.pid,
+                                                .name = target.name,
+                                                .map = map,
+                                                .rumble = *rumble},
+                                               ec)
+                        : profiles.set_profile_map(target.vid, target.pid, target.name, map, ec);
+        }
+        return rumble ? profiles.set_defaults(map, *rumble, ec) : profiles.set_default_map(map, ec);
       });
       if (!saved) {
         send_error(type, std::errc::io_error,
@@ -395,6 +466,33 @@ public:
       ok(type, correlation);
       break;
     }
+    case Type::TestRumble: {
+      if (!config_.on_test_rumble) {
+        send_error(type, std::errc::not_supported, "this device does not offer a rumble test",
+                   correlation);
+        break;
+      }
+      const auto options = proto::decode_test_rumble(payload);
+      if (!options) {
+        send_error(type, std::errc::invalid_argument, "malformed TEST_RUMBLE", correlation);
+        break;
+      }
+      std::string why;
+      if (!options->valid(&why)) {
+        send_error(type, std::errc::invalid_argument, "invalid rumble options: " + why,
+                   correlation);
+        break;
+      }
+      std::string error;
+      if (!config_.on_test_rumble(*options, error)) {
+        send_error(type, std::errc::no_such_device,
+                   error.empty() ? std::string("the rumble test could not be played") : error,
+                   correlation);
+        break;
+      }
+      ok(type, correlation);
+      break;
+    }
     default:
       break;
     }
@@ -432,7 +530,9 @@ protected:
         .max_profiles =
             static_cast<uint8_t>(std::min<size_t>(config_.profiles->max_profiles(), 255)),
         .profile_count =
-            static_cast<uint8_t>(std::min<size_t>(config_.profiles->profile_count(), 255))};
+            static_cast<uint8_t>(std::min<size_t>(config_.profiles->profile_count(), 255)),
+        .rumble_options = true,
+        .test_rumble = static_cast<bool>(config_.on_test_rumble)};
     if (const auto c = controller()) {
       info.controller =
           proto::Controller{.vid = c->vid,
@@ -443,21 +543,62 @@ protected:
     return info;
   }
 
+  /// The connected controller and its generation, read together.
+  std::pair<std::optional<Controller>, uint32_t> controller_snapshot() const {
+    std::lock_guard<std::mutex> lock(mutex_);
+    return {controller_, controller_generation_.load()};
+  }
+
+  /// The map / rumble options for a controller (none: the default ones).
+  GamepadMap map_of(const std::optional<Controller> &c) const {
+    return c ? config_.profiles->map_for(c->vid, c->pid, c->name) : config_.profiles->default_map();
+  }
+  RumbleOptions rumble_of(const std::optional<Controller> &c) const {
+    return c ? config_.profiles->rumble_for(c->vid, c->pid, c->name)
+             : config_.profiles->default_rumble();
+  }
+
   /// Apply one change to the store (`save` returns whether it was saved) and,
-  /// when it gives the connected controller a different map, tell the
-  /// application -- all under the store's change mutex, so services sharing a
-  /// store change and notify one at a time and the last notification carries
-  /// the map the store holds.
+  /// when it gives the connected controller a different map or different
+  /// rumble options, tell the application -- all under the store's change
+  /// mutex, so services sharing a store change and notify one at a time and
+  /// the last notification carries what the store holds.
+  ///
+  /// Whether to notify is decided after the save, for the controller
+  /// connected then: one that connected while the save ran (its values looked
+  /// up before the save landed) is told too. The controller is re-checked
+  /// after the callbacks: if another one connected while they ran (it may
+  /// have been handed its values just before a callback delivered the
+  /// previous controller's), the callbacks run again for it, so the last
+  /// notification always matches the connected controller.
   template <typename Save> bool change(Save save) {
     std::lock_guard<std::mutex> lock(config_.profiles->change_mutex());
-    const bool notify = config_.on_active_map_changed && controller().has_value();
-    const GamepadMap before = notify ? active_map() : GamepadMap{};
+    const auto [before, before_generation] = controller_snapshot();
+    const GamepadMap map_before = config_.on_active_map_changed ? map_of(before) : GamepadMap{};
+    const RumbleOptions rumble_before =
+        config_.on_active_rumble_changed ? rumble_of(before) : RumbleOptions{};
     if (!save())
       return false;
-    if (notify) {
-      const GamepadMap now = active_map();
-      if (now != before)
-        config_.on_active_map_changed(now);
+    uint32_t seen = before_generation;
+    // bounded: a controller would have to reconnect during every round
+    for (int round = 0; round < 4; ++round) {
+      const auto [now, generation] = controller_snapshot();
+      if (!now)
+        break; // nothing connected: the next connect looks its values up
+      const bool reconnected = generation != seen;
+      if (config_.on_active_map_changed) {
+        const GamepadMap map = map_of(now);
+        if (reconnected || map != map_before)
+          config_.on_active_map_changed(map);
+      }
+      if (config_.on_active_rumble_changed) {
+        const RumbleOptions rumble = rumble_of(now);
+        if (reconnected || rumble != rumble_before)
+          config_.on_active_rumble_changed(rumble);
+      }
+      if (controller_snapshot().second == generation)
+        break;
+      seen = generation; // another controller connected meanwhile: tell it too
     }
     return true;
   }
@@ -575,6 +716,9 @@ private:
   std::mutex input_mutex_;        ///< guards the latest input
   Stream parser_;
   std::optional<Controller> controller_{};
+  /// Bumped whenever the connected controller changes (under mutex_), so
+  /// change() can tell that one connected while it saved.
+  std::atomic<uint32_t> controller_generation_{0};
   std::unique_ptr<Task> task_;
   std::atomic<bool> streaming_{false};
   bool task_active_{false};               ///< task_ is running (guarded by mutex_)
