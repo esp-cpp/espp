@@ -69,8 +69,8 @@ device may serve a protocol on any dispatcher module id.
   :doc:`gamepad maps <input/gamepad_map>` (the default map and one profile per
   controller type: button / axis rules, stick dead zones, presets, bind a
   control by pressing it, and per-controller rumble options: off, strength,
-  swap the strong / weak motors) and watch the controller's input before and
-  after mapping, live.
+  swap the strong / weak motors, with a Test button to try them before saving)
+  and watch the controller's input before and after mapping, live.
 - **System Console** (``system_console.html``) — device info (chip, firmware,
   partitions, reset reason, uptime, memory), reboot and reboot-into-bootloader
   for the :doc:`system <system/system>` component, plus live heap gauges and a

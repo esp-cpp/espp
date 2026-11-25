@@ -28,7 +28,7 @@ assert.ok(begin > 0 && end > begin, "codec block markers not found in gamepad_ma
 const block = html.slice(begin, end);
 assert.ok(!/\b(document|window|els|navigator|location)\b/.test(block.replace(/\/\/.*$/gm, "")), "the codec block must not touch the DOM / page state");
 const G = new Function(block + `
-  return { T_GET_INFO, T_GET_MAP, T_SET_MAP, T_ERASE_PROFILE, T_LIST_PROFILES, T_SET_STREAM, T_RESET_ALL,
+  return { T_GET_INFO, T_GET_MAP, T_SET_MAP, T_ERASE_PROFILE, T_LIST_PROFILES, T_SET_STREAM, T_RESET_ALL, T_TEST_RUMBLE,
            T_INFO, T_MAP, T_OK, T_ERROR, T_PROFILES, T_INPUT, BUTTON_NAMES, AXIS_NAMES, BUTTON_COUNT, AXIS_COUNT, B, A, K,
            RULE_NONE, KEEP_SOURCE, AXIS_MAX, STATE_SIZE, RULE_SIZE, PRESETS,
            buttonLabel, axisLabel, percentToParam, paramToPercent, GmReader, GmWriter, readMap, readState, encodeState,
@@ -37,7 +37,7 @@ const G = new Function(block + `
            describeTarget, sameTarget, validateTarget, gmLimits, validateRule, validateMap,
            ruleButton, ruleAxisToButton, ruleButtonToAxis, ruleAxis, changeRuleKind, describeRule,
            learnBaseline, learnStep, applyLearnHit,
-           FLAG_RUMBLE_OPTIONS, FLAG_RUMBLE, RUMBLE_SIZE, RUMBLE_OFF, RUMBLE_SWAP_MOTORS, RUMBLE_KNOWN_FLAGS,
+           FLAG_RUMBLE_OPTIONS, FLAG_RUMBLE, FLAG_TEST_RUMBLE, encodeTestRumble, RUMBLE_SIZE, RUMBLE_OFF, RUMBLE_SWAP_MOTORS, RUMBLE_KNOWN_FLAGS,
            MAX_RUMBLE_STRENGTH, NEUTRAL_RUMBLE, putRumble, readRumble, validateRumble, applyRumble, describeRumble };
 `)();
 
@@ -203,6 +203,22 @@ test("MAP: a rumble block follows the map when flags bit1 is set", () => {
   assert.deepStrictEqual(odd.rumble, { flags: 0x86, strength: 250 });
   assert.notStrictEqual(G.validateRumble(odd.rumble), null, "250 % is refused locally");
   eq(G.encodeSetMap(odd.target, odd.map, { ...odd.rumble, strength: 120 }), [0x00, 0x00, 0x00, 0x00, 0x86, 120]);
+});
+
+test("TEST_RUMBLE: [rumble], offered behind INFO flags bit2", () => {
+  assert.strictEqual(G.T_TEST_RUMBLE, 0x08);
+  assert.strictEqual(G.FLAG_TEST_RUMBLE, 0x04);
+  // C++ golden: encode_test_rumble({SWAP_MOTORS, 150})
+  assert.deepStrictEqual([...G.encodeTestRumble({ flags: G.RUMBLE_SWAP_MOTORS, strength: 150 })], [0x02, 0x96]);
+  // unknown flag bits are sent as edited
+  assert.deepStrictEqual([...G.encodeTestRumble({ flags: 0x86, strength: 100 })], [0x86, 0x64]);
+  // C++ golden: rumble options + test rumble, no controller
+  const info = G.decodeInfo(bytes([22, 6, 64, 16, 1, 0x06]));
+  assert.strictEqual(info.rumbleOptions, true);
+  assert.strictEqual(info.testRumble, true);
+  // without bit2 there is no key (a v1 / rumble-only INFO decodes as before)
+  assert.ok(!("testRumble" in G.decodeInfo(bytes([22, 6, 64, 16, 1, 0x02]))));
+  assert.ok(!("testRumble" in G.decodeInfo(bytes([22, 6, 64, 16, 1, 0x00]))));
 });
 
 test("INFO: the rumble options capability (flags bit1, no bytes added)", () => {

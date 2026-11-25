@@ -184,6 +184,29 @@ static void test_info() {
   CHECK(p == (Bytes{22, 6, 64, 16, 1, 0x03, 0x5e, 0x04, 0x13, 0x0b, 4, 'X', 'b', 'o', 'x', 1}));
   back = proto::decode_info(p);
   CHECK(back.has_value() && *back == rumble_info);
+
+  // flags bit2: the device takes TEST_RUMBLE (adds no bytes)
+  rumble_info.controller.reset();
+  rumble_info.test_rumble = true;
+  p = proto::encode_info(rumble_info);
+  CHECK(p == (Bytes{22, 6, 64, 16, 1, 0x06}));
+  back = proto::decode_info(p);
+  CHECK(back.has_value() && back->test_rumble && back->rumble_options);
+}
+
+static void test_test_rumble() {
+  const RumbleOptions swap150{.flags = RumbleOptions::SWAP_MOTORS, .strength_percent = 150};
+  const Bytes p = proto::encode_test_rumble(swap150);
+  CHECK(p == (Bytes{0x02, 0x96}));
+  CHECK(proto::decode_test_rumble(p) == swap150);
+  CHECK(!proto::decode_test_rumble(Bytes{0x02}));             // short
+  CHECK(!proto::decode_test_rumble(Bytes{0x02, 0x96, 0x00})); // trailing
+  CHECK(!proto::decode_test_rumble(Bytes{}));
+  // layout only: valid() is the service's job
+  const auto bad = proto::decode_test_rumble(Bytes{0xFF, 250});
+  CHECK(bad.has_value() && !bad->valid());
+  const Bytes frame = proto::build_frame(proto::Type::TestRumble, p, proto::kModule, 7);
+  CHECK(!frame.empty());
 }
 
 static void test_profiles() {
@@ -257,6 +280,7 @@ int main() {
   test_map_encoding();
   test_rumble_wire();
   test_info();
+  test_test_rumble();
   test_profiles();
   test_input_and_stream();
   test_erase_error_frame();

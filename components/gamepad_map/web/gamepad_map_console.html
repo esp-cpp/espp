@@ -279,6 +279,7 @@
             <datalist id="rumbleTicks"><option value="0"><option value="50"><option value="100"><option value="150"><option value="200"></datalist>
             <button id="rumbleNormalBtn" class="small" disabled title="Back to 100 % (as the host asks)">100 %</button>
             <label title="The strong (left grip) and weak (right grip) motors trade places, for a controller whose motors come out the wrong way round; impulse-trigger motors are not swapped"><input type="checkbox" id="rumbleSwap" disabled> swap strong / weak motors</label>
+            <button id="rumbleTestBtn" class="small" disabled title="Play a short test pattern on the connected controller with these settings (not saved)">Test</button>
           </div>
           <p id="rumbleNote" class="muted" style="margin: 6px 0 0;"></p>
           <div class="table-wrap">
@@ -403,17 +404,23 @@
     // an edit and are echoed back. Fields added after v1 (`rumbleOptions` in
     // INFO, `rumble` in MAP) appear in a decoded object only when the device
     // sent them, so a v1 payload decodes to exactly the object it always did.
+    // TEST_RUMBLE (0x08, [rumble]) plays a short test pattern on the connected
+    // controller through unsaved options; it is offered only when INFO flags
+    // bit2 is set (`testRumble`), so it never reaches firmware without it.
     // requests (host -> device)
     const T_GET_INFO = 0x01, T_GET_MAP = 0x02, T_SET_MAP = 0x03, T_ERASE_PROFILE = 0x04,
-          T_LIST_PROFILES = 0x05, T_SET_STREAM = 0x06, T_RESET_ALL = 0x07;
+          T_LIST_PROFILES = 0x05, T_SET_STREAM = 0x06, T_RESET_ALL = 0x07,
+          T_TEST_RUMBLE = 0x08;
     // replies / events (device -> host, reply flag set)
     const T_INFO = 0x81, T_MAP = 0x82, T_OK = 0x83, T_ERROR = 0x84, T_PROFILES = 0x85, T_INPUT = 0x86;
     const REQ_NAME = { 0x01: "get info", 0x02: "get map", 0x03: "save map", 0x04: "erase profile",
-                       0x05: "list profiles", 0x06: "set input stream", 0x07: "reset all" };
+                       0x05: "list profiles", 0x06: "set input stream", 0x07: "reset all",
+                       0x08: "test rumble" };
     const FLAG_CONNECTED = 0x01, FLAG_CHANGED = 0x02;   // INFO / INPUT flags
     const FLAG_EXISTS = 0x01;                           // MAP flag: the requested map exists
     const FLAG_RUMBLE_OPTIONS = 0x02;                   // INFO flag: the device stores rumble options per map
     const FLAG_RUMBLE = 0x02;                           // MAP flag: a rumble block follows the map
+    const FLAG_TEST_RUMBLE = 0x04;                      // INFO flag: the device takes TEST_RUMBLE
     const STATE_SIZE = 16, RULE_SIZE = 6, RUMBLE_SIZE = 2;
     // RumbleOptions (rumble_options.hpp): flags + strength in percent (0..200)
     const RUMBLE_OFF = 0x01, RUMBLE_SWAP_MOTORS = 0x02, RUMBLE_KNOWN_FLAGS = 0x03;
@@ -553,6 +560,8 @@
     }
     function encodeEraseProfile(t) { return new GmWriter().u16(t.vid).u16(t.pid).str(t.name).bytes(); }
     function encodeSetStream(enable, periodMs) { return new GmWriter().u8(enable ? 1 : 0).u16(periodMs).bytes(); }
+    // TEST_RUMBLE: [rumble] (only when INFO says `testRumble`)
+    function encodeTestRumble(o) { const w = new GmWriter(); putRumble(w, o); return w.bytes(); }
 
     // ---- replies / events (null = truncated / malformed, like the C++ decoders;
     //      trailing bytes after the known fields are ignored) ----
@@ -564,6 +573,7 @@
       const flags = r.u8();
       if (!r.ok) return null;
       if (flags & FLAG_RUMBLE_OPTIONS) info.rumbleOptions = true;
+      if (flags & FLAG_TEST_RUMBLE) info.testRumble = true;
       if (flags & FLAG_CONNECTED) {
         const c = { vid: r.u16(), pid: r.u16(), name: r.str(), hasProfile: r.u8() !== 0 };
         if (!r.ok) return null;
@@ -1425,7 +1435,8 @@
       els.ctlProfile.textContent = c ? (c.hasProfile ? "own profile" : "default map") : "-";
       els.ctlProfile.className = "badge" + (c ? (c.hasProfile ? " ok" : " info") : "");
       els.devRumble.textContent = info.rumbleOptions ? "per map" : "not in this firmware";
-      if (!!(prev && prev.rumbleOptions) !== !!info.rumbleOptions || !prev) { renderRumble(); updateValidation(); }
+      renderRumble(); // (capabilities, and the controller the Test button needs)
+      if (!!(prev && prev.rumbleOptions) !== !!info.rumbleOptions || !prev) updateValidation();
       els.devProfiles.textContent = info.profileCount + " / " + info.maxProfiles;
       els.devMaxRules.textContent = String(info.maxRules);
       els.devControls.textContent = info.buttonCount + " buttons, " + info.axisCount + " axes";
@@ -1626,6 +1637,17 @@
       els.rumbleStrength.value = String(strength);
       els.rumbleStrengthOut.textContent = strength + " %";
       els.rumbleNote.textContent = rumbleNoteText();
+      // Test: the device must offer it and have a controller; the settings as
+      // edited (not saved) are sent
+      const online = !!transport && moduleReady;
+      const why = !online ? "Connect to the device to test rumble" :
+                  !devInfo || !devInfo.testRumble ? "This device's firmware does not offer a rumble test" :
+                  !devInfo.controller ? "Connect a controller to the device to test rumble" :
+                  !r ? "Load a map with rumble options to test them" :
+                  off ? "Rumble is off for this controller type" :
+                  validateRumble(r) ? "Fix the strength first" : "";
+      els.rumbleTestBtn.disabled = why !== "";
+      els.rumbleTestBtn.title = why || "Play a short test pattern on the connected controller with these settings (not saved)";
     }
     function editRumble(fn) {
       if (!rumbleToSave(editMap)) return;
@@ -1636,6 +1658,13 @@
     els.rumbleSwap.addEventListener("change", () => editRumble((r) => { r.flags = els.rumbleSwap.checked ? (r.flags | RUMBLE_SWAP_MOTORS) : (r.flags & ~RUMBLE_SWAP_MOTORS); }));
     els.rumbleStrength.addEventListener("input", () => editRumble((r) => { r.strength = Math.round(Number(els.rumbleStrength.value)) || 0; }));
     els.rumbleNormalBtn.addEventListener("click", () => editRumble((r) => { r.strength = NEUTRAL_RUMBLE.strength; }));
+    els.rumbleTestBtn.addEventListener("click", () => {
+      const r = rumbleToSave(editMap);
+      if (!r || !transport || !moduleReady || !devInfo || !devInfo.testRumble) return;
+      logLine("tx", "Testing rumble on the connected controller: " + describeRumble(r) + " (not saved).");
+      setEditStatus("Testing rumble on the connected controller...", "");
+      send(T_TEST_RUMBLE, encodeTestRumble(r));
+    });
 
     // ---- the rule table ----
     function fillSelect(sel, isAxis, value, withNone) {
@@ -2023,6 +2052,8 @@
       } else if (rt === T_ERASE_PROFILE) {
         setEditStatus("Erased. The controller type now uses the default map and its rumble options.", "ok");
         refreshDevice(); if (editTarget) requestLoad(editTarget);
+      } else if (rt === T_TEST_RUMBLE) {
+        setEditStatus("Played a rumble test on the connected controller with these settings (not saved).", "ok");
       } else if (rt === T_RESET_ALL) {
         setEditStatus("Everything reset: no profiles, default map = identity, default rumble = on / 100 % / not swapped.", "ok");
         refreshDevice(); if (editTarget) requestLoad(editTarget);
@@ -2034,7 +2065,7 @@
       if (e.requestType === T_GET_MAP) pendingGet = null;
       if (e.requestType === T_SET_MAP) savingMap = null;
       if (e.requestType === T_SET_STREAM) streamAcked = false;
-      if ([T_GET_MAP, T_SET_MAP, T_ERASE_PROFILE, T_RESET_ALL].includes(e.requestType))
+      if ([T_GET_MAP, T_SET_MAP, T_ERASE_PROFILE, T_RESET_ALL, T_TEST_RUMBLE].includes(e.requestType))
         setEditStatus("The device refused to " + what + ": " + (e.message || "error " + e.code) + ".", "err");
       updateValidation();
     }
@@ -2098,6 +2129,7 @@
         for (const id of ["ctlName", "devProfiles", "devMaxRules", "devControls", "devRumble"]) els[id].textContent = "-";
         els.ctlProfile.textContent = "-"; els.ctlProfile.className = "badge";
         devInfo = null; profiles = []; infoKey = ""; pendingGet = null; savingMap = null;
+        renderRumble();
         setLiveIdle("No input yet: connect and keep “Live input” on.");
         rebuildTargets();
       }

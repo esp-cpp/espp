@@ -27,6 +27,8 @@ example keeps the connected controller's rumble options (from
 `Config::on_active_rumble_changed` after a change) and logs each change. A real
 application hands them to its rumble sender, which applies them
 (`espp::RumbleOptions::apply()`) once to each host rumble request it sends.
+It also answers the console's rumble **Test** (`Config::on_test_rumble`) by
+logging the options it would play the test pattern with.
 
 The device also serves the standard espp USB services: system info / reboot
 (module 7), the heap / task monitor (8), OTA (0) and core dump (4). The
@@ -72,6 +74,11 @@ Rumble row under the dead zones: untick "on", move the strength slider, or tick
 since the demo controller has no motors, but the device logs the new options
 (see below), and loading the map again shows them. With this firmware the status
 line under the Connect buttons shows "Rumble options: per map".
+
+**Test** (next to the swap box) sends the options as they are in the editor,
+before Save: the device logs "Rumble test requested: off=... strength=...%
+swap=..." and the console says the test was played. A real application plays a
+short pattern on the controller instead.
 
 ## Example Output
 

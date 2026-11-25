@@ -48,6 +48,11 @@
 //                       closed page does not leave it streaming
 //   0x07 RESET_ALL      (no payload)    every profile erased, default = identity,
 //                                       default rumble options = neutral
+//   0x08 TEST_RUMBLE    [rumble]        play a short test pattern on the
+//                                       connected controller through these
+//                                       (unsaved) rumble options; nothing is
+//                                       saved. Only when INFO flags bit2 is
+//                                       set; otherwise refused (not supported)
 // Replies / events (device -> host, high bit set = frame reply flag):
 //   0x81 INFO      [button_count u8][axis_count u8][max_rules u8]
 //                  [max_profiles u8][profile_count u8][flags u8]
@@ -55,6 +60,7 @@
 //                  [vid u16][pid u16][name str][has_profile u8]
 //                  flags bit1 = the device stores rumble options per map (MAP
 //                  carries them and SET_MAP accepts them); adds no bytes
+//                  flags bit2 = the device takes TEST_RUMBLE; adds no bytes
 //                  Answers GET_INFO, and is also sent unsolicited (no
 //                  correlation id) when the INPUT stream starts and when the
 //                  connected controller changes while it is on.
@@ -92,6 +98,8 @@
 // newer host sees INFO bit1 clear on older firmware and sends SET_MAP without
 // the block, byte-identical to before. Firmware that does not know the block
 // rejects a SET_MAP that carries one as malformed (nothing is saved).
+// TEST_RUMBLE (0x08) is offered only behind INFO flags bit2, so a host never
+// sends it to firmware that does not know it.
 
 #include <cstdint>
 #include <optional>
@@ -123,6 +131,7 @@ enum class Type : uint8_t {
   ListProfiles = 0x05,
   SetStream = 0x06,
   ResetAll = 0x07,
+  TestRumble = 0x08,
   // device -> host (high bit set)
   Info = 0x81,
   Map = 0x82,
@@ -140,6 +149,8 @@ inline constexpr uint8_t kFlagChanged = 0x02;
 inline constexpr uint8_t kFlagExists = 0x01;
 /// INFO flag: the device stores rumble options per map (MAP carries them, SET_MAP accepts them).
 inline constexpr uint8_t kFlagRumbleOptions = 0x02;
+/// INFO flag: the device takes TEST_RUMBLE (plays a test pattern through given options).
+inline constexpr uint8_t kFlagTestRumble = 0x04;
 /// MAP flag: a rumble block follows the map.
 inline constexpr uint8_t kFlagRumble = 0x02;
 
@@ -176,6 +187,7 @@ struct Info {
   uint8_t max_profiles{0};
   uint8_t profile_count{0};
   bool rumble_options{false}; ///< flags bit1: the device stores rumble options per map
+  bool test_rumble{false};    ///< flags bit2: the device takes TEST_RUMBLE
   std::optional<Controller> controller{};
   bool operator==(const Info &) const = default;
 };
@@ -468,6 +480,21 @@ inline std::optional<StreamRequest> decode_set_stream(std::span<const uint8_t> p
   return s;
 }
 
+/// Encode TEST_RUMBLE: [rumble].
+inline std::vector<uint8_t> encode_test_rumble(const RumbleOptions &rumble) {
+  std::vector<uint8_t> p;
+  put_rumble(p, rumble);
+  return p;
+}
+/// Decode TEST_RUMBLE: exactly one rumble block (layout only; check valid()).
+inline std::optional<RumbleOptions> decode_test_rumble(std::span<const uint8_t> payload) {
+  Reader r(payload);
+  RumbleOptions o;
+  if (!read_rumble(r, o) || !r.done())
+    return std::nullopt;
+  return o;
+}
+
 // ---- replies / events (device -> host) -----------------------------------------
 
 inline std::vector<uint8_t> encode_info(const Info &info) {
@@ -478,7 +505,8 @@ inline std::vector<uint8_t> encode_info(const Info &info) {
   put_u8(p, info.max_profiles);
   put_u8(p, info.profile_count);
   put_u8(p, static_cast<uint8_t>((info.controller ? kFlagConnected : 0) |
-                                 (info.rumble_options ? kFlagRumbleOptions : 0)));
+                                 (info.rumble_options ? kFlagRumbleOptions : 0) |
+                                 (info.test_rumble ? kFlagTestRumble : 0)));
   if (info.controller) {
     put_u16(p, info.controller->vid);
     put_u16(p, info.controller->pid);
@@ -495,6 +523,7 @@ inline std::optional<Info> decode_info(std::span<const uint8_t> payload) {
       !r.u8(info.max_profiles) || !r.u8(info.profile_count) || !r.u8(flags))
     return std::nullopt;
   info.rumble_options = flags & kFlagRumbleOptions;
+  info.test_rumble = flags & kFlagTestRumble;
   if (flags & kFlagConnected) {
     Controller c;
     uint8_t has = 0;

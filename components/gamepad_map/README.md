@@ -251,6 +251,12 @@ espp::GamepadMapService service({.send = send_to_host,
                                    std::lock_guard lock(map_mutex);
                                    active_rumble = r; // ... or its rumble options: hand them
                                                       // to the rumble sender
+                                 },
+                                 // optional: lets the console's Test button try
+                                 // options before they are saved
+                                 .on_test_rumble = [&](const espp::RumbleOptions &o,
+                                                       std::string &error) {
+                                   return rumble_sender.play_test(o, error); // your sender
                                  }});
 dispatcher.register_module(service);
 
@@ -292,6 +298,13 @@ with newer ones. A console learns that a device has them from capability bits:
   rumble options are kept, and a new profile gets the default's. Options with
   reserved flag bits or a strength above 200 are refused with an ERROR, and
   nothing is saved.
+- INFO flags bit2: the device takes TEST_RUMBLE (`0x08`, payload `[rumble]`):
+  it plays a short test pattern on the connected controller through those
+  options, without saving anything. The console's **Test** button sends the
+  options as edited, so they can be tried before Save. The service sets the
+  bit only when the application gives it `Config::on_test_rumble`, which plays
+  the pattern (it returns promptly, and `false` with a reason, e.g. "no
+  controller connected", when it cannot; the console shows that reason).
 
 ## Host test
 

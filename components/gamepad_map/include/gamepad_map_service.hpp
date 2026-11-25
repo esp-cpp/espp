@@ -65,6 +65,9 @@ namespace espp {
  *          connected controller different rumble options (see RumbleOptions),
  *          the service calls Config::on_active_rumble_changed with them: the
  *          application applies the new options to the rumble it forwards.
+ *          With Config::on_test_rumble set, a host can also try rumble
+ *          options before saving them (TEST_RUMBLE): the application plays a
+ *          short test pattern through them on the connected controller.
  *          publish_input() only copies the state under a lock (no I/O), so it
  *          can be called for every report.
  *
@@ -104,6 +107,11 @@ public:
   using map_changed_fn = std::function<void(const GamepadMap &map)>;
   /// Called with the connected controller's new rumble options after a host changed them.
   using rumble_changed_fn = std::function<void(const RumbleOptions &rumble)>;
+  /// Plays a short rumble test pattern on the connected controller through
+  /// `options` (not saved). Returns false, with `error` set to a short reason
+  /// for the host, when it cannot (e.g. no controller connected, or one that
+  /// cannot rumble).
+  using test_rumble_fn = std::function<bool(const RumbleOptions &options, std::string &error)>;
 
   /// Configuration for the GamepadMapService.
   struct Config {
@@ -116,6 +124,13 @@ public:
     /// change_mutex()) when a host's change gives the connected controller
     /// different rumble options.
     rumble_changed_fn on_active_rumble_changed{nullptr};
+    /// Called (without the service's locks held, on the thread handling the
+    /// request) when a host asks to try rumble options before saving them
+    /// (TEST_RUMBLE): play a short test pattern through them. Must return
+    /// promptly (start the pattern, do not wait for it) and must not re-enter
+    /// this object. Unset: the device does not offer the test (INFO flags bit2
+    /// clear).
+    test_rumble_fn on_test_rumble{nullptr};
     /// Dispatcher module id this instance answers on (and stamps on every
     /// frame it sends). A routing key only (0x00..0xEF).
     uint8_t module{kModule};
@@ -296,6 +311,7 @@ public:
     case Type::ListProfiles:
     case Type::SetStream:
     case Type::ResetAll:
+    case Type::TestRumble:
       break;
     default:
       return false; // not a gamepad map request: ignore so the service can share a stream
@@ -450,6 +466,33 @@ public:
       ok(type, correlation);
       break;
     }
+    case Type::TestRumble: {
+      if (!config_.on_test_rumble) {
+        send_error(type, std::errc::not_supported, "this device does not offer a rumble test",
+                   correlation);
+        break;
+      }
+      const auto options = proto::decode_test_rumble(payload);
+      if (!options) {
+        send_error(type, std::errc::invalid_argument, "malformed TEST_RUMBLE", correlation);
+        break;
+      }
+      std::string why;
+      if (!options->valid(&why)) {
+        send_error(type, std::errc::invalid_argument, "invalid rumble options: " + why,
+                   correlation);
+        break;
+      }
+      std::string error;
+      if (!config_.on_test_rumble(*options, error)) {
+        send_error(type, std::errc::no_such_device,
+                   error.empty() ? std::string("the rumble test could not be played") : error,
+                   correlation);
+        break;
+      }
+      ok(type, correlation);
+      break;
+    }
     default:
       break;
     }
@@ -488,7 +531,8 @@ protected:
             static_cast<uint8_t>(std::min<size_t>(config_.profiles->max_profiles(), 255)),
         .profile_count =
             static_cast<uint8_t>(std::min<size_t>(config_.profiles->profile_count(), 255)),
-        .rumble_options = true};
+        .rumble_options = true,
+        .test_rumble = static_cast<bool>(config_.on_test_rumble)};
     if (const auto c = controller()) {
       info.controller =
           proto::Controller{.vid = c->vid,

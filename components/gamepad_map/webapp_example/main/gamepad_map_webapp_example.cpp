@@ -145,16 +145,27 @@ extern "C" void app_main(void) {
     logger.info("Rumble options changed from the console: off={} strength={}% swap={}",
                 rumble.is_off(), rumble.strength_percent, rumble.swaps_motors());
   };
+  // The console's rumble Test: a real application plays a short pattern on the
+  // controller through these (unsaved) options (start it and return; false with
+  // a reason when it cannot, e.g. no controller). The demo controller has no
+  // motors, so this just logs what it would play.
+  auto on_test_rumble = [&](const espp::RumbleOptions &rumble, std::string &) {
+    logger.info("Rumble test requested: off={} strength={}% swap={}", rumble.is_off(),
+                rumble.strength_percent, rumble.swaps_motors());
+    return true;
+  };
   espp::GamepadMapService vendor_map({.send = vendor_send,
                                       .profiles = &profiles,
                                       .on_active_map_changed = on_map_changed,
                                       .on_active_rumble_changed = on_rumble_changed,
+                                      .on_test_rumble = on_test_rumble,
                                       .task_config = {.name = "gpmap_v", .stack_size_bytes = 4096},
                                       .log_level = espp::Logger::Verbosity::INFO});
   espp::GamepadMapService cdc_map({.send = cdc_send,
                                    .profiles = &profiles,
                                    .on_active_map_changed = on_map_changed,
                                    .on_active_rumble_changed = on_rumble_changed,
+                                   .on_test_rumble = on_test_rumble,
                                    .task_config = {.name = "gpmap_c", .stack_size_bytes = 4096},
                                    .log_level = espp::Logger::Verbosity::INFO});
 

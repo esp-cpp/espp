@@ -306,6 +306,49 @@ int main() {
     CHECK(h2.rumble_calls == 2 && h2.last_rumble == off100);
   }
 
+  // 10. TEST_RUMBLE: refused without Config::on_test_rumble (INFO bit2 clear);
+  //     with it, the options reach the callback (nothing saved), invalid ones
+  //     and a malformed payload are refused, and the app's refusal is relayed
+  {
+    const auto info_frame = h.request(service, Type::GetInfo);
+    const auto info = info_frame ? proto::decode_info(info_frame->payload) : std::nullopt;
+    CHECK(info && info->rumble_options && !info->test_rumble);
+    CHECK(is_error(h.request(service, Type::TestRumble, proto::encode_test_rumble(swap150)),
+                   static_cast<uint32_t>(std::make_error_code(std::errc::not_supported).value()),
+                   "this device does not offer a rumble test"));
+
+    Harness h3;
+    auto config = h3.config(&profiles);
+    std::optional<RumbleOptions> played;
+    bool refuse = false;
+    config.on_test_rumble = [&](const RumbleOptions &o, std::string &error) {
+      if (refuse) {
+        error = "no controller connected";
+        return false;
+      }
+      played = o;
+      return true;
+    };
+    TestService tester(config);
+    const auto f = h3.request(tester, Type::GetInfo);
+    const auto i = f ? proto::decode_info(f->payload) : std::nullopt;
+    CHECK(i && i->test_rumble);
+    const auto stored = profiles.data();
+    CHECK(is_ok(h3.request(tester, Type::TestRumble, proto::encode_test_rumble(swap150))));
+    CHECK(played == swap150);
+    const auto after = profiles.data(); // nothing saved
+    CHECK(after.default_rumble == stored.default_rumble && after.profiles == stored.profiles);
+    played.reset();
+    CHECK(is_error(h3.request(tester, Type::TestRumble, proto::encode_test_rumble({0, 201})), 22,
+                   "invalid rumble options"));
+    CHECK(is_error(h3.request(tester, Type::TestRumble, Bytes{0x00}), 22, "malformed TEST_RUMBLE"));
+    CHECK(!played);
+    refuse = true;
+    CHECK(is_error(h3.request(tester, Type::TestRumble, proto::encode_test_rumble({})),
+                   static_cast<uint32_t>(std::make_error_code(std::errc::no_such_device).value()),
+                   "no controller connected"));
+  }
+
   fs::remove_all(dir);
   if (failures == 0) {
     std::printf("gamepad_map_service_host_test: all checks passed\n");
