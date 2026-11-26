@@ -223,6 +223,12 @@ by hand:
   finalises, when a thread could no longer re-acquire the GIL at all.
   `python/blocking_destructors_test.py` covers delete-while-running and
   exit-while-running for each class (it is part of the wheel test command).
+- `espp::EventManager` is a C++ singleton python never owns, so it has no
+  holder: its `remove_subscriber` / `clear` (which wait for a callback running
+  on the topic's thread) release the GIL, and the module's `atexit` hook calls
+  `EventManager::get().clear()` so its threads stop and its python callbacks
+  are destroyed while the interpreter is still alive
+  (`python/event_manager_test.py`, also in the wheel test command).
 
 The litgen dependency is unpinned and recent versions (0.20–0.22) regressed
 nested-scope/template generation, which is why this automation is needed.

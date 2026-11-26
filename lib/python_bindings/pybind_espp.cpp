@@ -279,13 +279,27 @@ void py_init_module_espp(py::module &m) {
           "new data is published.\n *\n * @note In c++ objects, it's recommended to call the\n *   "
           "    add_publisher/add_subscriber functions in the class constructor and\n *       then "
           "to call the remove_publisher/remove_subscriber functions in the\n *       class "
-          "destructor.\n *\n * @note It is recommended (unless you are only interested in events "
-          "and not\n *       data or are only needing to transmit actual strings) to use a\n *     "
-          "  serialization library (such as espp::serialization - which wraps\n *       alpaca) to "
-          "serialize your data structures to string when publishing\n *       and then deserialize "
-          "your data from string in the subscriber\n *       callbacks.\n *\n * \\section "
-          "event_manager_ex1 Event Manager Example\n * \\snippet event_manager_example.cpp event "
-          "manager example\n")
+          "destructor. When remove_subscriber() returns, the callback is\n *       not running and "
+          "will not be called again, so the object can be\n *       destroyed safely right after "
+          "it (see remove_subscriber() for the two\n *       cases where it can't wait).\n *\n * "
+          "@note Every function is thread safe and can be called from any thread,\n *       "
+          "including from inside a subscriber callback (for example a callback\n *       that "
+          "removes its own subscription). remove_subscriber() and clear()\n *       wait for a "
+          "callback they remove that is running on another thread to\n *       return, so don't "
+          "call them while holding a lock which that callback\n *       takes. They wait at the "
+          "topic task's priority: a high priority caller\n *       can be held up by a topic whose "
+          "task has a low priority\n *       (Task::BaseConfig::priority, 0 by default), so give "
+          "the topic's\n *       task_config a priority that suits the code removing its "
+          "subscribers.\n *\n * @note Data published on a topic is queued and delivered in order "
+          "on the\n *       topic's thread. Data still queued when the topic's last subscriber "
+          "is\n *       removed is dropped. When C++ exceptions are enabled, an exception\n *      "
+          " thrown by a callback is logged and the other callbacks still run.\n *\n * @note It is "
+          "recommended (unless you are only interested in events and not\n *       data or are "
+          "only needing to transmit actual strings) to use a\n *       serialization library (such "
+          "as espp::serialization - which wraps\n *       alpaca) to serialize your data "
+          "structures to bytes when publishing\n *       and then deserialize your data from bytes "
+          "in the subscriber\n *       callbacks.\n *\n * \\section event_manager_ex1 Event "
+          "Manager Example\n * \\snippet event_manager_example.cpp event manager example\n")
           .def_static("get", &espp::EventManager::get,
                       "*\n   * @brief Get the singleton instance of the EventManager.\n   * "
                       "@return A reference to the EventManager singleton.\n",
@@ -304,13 +318,16 @@ void py_init_module_espp(py::module &m) {
                py::arg("stack_size_bytes") = 8192,
                "*\n   * @brief Register a subscriber for \\p component on \\p topic.\n   * @param "
                "topic Topic name for the data being subscribed to.\n   * @param component Name of "
-               "the component publishing data.\n   * @param callback The event_callback_fn to be "
-               "called when receicing data on\n   *        \\p topic.\n   * @param "
+               "the component subscribing to the data.\n   * @param callback The event_callback_fn "
+               "to be called when receiving data on\n   *        \\p topic.\n   * @param "
                "stack_size_bytes The stack size in bytes to use for the subscriber\n   * @note The "
-               "stack size is only used if a subscriber is not already registered\n   *       for "
-               "that topic. If a subscriber is already registered for that topic,\n   *       the "
-               "stack size is ignored.\n   * @return True if the subscriber was added, False if it "
-               "was already\n   *         registered for that component.\n")
+               "stack size is only used when the topic's thread is created. If\n   *       a "
+               "subscriber is already registered for that topic (or the topic's\n   *       thread "
+               "is still finishing a delivery after its last subscriber was\n   *       removed, "
+               "and is reused), the stack size is ignored.\n   * @return True if the subscriber "
+               "was added, False if it was already\n   *         registered for that component, "
+               "the callback is empty, clear() is\n   *         running, or the topic's thread "
+               "could not be started.\n")
           .def("add_subscriber",
                py::overload_cast<const std::string &, const std::string &,
                                  const espp::EventManager::event_callback_fn &,
@@ -319,13 +336,16 @@ void py_init_module_espp(py::module &m) {
                py::arg("topic"), py::arg("component"), py::arg("callback"), py::arg("task_config"),
                "*\n   * @brief Register a subscriber for \\p component on \\p topic.\n   * @param "
                "topic Topic name for the data being subscribed to.\n   * @param component Name of "
-               "the component publishing data.\n   * @param callback The event_callback_fn to be "
-               "called when receicing data on\n   *        \\p topic.\n   * @param task_config The "
-               "task configuration to use for the subscriber.\n   * @note The task_config is only "
-               "used if a subscriber is not already\n   *       registered for that topic. If a "
-               "subscriber is already registered for\n   *       that topic, the task_config is "
-               "ignored.\n   * @return True if the subscriber was added, False if it was already\n "
-               "  *         registered for that component.\n")
+               "the component subscribing to the data.\n   * @param callback The event_callback_fn "
+               "to be called when receiving data on\n   *        \\p topic.\n   * @param "
+               "task_config The task configuration to use for the subscriber.\n   * @note The "
+               "task_config is only used when the topic's thread is created. If\n   *       a "
+               "subscriber is already registered for that topic (or the topic's\n   *       thread "
+               "is still finishing a delivery after its last subscriber was\n   *       removed, "
+               "and is reused), the task_config is ignored.\n   * @return True if the subscriber "
+               "was added, False if it was already\n   *         registered for that component, "
+               "the callback is empty, clear() is\n   *         running, or the topic's thread "
+               "could not be started.\n")
           .def("publish", &espp::EventManager::publish, py::arg("topic"), py::arg("data"),
                "*\n   * @brief Publish \\p data on \\p topic.\n   * @param topic Topic to publish "
                "data on.\n   * @param data Data to publish, within a vector container.\n   * "
@@ -340,10 +360,28 @@ void py_init_module_espp(py::module &m) {
                "publisher was removed, False if it was not\n   *         registered.\n")
           .def("remove_subscriber", &espp::EventManager::remove_subscriber, py::arg("topic"),
                py::arg("component"),
-               "*\n   * @brief Remove \\p component's subscriber for \\p topic.\n   * @param topic "
-               "The topic that \\p component was subscribing to.\n   * @param component The "
-               "component for which the subscriber was registered.\n   * @return True if the "
-               "subscriber was removed, False if it was not\n   *         registered.\n");
+               "*\n   * @brief Remove \\p component's subscriber for \\p topic.\n   * @details "
+               "When it returns, the callback is not running and will not be\n   *          called "
+               "again, and it has been destroyed unless it was still\n   *          running (it is "
+               "then destroyed on the topic's thread once it\n   *          returns). It can't "
+               "wait for the callback in two cases, which\n   *          would deadlock: when "
+               "called from that callback itself, and when\n   *          the callback is waiting "
+               "in turn for the calling thread (callbacks\n   *          of two topics removing "
+               "each other's subscribers). Removing the\n   *          topic's last subscriber "
+               "stops the topic's thread and drops any\n   *          data still queued for it.\n  "
+               " * @param topic The topic that \\p component was subscribing to.\n   * @param "
+               "component The component for which the subscriber was registered.\n   * @return "
+               "True if the subscriber was removed, False if it was not\n   *         registered. "
+               "It waits for the callback in both cases: one that\n   *         removed itself (or "
+               "that clear() removed) can still be running.\n",
+               py::call_guard<py::gil_scoped_release>())
+          .def("clear", &espp::EventManager::clear,
+               "*\n   * @brief Remove every publisher and subscriber and stop every topic's\n   *  "
+               "      thread.\n   * @details Waits for callbacks running on other threads to "
+               "return (except\n   *          in the two cases described in "
+               "remove_subscriber()).\n   *          add_subscriber() returns False while it runs. "
+               "The EventManager\n   *          can be used again afterwards.\n",
+               py::call_guard<py::gil_scoped_release>());
   ////////////////////    </generated_from:event_manager.hpp>    ////////////////////
 
   ////////////////////    <generated_from:ftp_server.hpp>    ////////////////////

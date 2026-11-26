@@ -250,6 +250,8 @@ _GIL_RELEASE_METHODS = {
     "espp::RtspServer": ["start", "stop", "send_frame"],
     "espp::RtspSession": ["send_rtp_packet", "send_rtcp_packet"],
     "espp::ThreadPool": ["start", "stop", "submit"],
+    # wait for a callback running on the topic's thread (and join that thread)
+    "espp::EventManager": ["remove_subscriber", "clear"],
 }
 
 _GIL_GUARD = "py::call_guard<py::gil_scoped_release>()"

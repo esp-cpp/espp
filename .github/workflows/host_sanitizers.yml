@@ -6,7 +6,8 @@ name: Host sanitizers (TSan / ASan)
 # scheduler, deferred dispatchers), and most defects found in review have been
 # data races, deadlocks, and use-after-frees - exactly the classes these
 # sanitizers detect mechanically. Runs whenever RTPS or its concurrency
-# building blocks change.
+# building blocks change. The EventManager test (pc/tests/event_manager.cpp)
+# runs here too, for the same reasons.
 
 # Minimal token scope: build + run tests, never writes.
 permissions:
@@ -21,10 +22,12 @@ on:
       - "components/task/**"
       - "components/timer/**"
       - "components/cdr/**"
+      - "components/event_manager/**"
       - "lib/espp.cmake"
       - "pc/tests/rtps_*"
       - "pc/tests/socket_reactor.cpp"
       - "pc/tests/thread_pool.cpp"
+      - "pc/tests/event_manager.cpp"
       - ".github/workflows/host_sanitizers.yml"
   workflow_dispatch:
 
@@ -97,7 +100,7 @@ jobs:
           # docker matrix covers them); everything else runs standalone. The
           # generous per-test timeout absorbs the sanitizer's slowdown; a hang
           # (e.g. a deadlock TSan cannot see) still fails the job.
-          for t in pc/build/rtps_* pc/build/socket_reactor pc/build/thread_pool; do
+          for t in pc/build/rtps_* pc/build/socket_reactor pc/build/thread_pool pc/build/event_manager; do
             [ -x "$t" ] || continue
             name=$(basename "$t")
             case "$name" in *interop*) continue;; esac
