@@ -5,7 +5,8 @@ handled right: remove_subscriber() / clear() wait for a callback running on
 the topic's thread (so they release the GIL, or a python callback could never
 finish), a callback that removes its own subscription, and exiting the
 interpreter with live subscribers (the module's atexit hook clears the
-EventManager while python can still run and destroy the callbacks).
+EventManager while python can still run and destroy the callbacks, and a
+callback still running then can't subscribe again).
 
 Each case runs in a child interpreter under a timeout, so a regression shows
 up as a failed case rather than a hung test.
@@ -77,7 +78,7 @@ assert raises_type_error(lambda: em.add_subscriber("t", "c"))
 assert raises_type_error(lambda: em.remove_subscriber(1, 2))
 assert raises_type_error(lambda: espp.EventManager())  # singleton: get() only
 assert em is espp.EventManager.get()
-# a callback that raises: the error is reported by python, the subscriber thread keeps going
+# a callback that raises: the EventManager logs the error and the subscriber thread keeps going
 calls = [0]
 def flaky(data):
     calls[0] += 1
@@ -171,6 +172,19 @@ em.publish("idle", [1])
 em.publish("busy", [1])
 assert started.wait(5)
 print("exit_with_live_subscribers ok")
+""",
+    # a callback still running at exit subscribes while the atexit hook's clear() waits for it:
+    # that subscription (and the python callable it holds) must not outlive the interpreter
+    "exit_while_callback_subscribes": """
+started = threading.Event()
+def slow(data):
+    started.set()
+    time.sleep(0.3)
+    em.add_subscriber("late", "x", lambda data: None)
+assert em.add_subscriber("t", "slow", slow)
+em.publish("t", [1])
+assert started.wait(5)
+print("exit_while_callback_subscribes ok")
 """,
     # an unhandled exception with live subscribers must still exit (with status 1)
     "exception_with_live_subscribers": """

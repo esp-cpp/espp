@@ -16,8 +16,9 @@
 //     while python threads can still run, so the later destructors find nothing
 //     left to join.
 //
-// Standard library + pybind11 only (no espp headers), so module.cpp can
-// register the atexit hook without pulling in the whole library.
+// Standard library + pybind11 only (no espp headers), so including it doesn't
+// pull in the library: module.cpp includes just the espp headers its atexit
+// hook uses.
 
 #include <functional>
 #include <memory>

@@ -26,10 +26,17 @@ inside a subscriber callback: a callback can publish, subscribe, or remove its
 own subscription. When ``remove_subscriber()`` returns, that callback is not
 running and will not be called again, so an object can call it from its
 destructor and then be destroyed safely. To guarantee that,
-``remove_subscriber()`` (and ``clear()``) wait for a callback of that topic that is
-running on another thread to return, so don't call them while holding a lock
-that the topic's callbacks take. Data still queued for a topic when its last
-subscriber leaves is dropped.
+``remove_subscriber()`` (and ``clear()``) wait for the callback they remove if it
+is running on another thread, so don't call them while holding a lock that the
+callback takes. They can't wait in two cases, which would deadlock: when called
+from that callback itself, and when that callback is waiting in turn for the
+caller (callbacks of two topics removing each other's subscribers).
+
+The wait runs at the topic task's priority, which is 0 unless the
+``task_config`` passed to ``add_subscriber()`` sets one, so a high priority task
+removing a subscriber can be held up by a low priority topic.
+``add_subscriber()`` returns false while ``clear()`` runs. Data still queued for
+a topic when its last subscriber leaves is dropped.
 
 .. ------------------------------- Example -------------------------------------
 

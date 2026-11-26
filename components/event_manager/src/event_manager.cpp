@@ -7,10 +7,18 @@
 using namespace espp;
 
 namespace {
-// The topic whose callbacks this thread is running right now, if any. A
-// removal made from one of those callbacks must not wait for the delivery in
-// progress or join the topic's thread: both are this thread.
-thread_local const void *t_delivering_topic = nullptr;
+// The topic whose event this thread is delivering right now, if any: set while
+// its callbacks run and while the delivery lets go of its subscriber snapshot
+// (which can destroy removed callbacks). A call made from that thread never
+// waits for that topic's thread or joins it: both are this thread.
+thread_local void *t_delivering_topic = nullptr;
+
+// Guards every Topic's waiting_on / waiting_for. Never destroyed, so that a
+// wait during static destruction can still use it.
+std::mutex &wait_graph_mutex() {
+  static auto *m = new std::mutex();
+  return *m;
+}
 
 void call_subscriber(const std::string &topic, const std::string &component,
                      const EventManager::event_callback_fn &callback,
@@ -18,7 +26,10 @@ void call_subscriber(const std::string &topic, const std::string &component,
 #if defined(__cpp_exceptions) && __cpp_exceptions
   // A callback that throws must not end the topic's thread (an exception
   // escaping it calls std::terminate): log it and go on with the next one.
-  static espp::Logger logger({.tag = "Event Manager", .level = espp::Logger::Verbosity::WARN});
+  // Never destroyed, so that it still works for callbacks that run while the
+  // program exits.
+  static auto &logger =
+      *new espp::Logger({.tag = "Event Manager", .level = espp::Logger::Verbosity::WARN});
   try {
     callback(data);
   } catch (const std::exception &e) {
@@ -33,17 +44,35 @@ void call_subscriber(const std::string &topic, const std::string &component,
 }
 } // namespace
 
+EventManager::Topic::~Topic() {
+  // Wake the thread so that destroying its task can join it: Task::stop()
+  // only signals the Task's own condition variable, not cv.
+  {
+    std::lock_guard<std::mutex> lk(m);
+    stopping = true;
+  }
+  cv.notify_all();
+  task.reset();
+}
+
 EventManager::~EventManager() {
+  {
+    std::lock_guard<std::mutex> lk(mutex_);
+    ++clearing_; // refuse new subscribers for good, also once clear() returns
+  }
   clear();
-  // Left over only if the EventManager is destroyed from inside a topic's
-  // callback (e.g. exit() called from one). That thread can't be joined from
-  // itself, and destroying its Task here would std::terminate, so keep the
-  // topic alive: its thread exits on its own once the callback returns.
+  // Left over only if the EventManager is destroyed on one of its topics'
+  // threads (e.g. exit() called from a callback). That thread can't be joined
+  // from itself, and destroying its Task here would std::terminate, so keep
+  // the topic alive: its thread exits on its own once the callback returns.
+  std::vector<std::shared_ptr<Topic>> finished;
   std::vector<std::shared_ptr<Topic>> left;
   {
     std::lock_guard<std::mutex> lk(mutex_);
-    left.swap(stopping_topics_);
+    take_finished_topics(finished);
+    left.swap(retiring_);
   }
+  finished.clear();
   if (!left.empty()) {
     static auto &kept = *new std::vector<std::shared_ptr<Topic>>(); // never destroyed
     kept.insert(kept.end(), std::make_move_iterator(left.begin()),
@@ -80,14 +109,20 @@ bool EventManager::add_subscriber(const std::string &topic, const std::string &c
                   topic);
     return false;
   }
-  reap_stopped_topics();
   // Declared before the lock so that whatever they hold when we return (a
-  // callback, a replaced subscriber list, a topic whose thread didn't start) is
-  // destroyed after the lock is released, never under it.
+  // callback, a replaced subscriber list, topics whose thread is to be joined,
+  // a topic whose thread didn't start) is destroyed after the lock is
+  // released, never under it.
+  std::vector<std::shared_ptr<Topic>> finished;
   auto subscriber = std::make_shared<Subscriber>(component, callback);
   std::shared_ptr<const SubscriberList> replaced;
   std::shared_ptr<Topic> state;
   std::lock_guard<std::mutex> lk(mutex_);
+  if (clearing_ > 0) {
+    logger_.warn("Cannot add subscriber '{}' to topic '{}' while clear() runs", component, topic);
+    return false;
+  }
+  take_finished_topics(finished);
   if (auto it = topics_.find(topic); it != topics_.end()) {
     state = it->second;
     const auto &current = *state->subscribers;
@@ -104,6 +139,17 @@ bool EventManager::add_subscriber(const std::string &topic, const std::string &c
     replaced = std::exchange(state->subscribers,
                              std::make_shared<const SubscriberList>(std::move(subscribers)));
     return true;
+  }
+  // The topic just lost its last subscriber but its thread hasn't exited yet
+  // (e.g. a callback that removed itself subscribes again): keep using that
+  // thread rather than starting a second one for the same topic.
+  for (auto it = retiring_.rbegin(); it != retiring_.rend(); ++it) {
+    if ((*it)->name == topic && revive(**it, subscriber, replaced)) {
+      state = *it;
+      retiring_.erase(std::next(it).base());
+      topics_.emplace(topic, std::move(state));
+      return true;
+    }
   }
   // first subscriber on this topic: create it and start its thread
   state = std::make_shared<Topic>(topic);
@@ -130,7 +176,9 @@ bool EventManager::publish(const std::string &topic, const std::vector<uint8_t> 
   logger_.info("Publishing on topic '{}'", topic);
   std::shared_ptr<Topic> state;
   {
+    std::vector<std::shared_ptr<Topic>> finished; // joined after the lock is released
     std::lock_guard<std::mutex> lk(mutex_);
+    take_finished_topics(finished);
     auto it = topics_.find(topic);
     if (it == topics_.end()) {
       return false;
@@ -173,131 +221,244 @@ bool EventManager::remove_publisher(const std::string &topic, const std::string 
 
 bool EventManager::remove_subscriber(const std::string &topic, const std::string &component) {
   logger_.info("Removing subscriber '{}' on topic '{}'", component, topic);
-  // Destroyed after the lock is released (see add_subscriber).
+  // Destroyed after the locks are released (see add_subscriber).
+  std::vector<std::shared_ptr<Topic>> finished;
+  event_callback_fn callback;
   std::shared_ptr<Subscriber> removed;
   std::shared_ptr<const SubscriberList> replaced;
   std::shared_ptr<Topic> state;
+  // Other topics of this name, each of which can still be running the
+  // component's callback although it is no longer registered there: the
+  // callback removed itself, or clear() removed it.
+  std::vector<std::shared_ptr<Topic>> others;
+  bool topic_found = false;
   bool was_last_subscriber = false;
   {
     std::lock_guard<std::mutex> lk(mutex_);
-    auto it = topics_.find(topic);
-    if (it == topics_.end()) {
-      logger_.warn("Cannot remove subscriber, there are no subscribers for topic '{}'", topic);
-      return false;
+    take_finished_topics(finished);
+    std::copy_if(retiring_.begin(), retiring_.end(), std::back_inserter(others),
+                 [&topic](const std::shared_ptr<Topic> &t) { return t->name == topic; });
+    if (auto it = topics_.find(topic); it != topics_.end()) {
+      topic_found = true;
+      auto subscribers = *it->second->subscribers;
+      auto elem = std::find_if(
+          subscribers.begin(), subscribers.end(),
+          [&component](const std::shared_ptr<Subscriber> &s) { return s->component == component; });
+      if (elem == subscribers.end()) {
+        others.push_back(it->second);
+      } else {
+        state = it->second;
+        removed = *elem;
+        subscribers.erase(elem);
+        was_last_subscriber = subscribers.empty();
+        if (was_last_subscriber) {
+          topics_.erase(it);
+          retiring_.push_back(state);
+        }
+        std::lock_guard<std::mutex> topic_lk(state->m);
+        // a delivery in progress skips it from now on
+        removed->removed = true;
+        replaced = std::exchange(state->subscribers,
+                                 std::make_shared<const SubscriberList>(std::move(subscribers)));
+        if (was_last_subscriber) {
+          retire(*state);
+        }
+      }
     }
-    state = it->second;
-    auto subscribers = *state->subscribers;
-    auto elem = std::find_if(
-        subscribers.begin(), subscribers.end(),
-        [&component](const std::shared_ptr<Subscriber> &s) { return s->component == component; });
-    if (elem == subscribers.end()) {
+  }
+  for (const auto &other : others) {
+    wait_while_running(*other, &component);
+  }
+  if (!state) {
+    if (!topic_found) {
+      logger_.warn("Cannot remove subscriber, there are no subscribers for topic '{}'", topic);
+    } else {
       logger_.warn(
           "Cannot remove subscriber, '{}' is not registered as a subscriber for topic '{}'",
           component, topic);
-      return false;
     }
-    removed = *elem;
-    // a delivery in progress skips it from now on
-    removed->removed = true;
-    subscribers.erase(elem);
-    was_last_subscriber = subscribers.empty();
-    if (was_last_subscriber) {
-      topics_.erase(it);
-    }
-    std::lock_guard<std::mutex> topic_lk(state->m);
-    replaced = std::exchange(state->subscribers,
-                             std::make_shared<const SubscriberList>(std::move(subscribers)));
-    if (was_last_subscriber) {
-      state->stopping = true;
-    }
+    return false;
   }
   if (was_last_subscriber) {
     logger_.info("It was the last subscriber for '{}', stopping its task", topic);
-    std::vector<std::shared_ptr<Topic>> stopped;
-    stopped.push_back(std::move(state));
-    stop_topics(std::move(stopped));
-  } else if (!is_delivering(*state)) {
-    // the callback may be running right now on the topic's thread
-    wait_for_delivery(*state);
+    state->cv.notify_all();
   }
-  reap_stopped_topics();
+  // the callback may be running right now on the topic's thread
+  wait_while_running(*state, &component);
+  {
+    std::lock_guard<std::mutex> topic_lk(state->m);
+    if (state->calling != removed.get()) {
+      // Not running, and never called again: destroy it here, once the locks
+      // are released, rather than later on the topic's thread.
+      std::swap(callback, removed->callback);
+    }
+  }
+  if (was_last_subscriber && wait_while_running(*state, nullptr)) {
+    // join its thread now rather than when the next call notices it finished
+    std::lock_guard<std::mutex> lk(mutex_);
+    take_finished_topics(finished);
+  }
   return true;
 }
 
 void EventManager::clear() {
   logger_.info("Removing every publisher and subscriber");
+  // Destroyed after the locks are released (see add_subscriber).
   std::vector<std::shared_ptr<Topic>> topics;
   std::vector<std::shared_ptr<const SubscriberList>> replaced;
   {
     std::lock_guard<std::mutex> lk(mutex_);
+    ++clearing_; // refuse new subscribers until every topic is stopped
     publishers_.clear();
     for (auto &[name, state] : topics_) {
-      topics.push_back(std::move(state));
+      retiring_.push_back(std::move(state));
     }
     topics_.clear();
-    topics.insert(topics.end(), std::make_move_iterator(stopping_topics_.begin()),
-                  std::make_move_iterator(stopping_topics_.end()));
-    stopping_topics_.clear();
-    for (const auto &state : topics) {
+    for (const auto &state : retiring_) {
       std::lock_guard<std::mutex> topic_lk(state->m);
       for (const auto &subscriber : *state->subscribers) {
         subscriber->removed = true;
       }
       replaced.push_back(
           std::exchange(state->subscribers, std::make_shared<const SubscriberList>()));
-      state->stopping = true;
+      retire(*state);
     }
+    topics = retiring_;
   }
-  stop_topics(std::move(topics));
-  // destroy the callbacks now that every lock is released and every thread
-  // is stopped (a callback still running belongs to the thread calling us)
-  replaced.clear();
-}
-
-void EventManager::stop_topics(std::vector<std::shared_ptr<Topic>> topics) {
-  // every topic here is already marked stopping
   for (const auto &state : topics) {
     state->cv.notify_all();
   }
-  for (auto &state : topics) {
-    if (is_delivering(*state)) {
-      // Removed from one of its own callbacks: this is the topic's thread, so
-      // it can't be joined here. It exits once the callback returns.
-      std::lock_guard<std::mutex> lk(mutex_);
-      stopping_topics_.push_back(std::move(state));
-      continue;
-    }
-    // waits for a callback in progress to return, then joins the thread
-    state->task->stop();
+  for (const auto &state : topics) {
+    wait_while_running(*state, nullptr);
   }
+  {
+    std::vector<std::shared_ptr<Topic>> finished; // joined after the lock is released
+    std::lock_guard<std::mutex> lk(mutex_);
+    take_finished_topics(finished);
+    --clearing_;
+  }
+  topics.clear();
+  // destroy the callbacks now that every lock is released and every thread
+  // is stopped (one still running belongs to a thread that we can't wait for)
+  replaced.clear();
 }
 
-void EventManager::reap_stopped_topics() {
-  std::vector<std::shared_ptr<Topic>> finished;
-  {
-    std::lock_guard<std::mutex> lk(mutex_);
-    auto still_running = [](const std::shared_ptr<Topic> &state) {
-      return state->task->is_started();
-    };
-    auto first_finished =
-        std::stable_partition(stopping_topics_.begin(), stopping_topics_.end(), still_running);
-    finished.insert(finished.end(), std::make_move_iterator(first_finished),
-                    std::make_move_iterator(stopping_topics_.end()));
-    stopping_topics_.erase(first_finished, stopping_topics_.end());
+void EventManager::take_finished_topics(std::vector<std::shared_ptr<Topic>> &finished) {
+  // mutex_ is held. A retiring topic that is no longer delivering won't run a
+  // callback again: its thread is exiting, so joining it doesn't block.
+  if (retiring_.empty()) {
+    return;
   }
-  // destroying them (without the lock) joins threads which have already returned
-  finished.clear();
+  auto still_delivering = [](const std::shared_ptr<Topic> &state) {
+    std::lock_guard<std::mutex> lk(state->m);
+    return state->busy;
+  };
+  auto first_finished = std::stable_partition(retiring_.begin(), retiring_.end(), still_delivering);
+  finished.insert(finished.end(), std::make_move_iterator(first_finished),
+                  std::make_move_iterator(retiring_.end()));
+  retiring_.erase(first_finished, retiring_.end());
+}
+
+void EventManager::retire(Topic &topic) {
+  // topic.m is held
+  topic.stopping = true;
+  topic.queue.clear();
+}
+
+bool EventManager::revive(Topic &topic, const std::shared_ptr<Subscriber> &subscriber,
+                          std::shared_ptr<const SubscriberList> &replaced) {
+  {
+    std::lock_guard<std::mutex> lk(topic.m);
+    if (topic.exited) {
+      return false;
+    }
+    // the thread hasn't seen stopping yet, and won't now
+    topic.stopping = false;
+    replaced = std::exchange(topic.subscribers,
+                             std::make_shared<const SubscriberList>(SubscriberList{subscriber}));
+  }
+  // a remover waiting to join the topic's thread stops waiting
+  topic.idle_cv.notify_all();
+  return true;
+}
+
+EventManager::Topic *EventManager::delivering_topic() {
+  return static_cast<Topic *>(t_delivering_topic);
 }
 
 bool EventManager::is_delivering(const Topic &topic) { return t_delivering_topic == &topic; }
 
-void EventManager::wait_for_delivery(Topic &topic) {
-  std::unique_lock<std::mutex> lk(topic.m);
-  if (!topic.delivering) {
-    return;
+bool EventManager::is_running(const Topic &topic, const std::string *component) {
+  // topic.m is held
+  if (component) {
+    return topic.calling && topic.calling->component == *component;
   }
-  const auto in_progress = topic.deliveries + 1;
-  topic.idle_cv.wait(lk, [&topic, in_progress] { return topic.deliveries >= in_progress; });
+  return topic.busy && topic.stopping;
+}
+
+bool EventManager::waits_for(const Topic &from, const Topic &self) {
+  // The wait-graph mutex is held. Follow what each topic's thread is waiting
+  // for, starting at from's: true if that leads back to self's thread. An
+  // edge only counts while what it waits for is still running; otherwise that
+  // thread is about to stop waiting.
+  const Topic *t = &from;
+  // a chain is never longer than the number of topic threads; the bound only
+  // guards against a bug turning this into an endless loop
+  for (int hops = 0; hops < 1024; ++hops) {
+    Topic *next = t->waiting_on;
+    if (!next) {
+      return false;
+    }
+    bool live = false;
+    {
+      std::lock_guard<std::mutex> lk(next->m);
+      live = is_running(*next, t->waiting_for);
+    }
+    if (!live) {
+      return false;
+    }
+    if (next == &self) {
+      return true;
+    }
+    t = next;
+  }
+  return true;
+}
+
+bool EventManager::wait_while_running(Topic &topic, const std::string *component) {
+  // Waits until no callback of *component runs on topic (component null:
+  // until a stopping topic's thread has finished its last delivery). Returns
+  // false, without waiting, if that would deadlock: on the topic's own
+  // thread, or when the topic's thread is itself waiting, directly or through
+  // other topics, for this thread.
+  if (is_delivering(topic)) {
+    return false;
+  }
+  {
+    std::lock_guard<std::mutex> lk(topic.m);
+    if (!is_running(topic, component)) {
+      return true;
+    }
+  }
+  Topic *self = delivering_topic();
+  if (self) {
+    std::lock_guard<std::mutex> lk(wait_graph_mutex());
+    if (waits_for(topic, *self)) {
+      return false;
+    }
+    self->waiting_on = &topic;
+    self->waiting_for = component;
+  }
+  {
+    std::unique_lock<std::mutex> lk(topic.m);
+    topic.idle_cv.wait(lk, [&topic, component] { return !is_running(topic, component); });
+  }
+  if (self) {
+    std::lock_guard<std::mutex> lk(wait_graph_mutex());
+    self->waiting_on = nullptr;
+    self->waiting_for = nullptr;
+  }
+  return true;
 }
 
 bool EventManager::deliver_next(Topic &topic) {
@@ -307,29 +468,40 @@ bool EventManager::deliver_next(Topic &topic) {
     std::unique_lock<std::mutex> lk(topic.m);
     topic.cv.wait(lk, [&topic] { return topic.stopping || !topic.queue.empty(); });
     if (topic.stopping) {
-      // stop the task; anything still queued is dropped with the topic
+      // stop the task
+      topic.exited = true;
       return true;
     }
     data = std::move(topic.queue.front());
     topic.queue.pop_front();
     subscribers = topic.subscribers;
-    topic.delivering = true;
+    topic.busy = true;
   }
   t_delivering_topic = &topic;
   for (const auto &subscriber : *subscribers) {
-    if (!subscriber->removed) {
-      call_subscriber(topic.name, subscriber->component, subscriber->callback, data);
+    {
+      std::lock_guard<std::mutex> lk(topic.m);
+      if (subscriber->removed) {
+        continue;
+      }
+      topic.calling = subscriber.get();
     }
+    call_subscriber(topic.name, subscriber->component, subscriber->callback, data);
+    {
+      std::lock_guard<std::mutex> lk(topic.m);
+      topic.calling = nullptr;
+    }
+    topic.idle_cv.notify_all();
   }
-  t_delivering_topic = nullptr;
-  // Let go of the snapshot before reporting the delivery finished: a removed
-  // subscriber's callback is then destroyed here, not after its remover has
-  // returned.
+  // Letting go of the snapshot destroys the callbacks that were removed while
+  // they ran (their remover couldn't take them). Still part of the delivery,
+  // so a destructor that calls back into the EventManager is treated like one
+  // of this topic's callbacks.
   subscribers.reset();
+  t_delivering_topic = nullptr;
   {
     std::lock_guard<std::mutex> lk(topic.m);
-    topic.delivering = false;
-    ++topic.deliveries;
+    topic.busy = false;
   }
   topic.idle_cv.notify_all();
   return false;
