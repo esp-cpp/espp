@@ -17,8 +17,8 @@
 //  2. An accepted id sent again is rejected.
 //  3. Cancel-all (a zero id): the 3 goals are listed, finish CANCELED, and
 //     get_result says so right away.
-//  4. With result_timeout 300 ms, get_result a second later is UNKNOWN, and
-//     the server accepts goals again.
+//  4. With result_timeout 2 s, get_result 3 s later is UNKNOWN, and the
+//     server accepts goals again.
 //
 // Exits 0 on success, 1 on failure.
 
@@ -72,7 +72,10 @@ bool run() {
             {.action = kAction,
              .type_name = kType,
              .max_goals_in_flight = 3,
-             .result_timeout = 300ms},
+             // long enough that step 3's get_result reaches the server before
+             // the goals are retired, also on a loaded CI runner (with 300 ms
+             // the Humble interop job once got UNKNOWN there)
+             .result_timeout = 2s},
             [](const Rtps::GoalId &, std::span<const uint8_t>) { return true; },
             [&executing](Rtps::ActionGoalHandle h) {
               executing.fetch_add(1);
@@ -144,11 +147,14 @@ bool run() {
     ract::GoalStatus status{};
     std::vector<uint8_t> result;
     CHECK(reply && ract::unwrap_get_result_response(*reply, status, result), "get_result answered");
+    if (status != ract::GoalStatus::CANCELED) {
+      std::printf("get_result status: %d\n", static_cast<int>(status));
+    }
     CHECK(status == ract::GoalStatus::CANCELED, "get_result right after: CANCELED");
   }
 
   // 4. Past result_timeout the goal is retired; the server has room again.
-  std::this_thread::sleep_for(1s);
+  std::this_thread::sleep_for(3s);
   {
     const auto reply = get_result->call(ract::make_get_result_request(ids.front()), 5s);
     ract::GoalStatus status{};
