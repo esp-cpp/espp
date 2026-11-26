@@ -1,5 +1,6 @@
 #include <pybind11/pybind11.h>
 
+#include "event_manager.hpp"
 #include "stop_registry.h"
 
 #define STRINGIFY(x) #x
@@ -49,6 +50,14 @@ PYBIND11_MODULE(_espp, m) {
   // Stop the threads of every live Task / Timer / TrajectoryPlanner / ... before the interpreter
   // finalises (see stop_registry.h): their destructors run during finalisation, when a thread
   // waiting for the GIL to run its python callback could never get it, so the join would hang.
-  py::module_::import("atexit").attr("register")(
-      py::cpp_function([]() { espp::py_detail::StopRegistry::instance().stop_all(); }));
+  //
+  // The EventManager is a C++ singleton that python never owns, so it is not in the registry; its
+  // topic threads run python callbacks and it holds python callables. Stop the threads and drop the
+  // callables now, with the GIL released so a callback in progress can finish, instead of in its
+  // destructor at C++ static destruction, after the interpreter is gone.
+  py::module_::import("atexit").attr("register")(py::cpp_function([]() {
+    espp::py_detail::StopRegistry::instance().stop_all();
+    py::gil_scoped_release release;
+    espp::EventManager::get().clear();
+  }));
 }

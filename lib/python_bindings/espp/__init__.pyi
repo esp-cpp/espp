@@ -534,13 +534,29 @@ class EventManager:
      * @note In c++ objects, it's recommended to call the
      *       add_publisher/add_subscriber functions in the class constructor and
      *       then to call the remove_publisher/remove_subscriber functions in the
-     *       class destructor.
+     *       class destructor. When remove_subscriber() returns, the callback is
+     *       not running and will not be called again, so the object can be
+     *       destroyed safely right after it.
+     *
+     * @note Every function is thread safe and can be called from any thread,
+     *       including from inside a subscriber callback (for example a callback
+     *       that removes its own subscription). remove_subscriber() and clear()
+     *       wait for a callback of that topic that is running on another thread
+     *       to return, so don't call them while holding a lock which that
+     *       topic's callbacks take. Called from one of the topic's own callbacks,
+     *       they don't wait; the removed callbacks are not called again once the
+     *       current one returns.
+     *
+     * @note Data published on a topic is queued and delivered in order on the
+     *       topic's thread. Data still queued when the topic's last subscriber is
+     *       removed is dropped. When C++ exceptions are enabled, an exception
+     *       thrown by a callback is logged and the other callbacks still run.
      *
      * @note It is recommended (unless you are only interested in events and not
      *       data or are only needing to transmit actual strings) to use a
      *       serialization library (such as espp::serialization - which wraps
-     *       alpaca) to serialize your data structures to string when publishing
-     *       and then deserialize your data from string in the subscriber
+     *       alpaca) to serialize your data structures to bytes when publishing
+     *       and then deserialize your data from bytes in the subscriber
      *       callbacks.
      *
      * \section event_manager_ex1 Event Manager Example
@@ -556,6 +572,7 @@ class EventManager:
 
         """
         pass
+
 
 
     def add_publisher(self, topic: str, component: str) -> bool:
@@ -580,15 +597,16 @@ class EventManager:
         """*
            * @brief Register a subscriber for \p component on \p topic.
            * @param topic Topic name for the data being subscribed to.
-           * @param component Name of the component publishing data.
-           * @param callback The event_callback_fn to be called when receicing data on
+           * @param component Name of the component subscribing to the data.
+           * @param callback The event_callback_fn to be called when receiving data on
            *        \p topic.
            * @param stack_size_bytes The stack size in bytes to use for the subscriber
            * @note The stack size is only used if a subscriber is not already registered
            *       for that topic. If a subscriber is already registered for that topic,
            *       the stack size is ignored.
            * @return True if the subscriber was added, False if it was already
-           *         registered for that component.
+           *         registered for that component, the callback is empty, or the
+           *         topic's thread could not be started.
 
         """
         pass
@@ -603,15 +621,16 @@ class EventManager:
         """*
            * @brief Register a subscriber for \p component on \p topic.
            * @param topic Topic name for the data being subscribed to.
-           * @param component Name of the component publishing data.
-           * @param callback The event_callback_fn to be called when receicing data on
+           * @param component Name of the component subscribing to the data.
+           * @param callback The event_callback_fn to be called when receiving data on
            *        \p topic.
            * @param task_config The task configuration to use for the subscriber.
            * @note The task_config is only used if a subscriber is not already
            *       registered for that topic. If a subscriber is already registered for
            *       that topic, the task_config is ignored.
            * @return True if the subscriber was added, False if it was already
-           *         registered for that component.
+           *         registered for that component, the callback is empty, or the
+           *         topic's thread could not be started.
 
         """
         pass
@@ -643,10 +662,25 @@ class EventManager:
     def remove_subscriber(self, topic: str, component: str) -> bool:
         """*
            * @brief Remove \p component's subscriber for \p topic.
+           * @details When it returns, the callback is not running and will not be
+           *          called again, unless it was called from one of \p topic's own
+           *          callbacks (then the callback is not called again once the
+           *          current one returns). Removing the topic's last subscriber stops
+           *          the topic's thread and drops any data still queued for it.
            * @param topic The topic that \p component was subscribing to.
            * @param component The component for which the subscriber was registered.
            * @return True if the subscriber was removed, False if it was not
            *         registered.
+
+        """
+        pass
+
+    def clear(self) -> None:
+        """*
+           * @brief Remove every publisher and subscriber and stop every topic's
+           *        thread.
+           * @details Waits for callbacks running on other threads to return. The
+           *          EventManager can be used again afterwards.
 
         """
         pass

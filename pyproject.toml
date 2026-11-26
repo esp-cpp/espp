@@ -132,8 +132,10 @@ skip = ["*-musllinux_*", "*_i686", "*-win32"]
 # start(), stop ordering), and run the
 # self-contained stream_frame / Dispatcher binding test, the blocking-destructor test
 # (deleting / exiting with a running Task / Timer / TrajectoryPlanner must not deadlock),
-# and the pure-python persistent_data codec test (byte-checked against C++ vectors).
-test-command = "python \"{project}/python/rtps_bindings_smoke.py\" && python \"{project}/python/rtps_bindings_misuse_test.py\" && python \"{project}/python/dispatcher_test.py\" && python \"{project}/python/blocking_destructors_test.py\" && python \"{project}/python/persistent_data_test.py\""
+# the pure-python persistent_data codec test (byte-checked against C++ vectors), and the
+# EventManager test (removing / clearing while a python callback runs, exiting with live
+# subscribers).
+test-command = "python \"{project}/python/rtps_bindings_smoke.py\" && python \"{project}/python/rtps_bindings_misuse_test.py\" && python \"{project}/python/dispatcher_test.py\" && python \"{project}/python/blocking_destructors_test.py\" && python \"{project}/python/persistent_data_test.py\" && python \"{project}/python/event_manager_test.py\""
 
 [tool.cibuildwheel.linux]
 # The repo is mounted at /project inside the manylinux container; git must

@@ -1,6 +1,11 @@
 #pragma once
 
+#include <atomic>
+#include <condition_variable>
+#include <cstdint>
 #include <deque>
+#include <functional>
+#include <memory>
 #include <mutex>
 #include <string>
 #include <unordered_map>
@@ -22,13 +27,29 @@ namespace espp {
  * @note In c++ objects, it's recommended to call the
  *       add_publisher/add_subscriber functions in the class constructor and
  *       then to call the remove_publisher/remove_subscriber functions in the
- *       class destructor.
+ *       class destructor. When remove_subscriber() returns, the callback is
+ *       not running and will not be called again, so the object can be
+ *       destroyed safely right after it.
+ *
+ * @note Every function is thread safe and can be called from any thread,
+ *       including from inside a subscriber callback (for example a callback
+ *       that removes its own subscription). remove_subscriber() and clear()
+ *       wait for a callback of that topic that is running on another thread
+ *       to return, so don't call them while holding a lock which that
+ *       topic's callbacks take. Called from one of the topic's own callbacks,
+ *       they don't wait; the removed callbacks are not called again once the
+ *       current one returns.
+ *
+ * @note Data published on a topic is queued and delivered in order on the
+ *       topic's thread. Data still queued when the topic's last subscriber is
+ *       removed is dropped. When C++ exceptions are enabled, an exception
+ *       thrown by a callback is logged and the other callbacks still run.
  *
  * @note It is recommended (unless you are only interested in events and not
  *       data or are only needing to transmit actual strings) to use a
  *       serialization library (such as espp::serialization - which wraps
- *       alpaca) to serialize your data structures to string when publishing
- *       and then deserialize your data from string in the subscriber
+ *       alpaca) to serialize your data structures to bytes when publishing
+ *       and then deserialize your data from bytes in the subscriber
  *       callbacks.
  *
  * \section event_manager_ex1 Event Manager Example
@@ -58,6 +79,12 @@ public:
   EventManager &operator=(EventManager &&) = delete;
 
   /**
+   * @brief Destroy the EventManager, stopping every topic's thread (see
+   *        clear()).
+   */
+  ~EventManager();
+
+  /**
    * @brief Register a publisher for \p component on \p topic.
    * @param topic Topic name for the data being published.
    * @param component Name of the component publishing data.
@@ -69,15 +96,16 @@ public:
   /**
    * @brief Register a subscriber for \p component on \p topic.
    * @param topic Topic name for the data being subscribed to.
-   * @param component Name of the component publishing data.
-   * @param callback The event_callback_fn to be called when receicing data on
+   * @param component Name of the component subscribing to the data.
+   * @param callback The event_callback_fn to be called when receiving data on
    *        \p topic.
    * @param stack_size_bytes The stack size in bytes to use for the subscriber
    * @note The stack size is only used if a subscriber is not already registered
    *       for that topic. If a subscriber is already registered for that topic,
    *       the stack size is ignored.
    * @return True if the subscriber was added, false if it was already
-   *         registered for that component.
+   *         registered for that component, the callback is empty, or the
+   *         topic's thread could not be started.
    */
   bool add_subscriber(const std::string &topic, const std::string &component,
                       const espp::EventManager::event_callback_fn &callback,
@@ -86,15 +114,16 @@ public:
   /**
    * @brief Register a subscriber for \p component on \p topic.
    * @param topic Topic name for the data being subscribed to.
-   * @param component Name of the component publishing data.
-   * @param callback The event_callback_fn to be called when receicing data on
+   * @param component Name of the component subscribing to the data.
+   * @param callback The event_callback_fn to be called when receiving data on
    *        \p topic.
    * @param task_config The task configuration to use for the subscriber.
    * @note The task_config is only used if a subscriber is not already
    *       registered for that topic. If a subscriber is already registered for
    *       that topic, the task_config is ignored.
    * @return True if the subscriber was added, false if it was already
-   *         registered for that component.
+   *         registered for that component, the callback is empty, or the
+   *         topic's thread could not be started.
    */
   bool add_subscriber(const std::string &topic, const std::string &component,
                       const espp::EventManager::event_callback_fn &callback,
@@ -121,6 +150,11 @@ public:
 
   /**
    * @brief Remove \p component's subscriber for \p topic.
+   * @details When it returns, the callback is not running and will not be
+   *          called again, unless it was called from one of \p topic's own
+   *          callbacks (then the callback is not called again once the
+   *          current one returns). Removing the topic's last subscriber stops
+   *          the topic's thread and drops any data still queued for it.
    * @param topic The topic that \p component was subscribing to.
    * @param component The component for which the subscriber was registered.
    * @return True if the subscriber was removed, false if it was not
@@ -128,31 +162,63 @@ public:
    */
   bool remove_subscriber(const std::string &topic, const std::string &component);
 
+  /**
+   * @brief Remove every publisher and subscriber and stop every topic's
+   *        thread.
+   * @details Waits for callbacks running on other threads to return. The
+   *          EventManager can be used again afterwards.
+   */
+  void clear();
+
 protected:
   EventManager()
       : espp::BaseComponent("Event Manager") {}
 
-  struct SubscriberData {
-    std::mutex m;
-    bool notified = false; // Allows cv to ignore spurious wakeups
-    std::condition_variable cv;
-    std::deque<std::vector<uint8_t>> deq;
+  /// One component's subscription. Shared by the topic's subscriber list and
+  /// by the snapshot a delivery in progress iterates, so a callback is never
+  /// destroyed while it runs.
+  struct Subscriber {
+    Subscriber(const std::string &component, const event_callback_fn &callback)
+        : component(component)
+        , callback(callback) {}
+    const std::string component;
+    const event_callback_fn callback;
+    std::atomic<bool> removed{false}; ///< Set when removed; deliveries skip it from then on.
+  };
+  using SubscriberList = std::vector<std::shared_ptr<Subscriber>>;
+
+  /// The state of one topic that has subscribers. Owned through a shared_ptr
+  /// so publish() and the removal of the last subscriber can overlap safely.
+  struct Topic {
+    explicit Topic(const std::string &name)
+        : name(name) {}
+    const std::string name;
+    std::mutex m;                    ///< Guards everything below except task.
+    std::condition_variable cv;      ///< Wakes the topic's thread (data queued or stopping).
+    std::condition_variable idle_cv; ///< Signalled when a delivery finishes.
+    std::deque<std::vector<uint8_t>> queue;
+    bool stopping{false};   ///< Set once, when the topic loses its last subscriber.
+    bool delivering{false}; ///< True while the topic's thread is running callbacks.
+    uint64_t deliveries{0}; ///< Number of finished deliveries.
+    /// Replaced, never changed in place, with both EventManager::mutex_ and m
+    /// held, so holding either one is enough to read it.
+    std::shared_ptr<const SubscriberList> subscribers;
+    /// Declared last so it is destroyed (joining the thread) first.
+    std::unique_ptr<Task> task;
   };
 
-  bool subscriber_task_fn(const std::string &topic, std::mutex &m, std::condition_variable &cv,
-                          bool &task_notified);
+  static bool deliver_next(Topic &topic);
+  static bool is_delivering(const Topic &topic);
+  static void wait_for_delivery(Topic &topic);
+  void stop_topics(std::vector<std::shared_ptr<Topic>> topics);
+  void reap_stopped_topics();
 
-  std::recursive_mutex events_mutex_;
-  detail::EventMap events_;
-
-  std::recursive_mutex callbacks_mutex_;
-  std::unordered_map<std::string, std::vector<std::pair<std::string, event_callback_fn>>>
-      subscriber_callbacks_;
-
-  std::recursive_mutex tasks_mutex_;
-  std::unordered_map<std::string, std::unique_ptr<Task>> subscriber_tasks_;
-
-  std::recursive_mutex data_mutex_;
-  std::unordered_map<std::string, SubscriberData> subscriber_data_;
+  std::mutex mutex_; ///< Guards the members below.
+  std::unordered_map<std::string, std::vector<std::string>> publishers_;
+  std::unordered_map<std::string, std::shared_ptr<Topic>> topics_;
+  /// Topics that lost their last subscriber from inside one of their own
+  /// callbacks: their thread exits on its own and is joined later (by
+  /// reap_stopped_topics(), clear(), or the destructor).
+  std::vector<std::shared_ptr<Topic>> stopping_topics_;
 };
 } // namespace espp

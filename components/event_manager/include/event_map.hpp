@@ -1,9 +1,11 @@
 #pragma once
 
-#include <functional>
+#include <algorithm>
+#include <cstdint>
+#include <iterator>
 #include <string>
-#include <tuple>
 #include <unordered_map>
+#include <utility>
 #include <vector>
 
 namespace espp {
@@ -31,7 +33,7 @@ std::pair<bool, uint32_t> get_index_in_container(const T &value, const C &contai
   if (exists) {
     index = std::distance(container.begin(), iter);
   }
-  return {exists, index};
+  return {exists, static_cast<uint32_t>(index)};
 }
 } // namespace detail
 } // namespace espp

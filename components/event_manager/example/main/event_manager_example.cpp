@@ -1,3 +1,4 @@
+#include <atomic>
 #include <chrono>
 #include <thread>
 #include <vector>
@@ -31,8 +32,9 @@ extern "C" void app_main(void) {
   const std::string event1 = "battery/state";
   const std::string event2 = "drive/control";
 
-  static int num_published = 0;
-  static int num_received = 0;
+  // updated from both tasks and both topics' subscriber threads
+  static std::atomic<int> num_published = 0;
+  static std::atomic<int> num_received = 0;
 
   // Make a task which has a pub/sub in it. NOTE: in real code, this would
   // likely be within a custom class and the registration would happen in the
@@ -184,10 +186,10 @@ extern "C" void app_main(void) {
   em.remove_subscriber(event1, "task 2");
   //! [event manager example]
 
-  logger.info("Published {} times", num_published);
-  logger.info("Received {} times", num_received);
+  logger.info("Published {} times", num_published.load());
+  logger.info("Received {} times", num_received.load());
 
-  if (num_published != num_received) {
+  if (num_published.load() != num_received.load()) {
     logger.error("Mismatch between published and received!");
   } else {
     logger.info("Published and received match!");
