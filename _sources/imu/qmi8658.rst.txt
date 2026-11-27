@@ -1,0 +1,19 @@
+QMI8658 6-Axis IMU
+*******************
+
+The `Qmi8658` component provides a driver for the QMI8658 6-Axis
+Inertial Measurement Units (IMUs).
+
+.. ------------------------------- Example -------------------------------------
+
+.. toctree::
+
+   qmi8658_example
+
+.. ---------------------------- API Reference ----------------------------------
+
+API Reference
+-------------
+
+.. include-build-file:: inc/qmi8658.inc
+.. include-build-file:: inc/qmi8658_detail.inc 

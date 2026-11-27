@@ -1,0 +1,15 @@
+/* espp additions on top of pydata-sphinx-theme */
+
+/* Doxygen-generated API blocks: give the signatures room and keep long
+   template names from pushing the page sideways. */
+.sig {
+  overflow-x: auto;
+}
+
+/* Mermaid diagrams are rendered client-side; keep them inside the content
+   column in both themes. */
+.mermaid {
+  display: flex;
+  justify-content: center;
+  overflow-x: auto;
+}

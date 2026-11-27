@@ -1,0 +1,246 @@
+/* =========================================================================
+   kconfig.css – styles for the Kconfig reference page and :menuitem: role
+   ========================================================================= */
+
+/* -------------------------------------------------------------------------
+   Menupath breadcrumb chips  (.kconfig-menupath)
+   Rendered by the :menuitem: role; also applied by kconfig.js to the
+   "Found in:" lines on the reference page.
+   ------------------------------------------------------------------------- */
+
+.kconfig-menupath {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px;
+  font-size: 0.85em;
+  line-height: 1.4;
+}
+
+.kconfig-menupath-chip {
+  display: inline-block;
+  background: var(--color-background-secondary, #f3f3f3);
+  border: 1px solid var(--color-foreground-border, #c8c8c8);
+  border-radius: 3px;
+  padding: 1px 6px;
+  white-space: nowrap;
+}
+
+.kconfig-menupath-chip a,
+.kconfig-menupath-chip a:visited {
+  color: var(--color-link, #2980b9);
+  text-decoration: none;
+}
+
+.kconfig-menupath-chip a:hover,
+.kconfig-menupath-chip a:focus {
+  color: var(--color-link-underline, #bd2c2a);
+  text-decoration: underline;
+  outline: none;
+}
+
+.kconfig-menupath-sep {
+  color: var(--color-foreground-muted, #888);
+  padding: 0 4px;
+  font-size: 1.15em;
+  font-weight: 600;
+  user-select: none;
+}
+
+/* -------------------------------------------------------------------------
+   :menuitem: hover tooltip
+   ------------------------------------------------------------------------- */
+
+.kconfig-hover-tooltip {
+  display: none;
+  position: fixed;
+  z-index: 9999;
+  width: min(640px, calc(100vw - 24px));
+  max-height: min(520px, calc(100vh - 24px));
+  overflow: auto;
+  background: var(--color-background-primary, #fff);
+  border: 1px solid var(--color-foreground-border, #d6d6d6);
+  border-radius: 7px;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.2);
+  padding: 14px 16px;
+  font-size: 0.9em;
+  line-height: 1.45;
+  color: var(--color-foreground-primary, #333);
+  overscroll-behavior: contain;
+}
+
+.kconfig-hover-tooltip.visible {
+  display: block;
+}
+
+.kconfig-hover-tooltip.loading {
+  width: auto;
+  max-width: calc(100vw - 24px);
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 10px 13px;
+  color: var(--color-foreground-muted, #666);
+}
+
+.kconfig-tooltip-spinner {
+  width: 14px;
+  height: 14px;
+  flex: 0 0 14px;
+  border: 2px solid var(--color-foreground-border, #d6d6d6);
+  border-top-color: var(--color-brand-primary, #2980b9);
+  border-radius: 50%;
+  animation: kconfig-tooltip-spin 0.7s linear infinite;
+}
+
+@keyframes kconfig-tooltip-spin {
+  to { transform: rotate(360deg); }
+}
+
+.kconfig-hover-tooltip .kconfig-tooltip-card {
+  margin: 0;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  scroll-margin-top: 0;
+}
+
+.kconfig-hover-tooltip .kconfig-tooltip-card > h1,
+.kconfig-hover-tooltip .kconfig-tooltip-card > h2,
+.kconfig-hover-tooltip .kconfig-tooltip-card > h3,
+.kconfig-hover-tooltip .kconfig-tooltip-card > h4,
+.kconfig-hover-tooltip .kconfig-tooltip-card > h5,
+.kconfig-hover-tooltip .kconfig-tooltip-card > h6 {
+  margin: -14px -16px 12px;
+  padding: 11px 16px 10px;
+  border-bottom: 1px solid var(--color-foreground-border, #e1e4e5);
+  border-radius: 7px 7px 0 0;
+  background: var(--color-background-secondary, #f6f7f8);
+  color: var(--color-foreground-primary, #222);
+  font-family: var(--font-stack--monospace, monospace);
+  font-size: 1em;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.kconfig-hover-tooltip .kconfig-tooltip-card > blockquote {
+  margin: 0;
+}
+
+.kconfig-hover-tooltip .kconfig-tooltip-card > blockquote > div > p {
+  margin: 0 0 10px;
+}
+
+.kconfig-hover-tooltip .kconfig-tooltip-card dl {
+  margin-bottom: 10px;
+}
+
+.kconfig-hover-tooltip .kconfig-tooltip-card .kconfig-menupath {
+  margin-top: 2px;
+}
+
+.kconfig-hover-tooltip .kconfig-menupath-chip {
+  padding: 0 5px;
+}
+
+.kconfig-hover-tooltip .kconfig-tooltip-card > :last-child {
+  margin-bottom: 0;
+}
+
+/* -------------------------------------------------------------------------
+   Option cards  (.kconfig-option)
+   Applied by kconfig.js to each CONFIG_* section on the reference page.
+   ------------------------------------------------------------------------- */
+
+.kconfig-option {
+  border: 1px solid var(--color-foreground-border, #e1e4e5);
+  border-radius: 4px;
+  padding: 12px 16px 8px;
+  margin: 10px 0 18px;
+  background: var(--color-background-primary, #fff);
+  /* Offset so a card jumped to via a deep link clears the sticky search bar. */
+  scroll-margin-top: 70px;
+}
+
+.kconfig-option > :first-child {
+  margin-top: 0;
+}
+
+.kconfig-option > :last-child {
+  margin-bottom: 0;
+}
+
+/* Zero-height stubs that carry the menu/section ids after the tree is
+   flattened, so sidebar TOC and "Found in:" breadcrumb links still resolve. */
+.kconfig-anchor {
+  display: block;
+  height: 0;
+  margin: 0;
+  scroll-margin-top: 70px;
+}
+
+/* -------------------------------------------------------------------------
+   Filter bar  (.kconfig-filter / .kconfig-filter-count)
+   Injected by kconfig.js at the top of the reference page.
+   ------------------------------------------------------------------------- */
+
+.kconfig-filter-bar {
+  margin: 1em 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  padding: 10px 0;
+  background: var(--color-background-primary, #fff);
+}
+
+.kconfig-filter {
+  flex: 1;
+  padding: 6px 10px;
+  font-size: 0.95em;
+  border: 1px solid var(--color-foreground-border, #c8c8c8);
+  border-radius: 3px;
+  background: var(--color-background-primary, #fff);
+  color: var(--color-foreground-primary, #333);
+  outline: none;
+}
+
+.kconfig-filter:focus {
+  border-color: var(--color-brand-primary, #2980b9);
+  box-shadow: 0 0 0 2px rgba(41, 128, 185, 0.2);
+}
+
+.kconfig-filter-count {
+  font-size: 0.85em;
+  color: var(--color-foreground-muted, #888);
+  white-space: nowrap;
+}
+
+/* hidden options when filter doesn't match */
+.kconfig-option-hidden {
+  display: none;
+}
+
+/* -------------------------------------------------------------------------
+   FOUC guard
+   kconfig.js (loaded in <head>) adds `kconfig-js` to <html> before the body
+   is painted, and removes it once the raw menu tree has been flattened into
+   the searchable card list. While present, hide everything under the section
+   except its heading and show a loading indicator, so the user never sees the
+   un-flattened tree appear and then reshuffle. No-JS users never get the class
+   and so see the full server-rendered content unchanged.
+   ------------------------------------------------------------------------- */
+
+html.kconfig-js #configuration-options-reference > *:not(h1) {
+  display: none !important;
+}
+
+html.kconfig-js #configuration-options-reference::after {
+  content: "Loading configuration options\2026";
+  display: block;
+  padding: 2em 0;
+  font-style: italic;
+  color: var(--color-foreground-muted, #888);
+}
